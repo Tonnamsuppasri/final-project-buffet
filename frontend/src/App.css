@@ -1,0 +1,63 @@
+.index-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: rgb(219, 219, 219);
+  padding: 1rem;
+}
+
+.login-container {
+  background-color: #FF5050;
+  width: 900px;
+  height: 600px;
+  border-radius: 25px;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ลดขนาดบนหน้าจอเล็ก */
+@media (max-width: 1024px) {
+  .login-container {
+    width: 90vw;
+    height: auto;
+    flex-direction: column;
+    border-radius: 20px;
+  }
+}
+
+.login {
+  margin-left: auto;
+  border-radius: 25px 0 0 25px;
+  background-color: white;
+  height: 100%;
+  width: 450px;
+  box-sizing: border-box;
+}
+
+.leftitem {
+  width: 50%;
+  box-sizing: border-box;
+  padding: 2rem;
+}
+
+.custom-heavy-shadow {
+  text-shadow:
+    2px 2px 4px rgba(0, 0, 0, 0.6),
+    4px 4px 8px rgba(0, 0, 0, 0.5),
+    6px 6px 12px rgba(0, 0, 0, 0.4),
+    8px 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 1024px) {
+  .login {
+    width: 100%;
+    border-radius: 0 0 25px 25px;
+    margin-left: 0;
+    height: auto;
+  }
+  .leftitem {
+    width: 100%;
+    padding: 1.5rem 1rem;
+  }
+}
