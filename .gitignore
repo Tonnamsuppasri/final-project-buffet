@@ -1,0 +1,9 @@
+# Node modules
+**/node_modules/
+
+# Build files
+frontend/dist/
+backend/public/
+
+# Environment variables
+**/.env
