@@ -22,23 +22,43 @@ db.connect((err) => {
 
 // Login API
 app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ success: false, message: 'โปรดกรอกข้อมูลให้ครบ' });
+  const { username, password } = req.body
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'โปรดกรอกข้อมูลให้ครบ' })
+  }
+
+  const sqlUser = 'SELECT * FROM users WHERE username = ?'
+  db.query(sqlUser, [username], (err, users) => {
+    if (err) return res.status(500).json({ error: err })
+    if (users.length === 0) {
+      return res.status(401).json({ success: false, message: 'ไม่มีชื่อผู้ใช้นี้' })
     }
-    const sqlUser = 'SELECT * FROM users WHERE username = ?';
-    db.query(sqlUser, [username], (err, users) => {
-        if (err) return res.status(500).json({ error: err });
-        if (users.length === 0) {
-            return res.status(401).json({ success: false, message: 'ไม่มีชื่อผู้ใช้นี้' });
-        }
-        const user = users[0];
-        if (user.password !== password) {
-            return res.status(401).json({ success: false, message: 'รหัสผ่านผิด' });
-        }
-        res.json({ success: true, message: 'Login successful' });
-    });
-});
+
+    const user = users[0]
+    if (user.password !== password) {
+      return res.status(401).json({ success: false, message: 'รหัสผ่านผิด' })
+    }
+
+    // ✅ ส่งข้อมูล user กลับด้วย
+    res.json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      }
+    })
+  })
+})
+app.get('/api/user/:id', (req, res) => {
+  const { id } = req.params
+  db.query('SELECT id, username, role FROM users WHERE id = ?', [id], (err, result) => {
+    if (err) return res.status(500).json({ error: err })
+    if (result.length === 0) return res.status(404).json({ message: 'User not found' })
+    res.json(result[0])
+  })
+})
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

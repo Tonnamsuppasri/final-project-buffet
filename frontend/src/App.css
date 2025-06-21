@@ -3,8 +3,9 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: rgb(219, 219, 219);
   padding: 1rem;
+  background: url('/src/assets/images/background.jpg') no-repeat center center;
+  background-size: cover;
 }
 
 .login-container {
@@ -35,10 +36,28 @@
   box-sizing: border-box;
 }
 
+/* สำหรับมือถือ: กว้างเต็ม */
+@media (max-width: 1024px) {
+  .login {
+    width: 100%;
+    border-radius: 0 0 25px 25px;
+    margin-left: 0;
+    height: auto;
+  }
+}
+
 .leftitem {
   width: 50%;
   box-sizing: border-box;
   padding: 2rem;
+}
+
+/* มือถือ: กว้างเต็ม */
+@media (max-width: 1024px) {
+  .leftitem {
+    width: 100%;
+    padding: 1.5rem 1rem;
+  }
 }
 
 .custom-heavy-shadow {
@@ -47,17 +66,4 @@
     4px 4px 8px rgba(0, 0, 0, 0.5),
     6px 6px 12px rgba(0, 0, 0, 0.4),
     8px 8px 16px rgba(0, 0, 0, 0.3);
-}
-
-@media (max-width: 1024px) {
-  .login {
-    width: 100%;
-    border-radius: 0 0 25px 25px;
-    margin-left: 0;
-    height: auto;
-  }
-  .leftitem {
-    width: 100%;
-    padding: 1.5rem 1rem;
-  }
 }
