@@ -50,7 +50,7 @@ const Menu = ({ children }: { children: React.ReactNode }) => {
           sidebarOpen ? 'w-64 md:w-64' : 'w-0 md:w-0'
         } overflow-hidden flex-shrink-0 side-bar ${
           sidebarOpen ? 'flex' : 'hidden md:flex'
-        }`}
+        } flex justify-between`} 
       >
         <div className={`p-0 flex flex-col items-center mt-5`}>
           <img
@@ -196,6 +196,27 @@ const Menu = ({ children }: { children: React.ReactNode }) => {
             </nav>
           </>
           <hr className="my-4 border-black w-full" />
+          
+        </div>
+        
+        {/* Setting */}
+        <div className={`w-full px-4 py-2 transition-colors duration-200 border-t border-black ${
+              isActive('/setting') ? 'bg-gray-400' : 'hover:bg-gray-400'
+            }`} >
+          <a
+            className={"flex items-center justify-center text-base px-4 py-1 rounded-xl text-start menu-bottom transition-colors duration-200 setting-tap"
+            }
+            href="setting"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/setting', { state: { username, role } });
+            }}
+          >
+            <div className="relative flex items-center justify-center mr-2">
+              <CurrencyDollarIcon className="w-8 h-8" />
+            </div>
+            รายการชำระเงิน
+          </a>
         </div>
       </div>
 
