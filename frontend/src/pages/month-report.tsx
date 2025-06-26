@@ -1,9 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
-import './home.css'
+import './month-report.css'
 import Menu from '../components/menu' // path ขึ้นอยู่กับตำแหน่งไฟล์นี้
 
-const Home = () => {
+const MonthReport = () => {
     const location = useLocation()
     const navigate = useNavigate()
     const username = location.state?.username
@@ -18,12 +18,12 @@ const Home = () => {
 
     return (
         <Menu>
-        <div className="rounded-t-3xl report-container">
-            <div className="w-full h-30  bg-black rounded-t-3xl mx-auto report-header">
-                <h1 className="text-5xl font-bold text-white flex items-center h-full pl-8">Report</h1>
+        <div className="rounded-t-3xl month-report-container">
+            <div className="w-full h-30  bg-black rounded-t-3xl mx-auto month-report-header">
+                <h1 className="text-5xl font-bold text-white flex items-center h-full pl-8">Report Month</h1>
             </div>
 
-            <div className="report-info">
+            <div className="month-report-info">
 
             </div>
             
@@ -35,4 +35,4 @@ const Home = () => {
     )
 }
 
-export default Home
+export default MonthReport

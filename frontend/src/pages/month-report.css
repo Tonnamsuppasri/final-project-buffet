@@ -1,9 +1,8 @@
-
-.report-container {
+.month-report-container {
     min-height:100vh;
     margin-top: 30px;
 }
 
-.report-header {
+.month-report-header {
     background-color:rgb(41, 41, 41);
 }

@@ -1,9 +1,8 @@
-
-.report-container {
+.day-report-container {
     min-height:100vh;
     margin-top: 30px;
 }
 
-.report-header {
+.day-report-header {
     background-color:rgb(41, 41, 41);
 }
