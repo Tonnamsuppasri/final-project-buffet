@@ -1,15 +1,110 @@
+/* Sidebar Background */
 .side-bar {
-    background-color:#393939;
+  background-color: #393939; /* Darker gray for a sleek look */
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
 }
+
+/* Topbar Background */
 .top-bar {
-     background-color:#FE5555;
+  background-color: #fe5555; /* Retain the vibrant red */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Shadow for separation */
 }
+
+/* Edit Profile Button Styling */
 .edit-bottom {
-    margin-top: 4px;
+  margin-top: 2px; /* Slightly adjust margin */
+  font-size: 0.95rem; /* Slightly smaller font for consistency */
+  color: #a0a0a0; /* Softer white */
 }
+
+.edit-bottom:hover {
+  color: #ffffff; /* Brighten on hover */
+  text-decoration-color: #ffffff;
+}
+
+/* Horizontal Rule (Divider) */
 .line-white-menu {
-    width: 90%;
+  width: 80%; /* Make it a bit shorter */
+  border-color: #555555; /* Darker gray for the line */
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
 }
-.setting {
-    background-color:#393939;
+
+.hr-menu {
+  border-color: #555555; /* Consistent divider color */
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Menu Item Taps (Links) */
+.menu-tap {
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-tap:hover {
+  background-color: #5a5a5a; /* Darker gray on hover */
+  transform: translateX(5px); /* Slight horizontal movement on hover */
+  transition: all 0.2s ease-in-out; /* Smooth transition */
+}
+
+.menu-tap.bg-gray-400 {
+  background-color: #5a5a5a; /* Active state background - using a specific dark gray */
+}
+
+/* Logout Icon Positioning */
+.menu-logout-icon {
+  position: relative;
+  top: 1px; /* Fine-tune vertical alignment */
+}
+
+/* General Link and Button Hover Effects */
+button,
+a {
+  transition: all 0.2s ease-in-out; /* Apply smooth transitions globally for buttons and links */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 767px) {
+  /* Hide scrollbar on mobile sidebar when closed to prevent horizontal scroll */
+  .side-bar:not(.flex) {
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+}
+.setting-tap:hover .setting-icon-spin {
+  animation: spin 0.6s ease-in-out; /* หมุน 1 รอบใน 0.6 วินาที, ใช้ ease-in-out เพื่อความนุ่มนวล */
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Custom Scrollbar Styles for WebKit browsers (Chrome, Safari, Edge, Opera, etc.) */
+
+/* Overall scrollbar track */
+.flex-1::-webkit-scrollbar {
+  width: 8px; /* Width of the vertical scrollbar */
+  height: 8px; /* Height of the horizontal scrollbar (if any) */
+}
+
+/* Track */
+.flex-1::-webkit-scrollbar-track {
+  background: #2a2a2a; /* Dark background for the track */
+  border-radius: 10px; /* Rounded corners for the track */
+}
+
+/* Handle */
+.flex-1::-webkit-scrollbar-thumb {
+  background: #888; /* Gray color for the scrollbar handle */
+  border-radius: 10px; /* Rounded corners for the handle */
+}
+
+/* Handle on hover */
+.flex-1::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Darker gray when hovered */
 }

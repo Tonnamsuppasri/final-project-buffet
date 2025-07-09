@@ -25,7 +25,7 @@ function App() {
 
       // สมมติ backend ส่ง user object พร้อม role มา
       const user = res.data.user
-      navigate('/home', { state: { username: user.username, role: user.role } })
+      navigate('/report', { state: { username: user.username, role: user.role } })
     }
   } catch (err: any) {
     Swal.fire({

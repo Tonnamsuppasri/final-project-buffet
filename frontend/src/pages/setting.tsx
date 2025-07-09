@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom'
-import './staff.css'
+import './setting.css'
 
-const Staff = () => {
+const Setting = () => {
     const location = useLocation()
     const username = location.state?.username
     const role = location.state?.role
@@ -9,7 +9,7 @@ const Staff = () => {
     return (
         <div className="p-8">
             <h1 className="text-3xl font-bold">สวัสดี, {username}!</h1>
-            <p>ยินดีต้อนรับเข้าสู่หน้า Staff</p>
+            <p>ยินดีต้อนรับเข้าสู่หน้า Setting</p>
             <p>Role ของคุณ คือ {role}</p>
             {role === 'ADMIN' && (
                 <div className="admin-section">
@@ -21,4 +21,4 @@ const Staff = () => {
     )
 }
 
-export default Staff
+export default Setting
