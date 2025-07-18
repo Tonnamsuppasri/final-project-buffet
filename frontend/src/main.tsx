@@ -43,7 +43,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         {/* ---------------------------------------------------- */}
 
         {/* ถ้ามี 404 Page (Optional) */}
-        <Route path="*" element={<div>404 Not Found</div>} />
+        <Route path="*" element={<div className=''>404 Not Found</div>} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

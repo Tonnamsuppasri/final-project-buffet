@@ -1,6 +1,7 @@
 .day-report-container {
     min-height:100vh;
-    margin-top: 30px;
+    width: 98%;
+    margin: 0 auto;
 }
 
 .day-report-header {

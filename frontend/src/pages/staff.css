@@ -1,0 +1,28 @@
+/* staff.css */
+
+/* Base container styles, less opinionated on width/height for responsiveness */
+.staff-container {
+    min-height: 100vh; /* Ensures it takes at least the full viewport height */
+    width: 98%; /* Small margin on sides for smaller screens */
+    margin: 0 auto;
+}
+
+/* Header styles */
+.staff-header {
+    background-color: rgb(41, 41, 41);
+    /* No fixed height, let content determine it, or use Tailwind h-classes */
+    /* flex, flex-col, md:flex-row, items-center, justify-between, px-4, md:px-8, py-4 will handle responsiveness */
+}
+
+/* Table styles */
+.table-staff {
+  width: 90%; /* Default width for larger screens */
+  margin: 0 auto;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  /* min-w-full in JSX handles responsiveness for table content */
+}
+
+/* Custom styles for SweetAlert2 radio buttons if needed, though inline styles are used in JSX */
+.swal2-radio-custom {
+  /* Add any specific custom styles if default SweetAlert2 radio buttons aren't styled as desired */
+}

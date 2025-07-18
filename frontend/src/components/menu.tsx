@@ -83,7 +83,7 @@ const Menu = () => {
           {/* Scrollable menu items - This is the crucial part */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden pb-4"> {/* flex-1 and overflow-y-auto for scrolling */}
             {/* Report Section */}
-            {role === 'ADMIN' && (
+            {role === 'Admin' && (
               <>
                 <p className="text-lg sm:text-xl ms-8 mb-1 font-bold w-full text-left">
                   รายงาน
@@ -143,7 +143,7 @@ const Menu = () => {
             )}
 
             {/* Staff Management Section */}
-            {role === 'ADMIN' && (
+            {role === 'Admin' && (
               <>
                 <p className="text-lg sm:text-xl ms-8 mb-1 font-bold w-full text-left">
                   การจัดการบุคลากร

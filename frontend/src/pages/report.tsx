@@ -7,7 +7,7 @@ const Home = () => {
     return (
         
         <div className="rounded-t-3xl report-container">
-            <div className="w-full h-30  bg-black rounded-t-3xl mx-auto report-header">
+            <div className="w-full h-30 rounded-t-3xl mx-auto report-header">
                 <h1 className="text-5xl font-bold text-white flex items-center h-full pl-8">Report</h1>
             </div>
 
