@@ -1,4 +1,3 @@
-import { useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import './staff.css';
 import { PlusCircleIcon } from '@heroicons/react/24/solid';
@@ -14,9 +13,6 @@ interface StaffType {
 }
 
 const Staff = () => {
-  const location = useLocation();
-  const username = location.state?.username;
-  const role = location.state?.role;
   const MySwal = withReactContent(Swal);
 
   const [staffList, setStaffList] = useState<StaffType[]>([]);
@@ -199,19 +195,20 @@ const Staff = () => {
 
   return (
     <div className="rounded-t-3xl border staff-container">
-      <div className="w-full h-30 md:h-40 rounded-t-3xl mx-auto flex flex-col md:flex-row items-center justify-between px-4 md:px-8 py-4 staff-header">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white text-center md:text-left mb-4 md:mb-0">
+      <div className="w-full h-30 rounded-t-3xl mx-auto flex md:flex-row items-center justify-between staff-header ">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white text-center  staff-header-title">
           จัดการพนักงาน
         </h1>
         <button
           onClick={addStaff}
-          className="bg-white text-black font-bold py-2 px-4 rounded flex items-center gap-2 transition duration-300 hover:bg-gray-200 hover:scale-105 w-full md:w-auto justify-center"
+          className="bg-white text-black font-bold py-2 px-4 rounded flex items-center gap-2 transition duration-300 hover:bg-gray-200 hover:scale-105 justify-center"
         >
           <PlusCircleIcon className="w-6 h-6 sm:w-8 sm:h-8" />
           เพิ่มพนักงานใหม่
         </button>
       </div>
-      <div className="p-4 overflow-x-auto">
+      {/* Added a wrapper div for responsive scrolling */}
+      <div className="p-4 table-responsive-wrapper">
         <table className="border border-gray-300 rounded-lg table-staff">
           <thead className="bg-gray-400 text-black text-center">
             <tr>
@@ -219,8 +216,8 @@ const Staff = () => {
               <th className="py-2 px-2 sm:px-4 border">Username</th>
               <th className="py-2 px-2 sm:px-4 border">ตำแหน่ง</th>
               <th className="py-2 px-2 sm:px-4 border">Contact</th>
-              <th className="py-2 px-2 sm:px-4 border">แก้ไข</th>
-              <th className="py-2 px-2 sm:px-4 border">ลบ</th>
+              {/* คอลัมน์สำหรับ Actions ที่รวมปุ่มไว้ */}
+              <th className="py-2 px-2 sm:px-4 border staff-actions-header">Actions</th>
             </tr>
           </thead>
           <tbody className="text-center">
@@ -229,28 +226,29 @@ const Staff = () => {
                 key={staff.iduser}
                 className={index % 2 === 0 ? 'bg-white' : 'bg-gray-200'}
               >
-                <td className="py-2 px-2 sm:px-4 border font-bold text-base sm:text-lg">{index + 1}.</td>
-                <td className="py-2 px-2 sm:px-4 border text-sm sm:text-base">{staff.username}</td>
-                <td className="py-2 px-2 sm:px-4 border text-sm sm:text-base">{staff.role}</td>
-                <td className="py-2 px-2 sm:px-4 border text-left text-sm sm:text-base">
+                <td className="py-2 px-2 sm:px-4 border font-bold text-base sm:text-lg" data-label="ID">{index + 1}.</td>
+                <td className="py-2 px-2 sm:px-4 border text-sm sm:text-base" data-label="Username">{staff.username}</td>
+                <td className="py-2 px-2 sm:px-4 border text-sm sm:text-base" data-label="ตำแหน่ง">{staff.role}</td>
+                <td className="py-2 px-2 sm:px-4 border text-left text-sm sm:text-base" data-label="Contact">
                   <div><strong>เบอร์ติดต่อ:</strong> {formatPhone(staff.phone)}</div>
                   <div><strong>Email:</strong> {staff.email}</div>
                 </td>
-                <td className="py-2 px-2 sm:px-4 border">
-                  <button
-                    onClick={() => editStaff(staff)}
-                    className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded flex items-center gap-1 mx-auto text-sm sm:text-base"
-                  >
-                    ✏️ <span className="hidden sm:inline">แก้ไข</span>
-                  </button>
-                </td>
-                <td className="py-2 px-2 sm:px-4 border">
-                  <button
-                    onClick={() => deleteStaff(staff.iduser)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1 mx-auto text-sm sm:text-base"
-                  >
-                    🗑️ <span className="hidden sm:inline">ลบ</span>
-                  </button>
+                {/* รวมปุ่มแก้ไขและลบไว้ใน <td> เดียวกัน */}
+                <td className="py-2 px-2 sm:px-4 border" data-label="Actions">
+                  <div className="staff-actions-buttons"> {/* เพิ่ม div wrapper สำหรับจัด flexbox */}
+                    <button
+                      onClick={() => editStaff(staff)}
+                      className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded flex items-center gap-1 mx-auto text-sm sm:text-base"
+                    >
+                      ✏️ <span className="hidden sm:inline">แก้ไข</span>
+                    </button>
+                    <button
+                      onClick={() => deleteStaff(staff.iduser)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded flex items-center gap-1 mx-auto text-sm sm:text-base"
+                    >
+                      🗑️ <span className="hidden sm:inline">ลบ</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -261,12 +259,11 @@ const Staff = () => {
                 key={`empty-${i}`}
                 className={(staffList.length + i) % 2 === 0 ? 'bg-white' : 'bg-gray-200'}
               >
-                <td className="py-2 px-2 sm:px-4 border font-bold text-base sm:text-lg">{staffList.length + i + 1}.</td>
-                <td className="py-2 px-2 sm:px-4 border">&nbsp;</td>
-                <td className="py-2 px-2 sm:px-4 border">&nbsp;</td>
-                <td className="py-2 px-2 sm:px-4 border">&nbsp;</td>
-                <td className="py-2 px-2 sm:px-4 border">&nbsp;</td>
-                <td className="py-2 px-2 sm:px-4 border">&nbsp;</td>
+                <td className="py-2 px-2 sm:px-4 border font-bold text-base sm:text-lg" data-label="ID">{staffList.length + i + 1}.</td>
+                <td className="py-2 px-2 sm:px-4 border" data-label="Username">&nbsp;</td>
+                <td className="py-2 px-2 sm:px-4 border" data-label="ตำแหน่ง">&nbsp;</td>
+                <td className="py-2 px-2 sm:px-4 border" data-label="Contact">&nbsp;</td>
+                <td className="py-2 px-2 sm:px-4 border" data-label="Actions">&nbsp;</td>
               </tr>
             ))}
           </tbody>

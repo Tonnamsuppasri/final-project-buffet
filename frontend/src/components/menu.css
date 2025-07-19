@@ -63,7 +63,6 @@ button,
 a {
   transition: all 0.2s ease-in-out; /* Apply smooth transitions globally for buttons and links */
 }
-
 /* Responsive adjustments for smaller screens */
 @media (max-width: 767px) {
   /* Hide scrollbar on mobile sidebar when closed to prevent horizontal scroll */

@@ -297,7 +297,7 @@ const Menu = () => {
         </div>
 
         {/* Page content */}
-        <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
+        <div className="flex-1 p-4 sm:p-6 overflow-auto">
           <Outlet />
         </div>
       </div>

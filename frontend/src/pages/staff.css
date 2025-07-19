@@ -1,28 +1,114 @@
-/* staff.css */
-
-/* Base container styles, less opinionated on width/height for responsiveness */
 .staff-container {
-    min-height: 100vh; /* Ensures it takes at least the full viewport height */
-    width: 98%; /* Small margin on sides for smaller screens */
-    margin: 0 auto;
+  width: 98%;
+  box-sizing: border-box;
+  overflow: hidden; /* เพิ่มเพื่อซ่อนส่วนเกิน */
+  margin: 0 auto; /* จัดให้อยู่ตรงกลาง */
 }
 
-/* Header styles */
 .staff-header {
     background-color: rgb(41, 41, 41);
-    /* No fixed height, let content determine it, or use Tailwind h-classes */
-    /* flex, flex-col, md:flex-row, items-center, justify-between, px-4, md:px-8, py-4 will handle responsiveness */
+    padding: 1rem 2rem;
+    min-height: 150px;
 }
 
-/* Table styles */
+.table-responsive-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
 .table-staff {
-  width: 90%; /* Default width for larger screens */
-  margin: 0 auto;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  /* min-w-full in JSX handles responsiveness for table content */
+    width: 100%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-collapse: collapse;
 }
 
-/* Custom styles for SweetAlert2 radio buttons if needed, though inline styles are used in JSX */
-.swal2-radio-custom {
-  /* Add any specific custom styles if default SweetAlert2 radio buttons aren't styled as desired */
+.table-staff th,
+.table-staff td {
+    white-space: normal;
+    padding: 0.75rem 0.5rem;
+    vertical-align: middle;
 }
+
+.table-staff th {
+    font-size: 1rem;
+}
+
+.table-staff td {
+    font-size: 1rem;
+}
+
+.swal2-radio-custom {
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
+
+/* เพิ่ม class สำหรับ head ของคอลัมน์ Actions เพื่อปรับแต่ง */
+.staff-actions-header {
+    width: 150px; /* กำหนดความกว้างเริ่มต้น */
+}
+
+/* Flexbox for action buttons within the same cell */
+.staff-actions-buttons {
+    display: flex; /* ใช้ flexbox */
+    gap: 8px; /* ระยะห่างระหว่างปุ่ม */
+    justify-content: center; /* จัดให้อยู่กึ่งกลางในแนวนอน */
+    align-items: center; /* จัดให้อยู่กึ่งกลางในแนวตั้ง */
+}
+
+/* Responsive Styles */
+@media (max-width: 910px) {
+  .staff-header-title{
+    font-size: 2.5rem; /* ปรับขนาดตัวอักษรให้เล็กลง */
+  }
+}
+@media (max-width: 768px) {
+    .table-staff th,
+    .table-staff td {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .table-staff th {
+        font-size: 0.8rem;
+    }
+
+    .table-staff td {
+        font-size: 0.8rem;
+    }
+}
+
+
+@media (max-width: 680px) {
+    .table-staff th {
+        font-size: 0.7rem;
+    }
+
+    .table-staff td {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 558px) {
+    .staff-header-title{
+    font-size: 2.2rem; /* ปรับขนาดตัวอักษรให้เล็กลง */
+  }
+}
+
+@media (max-width: 522px) {
+  .staff-actions-buttons {
+    flex-wrap: wrap; /* ให้ปุ่มขึ้นบรรทัดใหม่ได้ถ้าไม่พอ */
+  } 
+
+  .staff-header {
+    padding: 2rem 1.7rem;
+    min-height: auto;
+  }
+
+  .staff-header-title{
+    font-size: 1.5rem; /* ปรับขนาดตัวอักษรให้เล็กลง */
+  }
+}
+
