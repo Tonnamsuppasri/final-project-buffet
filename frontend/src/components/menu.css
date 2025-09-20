@@ -17,18 +17,6 @@
   color: #a0a0a0; /* Softer white */
 }
 
-.edit-bottom:hover {
-  color: #ffffff; /* Brighten on hover */
-  text-decoration-color: #ffffff;
-}
-
-/* Horizontal Rule (Divider) */
-.line-white-menu {
-  width: 80%; /* Make it a bit shorter */
-  border-color: #555555; /* Darker gray for the line */
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-}
 
 .hr-menu {
   border-color: #555555; /* Consistent divider color */
@@ -40,12 +28,6 @@
 .menu-tap {
   position: relative;
   overflow: hidden;
-}
-
-.menu-tap:hover {
-  background-color: #5a5a5a; /* Darker gray on hover */
-  transform: translateX(5px); /* Slight horizontal movement on hover */
-  transition: all 0.2s ease-in-out; /* Smooth transition */
 }
 
 .menu-tap.bg-gray-400 {

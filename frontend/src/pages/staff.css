@@ -1,114 +1,390 @@
 .staff-container {
   width: 98%;
+  margin: 0 auto;
   box-sizing: border-box;
-  overflow: hidden; /* เพิ่มเพื่อซ่อนส่วนเกิน */
-  margin: 0 auto; /* จัดให้อยู่ตรงกลาง */
+  overflow: hidden;
 }
 
+/* ---------- Header ---------- */
 .staff-header {
-    background-color: rgb(41, 41, 41);
-    padding: 1rem 2rem;
-    min-height: 150px;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  padding: 1.5rem 2rem;
+  min-height: 150px;
+  border-radius: 1.5rem 1.5rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
 }
 
+.staff-header-title {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+}
+
+/* ปุ่มเพิ่มพนักงาน */
+.staff-header button {
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 600;
+  padding: 0.7rem 1.2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+  transition: all 0.25s ease;
+}
+.staff-header button:hover {
+  background: #e2e8f0;
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* ---------- Table ---------- */
 .table-responsive-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.5rem;
 }
 
 .table-staff {
-    width: 100%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-collapse: collapse;
-}
-
-.table-staff th,
-.table-staff td {
-    white-space: normal;
-    padding: 0.75rem 0.5rem;
-    vertical-align: middle;
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
 }
 
 .table-staff th {
-    font-size: 1rem;
+  background: #1e293b;
+  color: #f8fafc;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .table-staff td {
-    font-size: 1rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  color: #1f2937;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.swal2-radio-custom {
-    width: 16px;
-    height: 16px;
-    vertical-align: middle;
+/* alternate row */
+.table-staff tr:nth-child(even) {
+  background: #f9fafb;
 }
 
-/* เพิ่ม class สำหรับ head ของคอลัมน์ Actions เพื่อปรับแต่ง */
+/* hover effect row */
+.table-staff tbody tr:hover {
+  background: #f1f5f9;
+  transition: background 0.2s;
+}
+
+/* ---------- Action buttons ---------- */
 .staff-actions-header {
-    width: 150px; /* กำหนดความกว้างเริ่มต้น */
+  width: 160px;
 }
 
-/* Flexbox for action buttons within the same cell */
 .staff-actions-buttons {
-    display: flex; /* ใช้ flexbox */
-    gap: 8px; /* ระยะห่างระหว่างปุ่ม */
-    justify-content: center; /* จัดให้อยู่กึ่งกลางในแนวนอน */
-    align-items: center; /* จัดให้อยู่กึ่งกลางในแนวตั้ง */
+  display: flex;
+  gap: 10px;
+  justify-content: center;
 }
 
-/* Responsive Styles */
-@media (max-width: 910px) {
-  .staff-header-title{
-    font-size: 2.5rem; /* ปรับขนาดตัวอักษรให้เล็กลง */
+.staff-actions-buttons button {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.25s ease;
+}
+
+.staff-actions-buttons button:hover {
+  transform: translateY(-2px);
+}
+
+.staff-actions-buttons .bg-indigo-500 {
+  background: #4f46e5;
+}
+.staff-actions-buttons .bg-indigo-500:hover {
+  background: #4338ca;
+}
+
+.staff-actions-buttons .bg-red-500 {
+  background: #ef4444;
+}
+.staff-actions-buttons .bg-red-500:hover {
+  background: #dc2626;
+}
+
+/* ---------- SweetAlert Custom ---------- */
+.swal2-radio-custom {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb; /* ให้ radio ดู modern */
+}
+
+/* ---------- Responsive ---------- */
+@media (min-width: 980px) {
+  /* กำหนดความกว้างขั้นต่ำของตารางเพื่อป้องกันการแสดงผลผิดพลาดเมื่อหน้าจอแคบลง */
+  .table-staff {
+    min-width: 700px; /* ปรับค่านี้ได้ตามความเหมาะสมของเนื้อหาในตาราง */
   }
 }
+
+/* ปรับแต่งสำหรับหน้าจอขนาด 960px - 768px */
+@media (max-width: 960px) and (min-width: 769px) {
+  .staff-header {
+    padding: 1.2rem 1.5rem;
+    min-height: 120px;
+  }
+  
+  .staff-header-title {
+    font-size: 2.2rem;
+  }
+  
+  .staff-header button {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .table-responsive-wrapper {
+    padding: 1rem;
+  }
+  
+  .table-staff th {
+    font-size: 0.85rem;
+    padding: 0.7rem 0.6rem;
+    letter-spacing: 0.3px;
+  }
+  
+  .table-staff td {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  .staff-actions-header {
+    width: 120px;
+  }
+  
+  .staff-actions-buttons {
+    gap: 6px;
+  }
+  
+  .staff-actions-buttons button {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.75rem;
+    gap: 3px;
+  }
+  
+  .staff-actions-buttons button span {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 910px) {
+  .staff-header-title {
+    font-size: 2.2rem;
+  }
+}
+
 @media (max-width: 768px) {
-    .table-staff th,
-    .table-staff td {
-        padding: 0.5rem 0.75rem;
-    }
-
-    .table-staff th {
-        font-size: 0.8rem;
-    }
-
-    .table-staff td {
-        font-size: 0.8rem;
-    }
-}
-
-
-@media (max-width: 680px) {
-    .table-staff th {
-        font-size: 0.7rem;
-    }
-
-    .table-staff td {
-        font-size: 0.7rem;
-    }
-}
-
-@media (max-width: 558px) {
-    .staff-header-title{
-    font-size: 2.2rem; /* ปรับขนาดตัวอักษรให้เล็กลง */
+  .table-staff th,
+  .table-staff td {
+    font-size: 0.85rem;
+    padding: 0.6rem;
   }
 }
 
 @media (max-width: 522px) {
   .staff-actions-buttons {
-    flex-wrap: wrap; /* ให้ปุ่มขึ้นบรรทัดใหม่ได้ถ้าไม่พอ */
-  } 
-
+    flex-wrap: wrap;
+  }
   .staff-header {
-    padding: 2rem 1.7rem;
+    padding: 1.5rem;
     min-height: auto;
   }
-
-  .staff-header-title{
-    font-size: 1.5rem; /* ปรับขนาดตัวอักษรให้เล็กลง */
+  .staff-header-title {
+    font-size: 1.5rem;
   }
 }
 
+/* ---------- Mobile Card Table ---------- */
+@media (max-width: 600px) {
+  .staff-header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.2rem;
+    min-height: auto;
+    text-align: center;
+  }
+  
+  .staff-header-title {
+    font-size: 1.8rem;
+    margin-bottom: 0;
+  }
+  
+  .staff-header button {
+    align-self: center;
+    padding: 0.8rem 1.5rem;
+    font-size: 0.95rem;
+    width: auto;
+  }
+  
+  .table-responsive-wrapper {
+    padding: 0.8rem;
+  }
+  
+  .table-staff,
+  .table-staff thead,
+  .table-staff tbody,
+  .table-staff th,
+  .table-staff td,
+  .table-staff tr {
+    display: block;
+    width: 100%;
+  }
+
+  .table-staff thead {
+    display: none; /* ซ่อนหัวตาราง */
+  }
+  
+  .table-staff {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .table-staff tr {
+    margin-bottom: 1.2rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 1rem;
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .table-staff tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+  }
+  
+  /* เพิ่ม accent color ที่ด้านบนของการ์ด */
+  .table-staff tr::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #4f46e5, #7c3aed);
+  }
+
+  .table-staff td {
+    text-align: left;
+    padding: 0.7rem 0;
+    border: none;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 0.6rem;
+  }
+  
+  .table-staff td:last-child {
+    margin-bottom: 0;
+  }
+
+  .table-staff td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #475569;
+    min-width: 80px;
+    margin-right: 1rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+  
+  /* สไตล์พิเศษสำหรับ ID */
+  .table-staff td[data-label="ID"] {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #1e293b;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .table-staff td[data-label="ID"]::before {
+    color: #4f46e5;
+    font-size: 0.9rem;
+  }
+  
+  /* สไตล์พิเศษสำหรับ Contact */
+  .table-staff td[data-label="Contact"] {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .table-staff td[data-label="Contact"]::before {
+    margin-bottom: 0.5rem;
+  }
+  
+  .table-staff td[data-label="Contact"] div {
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  
+  .table-staff td[data-label="Contact"] strong {
+    color: #374151;
+    font-weight: 600;
+  }
+  
+  /* ปรับ Actions ให้สวยกว่า */
+  .table-staff td[data-label="Actions"] {
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .table-staff td[data-label="Actions"] .staff-actions-buttons {
+    gap: 0.8rem;
+  }
+  
+  .table-staff td[data-label="Actions"] .staff-actions-buttons button {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 0.6rem;
+    font-weight: 600;
+    flex: 1;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .table-staff td[data-label="Actions"] .staff-actions-buttons button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  
+  .table-staff td[data-label="Actions"] .staff-actions-buttons button span {
+    display: inline !important;
+  }
+  
+  /* ซ่อน empty rows ในมือถือ */
+  .table-staff tr:has(td[data-label="Username"]:empty) {
+    display: none;
+  }
+}
