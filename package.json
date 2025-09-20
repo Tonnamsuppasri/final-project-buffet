@@ -1,11 +1,12 @@
 {
+  "name": "your-project",
+  "private": true,
   "devDependencies": {
     "concurrently": "^9.2.0"
   },
-  "name": "your-project",
-  "private": true,
   "scripts": {
-    "dev": "concurrently \"npm --prefix frontend run dev\" \"npm --prefix backend start\""
+    "dev": "concurrently \"npm --prefix frontend run dev\" \"npm --prefix backend start\"",
+    "backend": "npm --prefix backend start",
+    "frontend": "npm --prefix frontend run dev"
   }
 }
-

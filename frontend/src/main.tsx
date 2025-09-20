@@ -1,4 +1,3 @@
-// src/main.tsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
@@ -12,6 +11,7 @@ import EditProfile from './pages/edit-profile' // <-- หน้า Edit Profile
 import Table from './pages/table' // <-- หน้า Table ที่ต้องการ Sidebar
 import CheckBill from './pages/check-bill' // <-- หน้า Check Bill
 import Setting from './pages/setting' // <-- หน้า Setting
+import Welcome from './pages/welcome' // <-- หน้า Welcome
 
 
 import './index.css'
@@ -26,6 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         {/* ---------------------------------------------------- */}
         {/* นี่คือส่วนสำคัญ: กำหนดให้ Menu เป็น Layout สำหรับกลุ่ม Route เหล่านี้ */}
         <Route element={<Menu/>}> {/* Menu component จะถูก Mount แค่ครั้งเดียวที่นี่ */}
+          <Route path="/welcome" element={<Welcome />} />
           <Route path="/report" element={<Report />} />
           <Route path="/day-report" element={<DayReport />} />
           <Route path="/month-report" element={<MonthReport />} />

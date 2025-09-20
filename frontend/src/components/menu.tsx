@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { useLocation, useNavigate, Outlet, type To } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
   Bars3Icon,
@@ -22,7 +22,7 @@ const Menu = () => {
 
   const username = location.state?.username;
   const role = location.state?.role;
-  const isActive = (path: string ) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path;
 
   useEffect(() => {
     if (!username) {
@@ -44,9 +44,18 @@ const Menu = () => {
   }, []);
 
   // ฟังก์ชันสำหรับการนำทางและปิด sidebar ในมือถือ
-  const handleNavigation = (path: string) => {
+  const handleNavigation = (path: To) => {
     navigate(path, { state: { username, role } });
     // ปิด sidebar หากเป็นหน้าจอมือถือ (ขนาดหน้าจอน้อยกว่า 768px)
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
+
+  // ฟังก์ชันสำหรับไปหน้า Welcome เมื่อคลิก Logo
+  const handleLogoClick = () => {
+    navigate('/welcome', { state: { username, role } });
+    // ปิด sidebar หากเป็นหน้าจอมือถือ
     if (window.innerWidth < 768) {
       setSidebarOpen(false);
     }
@@ -65,7 +74,6 @@ const Menu = () => {
           md:translate-x-0
         `}
       >
-        {/* ... (Your existing sidebar content) ... */}
         {/* Animated shine effect on sidebar */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5 
           opacity-0 hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
@@ -78,8 +86,7 @@ const Menu = () => {
         <div className="flex flex-col h-full relative z-10">
           {/* Enhanced Profile Section */}
           <div className="p-0 flex flex-col items-center mt-5 relative group">
-            {/* ... (rest of profile section) ... */}
-            <div className="relative">
+            <div className="relative cursor-pointer" onClick={handleLogoClick}>
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/20 
                 via-purple-500/20 to-pink-400/20 blur-md scale-110 animate-pulse" />
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-red-300/10 
@@ -90,14 +97,20 @@ const Menu = () => {
                 className="relative aspect-3/2 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 
                   object-cover mx-auto rounded-full border-2 border-white/20 
                   shadow-2xl transition-all duration-500 transform 
-                  group-hover:scale-105 group-hover:border-white/40 group-hover:shadow-3xl"
+                  group-hover:scale-105 group-hover:border-white/40 group-hover:shadow-3xl
+                  hover:scale-110 cursor-pointer"
                 src="/src/assets/images/logo-magin.jpg"
                 alt="profile"
+                title="กลับไปหน้าหลัก"
               />
               
               <div className="absolute inset-0 rounded-full border-2 border-gradient-to-r 
                 from-transparent via-blue-300/50 to-transparent animate-spin" 
                 style={{ animation: 'spin 8s linear infinite' }} />
+              
+              {/* Click indicator */}
+              <div className="absolute inset-0 rounded-full bg-white/10 scale-0 
+                hover:scale-100 transition-transform duration-300" />
             </div>
 
             <h1 className="text-lg sm:text-xl font-bold mt-5 mx-auto text-center relative">
@@ -420,6 +433,7 @@ const Menu = () => {
             text-center flex-grow relative z-10">
             <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 
               bg-clip-text text-transparent animate-pulse">
+              {location.pathname === '/welcome' && 'หน้าหลัก'}
               {location.pathname === '/report' && 'ภาพรวมรายงาน'}
               {location.pathname === '/day-report' && 'ยอดขายรายวัน'}
               {location.pathname === '/month-report' && 'ยอดขายรายเดือน'}
