@@ -181,14 +181,6 @@ app.put('/api/staff/:id', (req, res) => {
 });
 
 // ============================
-// Start Server
-// ============================
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
-
-// ============================
 // Staff API - Delete staff by ID
 // ============================
 app.delete('/api/staff/:id', (req, res) => {
@@ -205,4 +197,12 @@ app.delete('/api/staff/:id', (req, res) => {
     }
     res.json({ message: 'ลบพนักงานสำเร็จ', iduser: id });
   });
+});
+
+// ============================
+// Start Server
+// ============================
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
 });
