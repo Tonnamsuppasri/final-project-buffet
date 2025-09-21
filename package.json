@@ -2,7 +2,7 @@
   "name": "your-project",
   "private": true,
   "devDependencies": {
-    "concurrently": "^9.2.0"
+    "concurrently": "^9.2.1"
   },
   "scripts": {
     "dev": "concurrently \"npm --prefix frontend run dev -- --host\" \"npm --prefix backend start\"",
