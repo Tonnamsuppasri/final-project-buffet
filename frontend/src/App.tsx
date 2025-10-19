@@ -1,23 +1,27 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
-import Swal from 'sweetalert2'
-import { UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid'
-import './App.css'
+import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+import { UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
+// 🗑️ ลบ import useAuth ออก
+import './App.css';
 
 function App() {
-  const [username, setUsername] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
-  const [showPassword, setShowPassword] = useState<boolean>(false)
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const navigate = useNavigate()
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  
+  const navigate = useNavigate();
+  // 🗑️ ลบ const { login } = useAuth() ออก
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
     
     try {
-      const res = await axios.post('http://localhost:3001/api/login', { username, password })
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await axios.post(`${apiUrl}/api/login`, { username, password });
 
       if (res.data.success) {
         await Swal.fire({
@@ -25,22 +29,23 @@ function App() {
           title: 'เข้าสู่ระบบสำเร็จ',
           timer: 1500,
           showConfirmButton: false
-        })
+        });
 
-        // สมมติ backend ส่ง user object พร้อม role มา
-        const user = res.data.user
-        navigate('/welcome', { state: { username: user.username, role: user.role } })
+        const user = res.data.user;
+        
+        // ✅ กลับมาใช้วิธีส่งข้อมูลผ่าน navigate state เหมือนเดิม
+        navigate('/welcome', { state: { username: user.username, role: user.role } });
       }
     } catch (err: any) {
       Swal.fire({
         icon: 'error',
         title: 'เข้าสู่ระบบล้มเหลว',
         text: err.response?.data?.message || 'เกิดข้อผิดพลาด'
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div 
@@ -52,10 +57,9 @@ function App() {
         backgroundRepeat: 'no-repeat'
       }}
     >
-      {/* Background overlay for better readability */}
+      {/* ... โค้ด JSX ที่เหลือเหมือนเดิมทั้งหมด ... */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
       
-      {/* Animated background elements - red theme */}
       <div className="absolute inset-0">
         <div className="absolute top-0 -left-4 w-72 h-72 bg-red-600 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse"></div>
         <div className="absolute top-0 -right-4 w-72 h-72 bg-red-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse" style={{animationDelay: '2s'}}></div>
@@ -67,14 +71,12 @@ function App() {
           <div className="flex flex-col lg:flex-row min-h-[600px]">
             {/* Left Side - Red Theme Branding */}
             <div className="lg:w-1/2 flex flex-col items-center justify-center p-8 lg:p-16 text-center text-white relative overflow-hidden left-side">
-              {/* Floating decoration elements */}
               <div className="absolute top-8 left-8 w-16 h-16 border border-white/30 rounded-full animate-spin" style={{animationDuration: '20s'}}></div>
               <div className="absolute bottom-8 right-8 w-12 h-12 border border-white/30 rounded-full animate-bounce"></div>
               <div className="absolute top-1/2 left-12 w-4 h-4 bg-white/40 rounded-full animate-pulse"></div>
               <div className="absolute top-1/4 right-16 w-6 h-6 bg-white/30 rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
 
               <div className="relative z-10 max-w-md">
-                {/* Logo/Icon */}
                 <div className="mb-8">
                   <div className="w-60 h-60 mx-auto mb-6 rounded-full overflow-hidden shadow-2xl transform hover:scale-105 transition-transform duration-300 border-4 border-white/30">
                     <img 
@@ -84,15 +86,11 @@ function App() {
                     />
                   </div>
                 </div>
-
-                {/* Main Title */}
                 <h2 className="text-3xl lg:text-5xl mb-6 font-black text-yellow-300 drop-shadow-lg transform hover:scale-105 transition-transform duration-300">
                   <p>มากินปิ้งย่างยากินิกึ </p>
                   <p>&</p>
                   <p>ชาบู</p>
                 </h2>
-
-                {/* Features */}
                 <div className="space-y-3 text-base lg:text-lg font-medium opacity-95">
                   <div className="flex items-center justify-center space-x-3 transform hover:translate-x-2 transition-transform duration-300">
                     <span className="text-2xl">🍲</span>
@@ -107,8 +105,6 @@ function App() {
                     <p>จัดการลูกค้าและโต๊ะอาหาร</p>
                   </div>
                 </div>
-
-                {/* Contact Info */}
                 <div className="mt-8 p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
                   <p className="text-sm font-medium opacity-90">
                     💬 Please contact us for support
@@ -120,17 +116,13 @@ function App() {
             {/* Right Side - White Theme Login Form */}
             <div className="lg:w-1/2 p-8 lg:p-16 bg-white flex items-center justify-center">
               <div className="w-full max-w-md">
-                {/* Header */}
                 <div className="text-center mb-8">
                   <h1 className="text-4xl lg:text-5xl font-black mb-3 bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
                     LOGIN
                   </h1>
                   <p className="text-gray-600 font-medium">เข้าสู่ระบบเพื่อเริ่มต้นการทำงาน</p>
                 </div>
-
-                {/* Login Form */}
                 <form className="space-y-6" onSubmit={handleLogin}>
-                  {/* Username Field */}
                   <div className="group">
                     <label className="block text-gray-700 font-semibold mb-2 group-focus-within:text-red-600 transition-colors">
                       Username
@@ -149,8 +141,6 @@ function App() {
                       />
                     </div>
                   </div>
-
-                  {/* Password Field */}
                   <div className="group">
                     <label className="block text-gray-700 font-semibold mb-2 group-focus-within:text-red-600 transition-colors">
                       Password
@@ -180,8 +170,6 @@ function App() {
                       </button>
                     </div>
                   </div>
-
-                  {/* Submit Button */}
                   <button
                     type="submit"
                     disabled={isLoading}
@@ -205,8 +193,6 @@ function App() {
                     </div>
                   </button>
                 </form>
-
-                {/* Footer */}
                 <div className="mt-8 pt-6 border-t border-gray-200 text-center">
                   <p className="text-gray-500 text-xs">
                     © 2025 Buffet Shabu System. All rights reserved.
@@ -222,3 +208,4 @@ function App() {
 }
 
 export default App
+

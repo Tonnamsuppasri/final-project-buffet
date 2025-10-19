@@ -1,0 +1,497 @@
+/* --- Google Font Import --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+/* --- General Body Style --- */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f4f7f9; /* สีพื้นหลังที่นุ่มนวลขึ้น */
+}
+
+/* --- App Container Header --- */
+.app-container h1 {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+}
+
+/* --- Table Card (ดีไซน์ใหม่ทั้งหมด) --- */
+.table-card {
+    border-radius: 1rem;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* ดัน Header กับ Footer แยกจากกัน */
+    min-height: 180px; /* ลดความสูงลงให้กระชับ */
+    transition: all 0.3s ease;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.table-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* --- ส่วนหัวของการ์ด --- */
+.table-card-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.table-number-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.table-number-main {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.table-capacity-status {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Timer (ปรับสไตล์ใหม่) */
+.table-timer {
+    background-color: rgba(0, 0, 0, 0.2);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 0.375rem;
+    letter-spacing: 1px;
+}
+
+/* --- ส่วนท้ายของการ์ด --- */
+.table-card-footer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* ระยะห่างระหว่าง Service Type กับ ปุ่มชำระเงิน */
+}
+
+/* --- Service Type Selector (สไตล์ใหม่) --- */
+.service-type-selector {
+    display: flex;
+    gap: 0.6rem; /* เพิ่มระยะห่างเล็กน้อย */
+    width: 100%;
+    justify-content: center; /* ✅ จัดให้ปุ่มอยู่ตรงกลาง */
+}
+
+.service-type-btn {
+    flex: none; /* ✅ ยกเลิกการยืดเต็มพื้นที่ */
+    padding: 0.3rem 1rem; /* ✅ ปรับ padding ให้ปุ่มเล็กลง */
+    min-width: 90px; /* ✅ กำหนดความกว้างขั้นต่ำให้ปุ่มดูดี */
+    border-radius: 0.5rem;
+    text-align: center;
+    font-weight: 500;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+/* สไตล์ตอนที่ Active (ถูกเลือก) */
+.service-type-btn.active {
+    background-color: white;
+    color: #333; /* สีตัวหนังสือตอน Active */
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+/* แก้สีตัวหนังสือตามสีพื้นหลังของการ์ด */
+.bg-red-500 .service-type-btn.active { color: #ef4444; }
+.bg-green-500 .service-type-btn.active { color: #10b981; }
+
+
+/* สไตล์ตอนที่ไม่ถูกเลือก (Inactive) */
+.service-type-btn.inactive {
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Check Bill Button (เปลี่ยนชื่อและปรับสไตล์) */
+.check-bill-button {
+    width: 100%;
+    background-color: #2dd4bf; /* สีเขียวมิ้นต์ */
+    color: white;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.check-bill-button:hover {
+    background-color: #14b8a6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* --- สีพื้นหลังของการ์ด --- */
+.bg-green-500 { background-color: #10b981; }
+.bg-red-500 { background-color: #ef4444; }
+
+/* --- Open Table Form View --- */
+.open-table-form-container {
+    max-width: 36rem;
+    margin: 3rem auto;
+    background: white;
+    padding: 3rem;
+    border-radius: 1.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15),
+                0 8px 24px rgba(0, 0, 0, 0.1);
+    animation: slide-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgb(55, 65, 81);
+    margin-bottom: 0.5rem;
+}
+
+.form-input {
+    display: block;
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background-color: #f9fafb;
+    border: 2px solid rgb(229, 231, 235);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background-color: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1),
+                0 4px 12px rgba(59, 130, 246, 0.15);
+    transform: translateY(-1px);
+}
+
+/* --- General Button Styles --- */
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    font-weight: 700;
+    padding: 0.875rem 2rem;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3),
+                0 2px 4px rgba(59, 130, 246, 0.2);
+    font-size: 1rem;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4),
+                0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+    font-weight: 700;
+    padding: 0.875rem 2rem;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3),
+                0 2px 4px rgba(107, 114, 128, 0.2);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(107, 114, 128, 0.4),
+                0 4px 8px rgba(107, 114, 128, 0.3);
+}
+
+.btn-secondary:active {
+    transform: translateY(0);
+}
+
+/* --- Animation for the form --- */
+@keyframes slide-up {
+    from { 
+        opacity: 0; 
+        transform: translateY(30px) scale(0.95); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+/* --- Styles for QR Code / Order Details Modal --- */
+.modal-qr-details {
+    animation: modal-appear 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modal-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* --- Styles for Billing Modal with QR Code (SweetAlert2) --- */
+.custom-swal-container {
+    padding: 0 !important;
+}
+
+.billing-modal-content {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    gap: 2.5rem;
+    padding: 2rem;
+    text-align: left;
+}
+
+.billing-modal-details, .billing-modal-qr {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.billing-modal-qr {
+    align-items: center;
+    border-left: 2px solid #e5e7eb;
+    padding-left: 2.5rem;
+}
+
+.modal-subtitle {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 1.25rem;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.75rem;
+    width: 100%;
+    text-align: center;
+}
+
+.billing-modal-details p {
+    margin-bottom: 0.875rem;
+    font-size: 1.05rem;
+    color: #1f2937;
+    line-height: 1.6;
+}
+
+.total-price {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #16a34a;
+    margin-top: auto;
+    padding-top: 1.25rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.billing-modal-qr img {
+    max-width: 240px;
+    height: auto;
+    border: 2px solid #e5e7eb;
+    border-radius: 1rem;
+    padding: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Print & Receipt Styles --- */
+#printable-bill {
+    display: none;
+}
+
+.receipt-header, .receipt-body, .receipt-qr, .receipt-footer {
+    padding: 10px;
+    text-align: center;
+    color: black;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.receipt-header h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.receipt-body {
+    text-align: left;
+}
+
+.receipt-body hr {
+    border: none;
+    border-top: 1px dashed black;
+    margin: 5px 0;
+}
+
+.receipt-item, .receipt-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.receipt-total {
+    font-weight: bold;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.receipt-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 0;
+}
+
+.receipt-qr p {
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.receipt-qr img {
+    max-width: 150px;
+}
+
+.receipt-footer {
+    font-size: 12px;
+    padding-top: 10px;
+    border-top: 1px solid black;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-bill, #printable-bill * {
+    visibility: visible;
+  }
+  #printable-bill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 2mm;
+  }
+}
+.table-card-actions {
+    display: flex;
+    gap: 0.75rem; /* ระยะห่างระหว่างปุ่ม */
+    width: 100%;
+}
+.check-bill-button,
+.cancel-order-button {
+    flex: 1; /* แบ่งพื้นที่เท่าๆ กัน */
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+/* ✅ NEW: สไตล์สำหรับปุ่มยกเลิก */
+.cancel-order-button {
+    background-color: #4b5563; /* สีเทาเข้ม */
+    color: white;
+}
+
+.cancel-order-button:hover {
+    background-color: #374151;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+.table-card-call-to-action {
+    text-align: center;
+    font-size: 1.5rem; /* ขยายขนาดตัวอักษรเล็กน้อย */
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    padding-top: 1rem; /* เพิ่มช่องว่างด้านบนเล็กน้อย */
+    animation: pulse 2.5s infinite ease-in-out;
+}
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(0.98);
+    }
+}
+/* ... (โค้ด CSS เดิมทั้งหมด) ... */
+
+/* ✅ NEW: Styles for Payment Method in Modal */
+.payment-method-selector {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-top: 1.5rem;
+    /* เพิ่มเส้นคั่นระหว่างรายละเอียดกับตัวเลือก */
+    border-top: 2px solid #e5e7eb; 
+}
+
+.modal-subtitle-small {
+    font-size: 1.1rem; /* 18px */
+    font-weight: 600;
+    color: #374151; /* gray-700 */
+    margin-bottom: 1rem;
+    text-align: center;
+}
+/* ... (โค้ด CSS เดิมทั้งหมด) ... */
+
+/* ✅ NEW: Styles for Checkbox (แทนที่ Radio เดิม) */
+.checkbox-group {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.05rem; /* 16px */
+    color: #1f2937; /* gray-800 */
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 1.15em; /* 18px */
+    height: 1.15em;
+    accent-color: #3b82f6; /* blue-500 */
+}

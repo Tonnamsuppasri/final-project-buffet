@@ -1,0 +1,173 @@
+/* --- General Styles --- */
+.bill-page-container {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f0f2f5;
+    min-height: 100vh;
+    padding-bottom: 160px; /* Space for footer */
+}
+
+.bill-loading-container, .bill-error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 1.5rem;
+    color: #555;
+}
+
+/* --- Header --- */
+.bill-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: white;
+    border-bottom: 2px solid #e0e0e0;
+}
+.bill-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #333;
+}
+.bill-back-button {
+    background: #e0e0e0;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* --- Body --- */
+.bill-body {
+    padding: 1rem;
+}
+.empty-bill-message {
+    text-align: center;
+    color: #888;
+    margin-top: 3rem;
+    font-size: 1.1rem;
+}
+
+/* --- Order Card (from image) --- */
+.order-card {
+    background-color: white;
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 2px solid #ddd;
+    overflow: hidden;
+}
+.order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+.order-card-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+.status-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 12px;
+    font-weight: bold;
+    color: white;
+    font-size: 0.9rem;
+}
+.status-badge.making {
+    background-color: #f5a623; /* Orange */
+}
+.status-badge.completed {
+    background-color: #4caf50; /* Green */
+}
+
+/* --- Bill Item Row --- */
+.bill-item-row {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid #f5f5f5;
+}
+.bill-item-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    margin-right: 1rem;
+    object-fit: cover;
+}
+.bill-item-name {
+    flex-grow: 1;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+.bill-item-quantity {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+.bill-item-total {
+    padding: 1rem 1.5rem;
+    text-align: right;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #555;
+    background-color: #f9f9f9;
+}
+
+/* --- Footer --- */
+.bill-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    padding: 1rem 1.5rem;
+    border-top: 2px solid #ccc;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.08);
+}
+.bill-total-summary {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+.total-price {
+    color: #e53935;
+}
+.food-bill-button {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    background-color: #1a73e8; /* Blue */
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+.food-bill-button:hover {
+    background-color: #155cb0;
+}
+.bill-item-name {
+  flex-grow: 1;
+  font-weight: 500;
+  margin: 0 10px;
+}
+
+.bill-item-customer {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: #555;
+  margin-left: 5px;
+}

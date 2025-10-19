@@ -1,0 +1,316 @@
+/* --- Order Detail Modal Styles (NEW) --- */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 1rem;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 0.75rem; /* rounded-xl */
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 48rem; /* max-w-3xl */
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modal-appear 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modal-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb; /* gray-200 */
+}
+
+.modal-close-btn {
+    font-size: 2rem;
+    font-weight: 300;
+    color: #9ca3af; /* gray-400 */
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+.modal-close-btn:hover {
+    color: #374151; /* gray-700 */
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.modal-list-item,
+.modal-list-item-delivered {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.btn-deliver {
+    background-color: #2563eb; /* blue-600 */
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem; /* rounded-md */
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.btn-deliver:hover {
+    background-color: #1d4ed8; /* blue-700 */
+}
+
+.status-delivered {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #059669; /* green-600 */
+}
+/* --- Order Detail Modal List (MODIFIED) --- */
+.modal-list-item,
+.modal-list-item-delivered {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0.5rem; /* Add horizontal padding */
+}
+
+/* ✅ NEW: Wrapper for image + info */
+.modal-item-details {
+    display: flex;
+    align-items: center;
+    gap: 1rem; /* Space between image and text */
+    flex-grow: 1; /* Allow this section to grow */
+    min-width: 0; /* Prevent flex overflow */
+}
+
+/* ✅ NEW: Image style in modal */
+.modal-item-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 0.375rem; /* rounded-md */
+    object-fit: cover;
+    border: 1px solid #e5e7eb; /* gray-200 */
+    flex-shrink: 0; /* Prevent image from shrinking */
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Prevent text overflow */
+}
+
+.item-info .font-bold {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Add ellipsis if name is too long */
+}
+
+.btn-deliver {
+    flex-shrink: 0; /* Prevent button from shrinking */
+    margin-left: 1rem;
+}
+
+.status-delivered {
+    flex-shrink: 0; /* Prevent status from shrinking */
+    margin-left: 1rem;
+}
+/* --- Order Detail Modal Styles (NEW) --- */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 1rem;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 0.75rem; /* rounded-xl */
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 48rem; /* max-w-3xl */
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modal-appear 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modal-appear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb; /* gray-200 */
+}
+
+.modal-close-btn {
+    font-size: 2rem;
+    font-weight: 300;
+    color: #9ca3af; /* gray-400 */
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+.modal-close-btn:hover {
+    color: #374151; /* gray-700 */
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.modal-list-item,
+.modal-list-item-delivered {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.btn-deliver {
+    background-color: #2563eb; /* blue-600 */
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem; /* rounded-md */
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.btn-deliver:hover {
+    background-color: #1d4ed8; /* blue-700 */
+}
+
+.status-delivered {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #059669; /* green-600 */
+}
+/* --- Order Detail Modal List (MODIFIED) --- */
+.modal-list-item,
+.modal-list-item-delivered {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0.5rem; /* Add horizontal padding */
+}
+
+/* ✅ NEW: Wrapper for image + info */
+.modal-item-details {
+    display: flex;
+    align-items: center;
+    gap: 1rem; /* Space between image and text */
+    flex-grow: 1; /* Allow this section to grow */
+    min-width: 0; /* Prevent flex overflow */
+}
+
+/* ✅ NEW: Image style in modal */
+.modal-item-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 0.375rem; /* rounded-md */
+    object-fit: cover;
+    border: 1px solid #e5e7eb; /* gray-200 */
+    flex-shrink: 0; /* Prevent image from shrinking */
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Prevent text overflow */
+}
+
+.item-info .font-bold {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Add ellipsis if name is too long */
+}
+
+.btn-deliver {
+    flex-shrink: 0; /* Prevent button from shrinking */
+    margin-left: 1rem;
+}
+
+.status-delivered {
+    flex-shrink: 0; /* Prevent status from shrinking */
+    margin-left: 1rem;
+}
+
+/* ✅ --- NEW: Order Card Notification Badge --- */
+.order-card-badge {
+    position: absolute;
+    top: -6px;    /* ยื่นออกมาจากขอบบน */
+    right: -6px;   /* ยื่นออกมาจากขอบขวา */
+    width: 14px;
+    height: 14px;
+    background-color: #ff3b30; /* สีแดงสด */
+    border-radius: 50%;
+    border: 2px solid white; /* ขอบสีขาว */
+    box-shadow: 0 0 5px rgba(255, 59, 48, 0.7); /* เพิ่มเงาเรืองแสง */
+    animation: pulse-badge 1.5s infinite; /* อนิเมชั่นกระพริบ */
+}
+
+@keyframes pulse-badge {
+    0% { transform: scale(1); box-shadow: 0 0 5px rgba(255, 59, 48, 0.7); }
+    50% { transform: scale(1.2); box-shadow: 0 0 10px rgba(255, 59, 48, 1); }
+    100% { transform: scale(1); box-shadow: 0 0 5px rgba(255, 59, 48, 0.7); }
+}

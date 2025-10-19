@@ -65,8 +65,8 @@ const Welcome = () => {
             ),
             gradient: "from-blue-500 to-blue-600",
             title: "รับออเดอร์",
-            description: "รับคำสั่งซื้อและจัดการออเดอร์",
-            path: "/orders"
+            description: "รับออเดอร์และจัดการออเดอร์",
+            path: "/order"
         },
         {
             icon: (
