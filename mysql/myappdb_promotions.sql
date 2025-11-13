@@ -16,29 +16,37 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `pricing_plans`
+-- Table structure for table `promotions`
 --
 
-DROP TABLE IF EXISTS `pricing_plans`;
+DROP TABLE IF EXISTS `promotions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pricing_plans` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `plan_name` varchar(255) NOT NULL,
-  `price_per_person` decimal(10,2) NOT NULL,
+CREATE TABLE `promotions` (
+  `promotion_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
   `description` text,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `type` enum('percentage','fixed_amount','special') NOT NULL,
+  `value` decimal(10,2) NOT NULL,
+  `code` varchar(50) DEFAULT NULL,
+  `start_date` datetime NOT NULL,
+  `end_date` datetime NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `conditions` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`promotion_id`),
+  UNIQUE KEY `code` (`code`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `pricing_plans`
+-- Dumping data for table `promotions`
 --
 
-LOCK TABLES `pricing_plans` WRITE;
-/*!40000 ALTER TABLE `pricing_plans` DISABLE KEYS */;
-INSERT INTO `pricing_plans` VALUES (1,'Standard',219.00,'ชุดธรรมดา'),(2,'Premium',299.00,'พิเศษแต่ชื่อ');
-/*!40000 ALTER TABLE `pricing_plans` ENABLE KEYS */;
+LOCK TABLES `promotions` WRITE;
+/*!40000 ALTER TABLE `promotions` DISABLE KEYS */;
+INSERT INTO `promotions` VALUES (1,'มี 4 มีส่วนลด',NULL,'percentage',10.00,NULL,'2025-10-23 14:28:48','2025-10-31 14:28:48',1,'มา 4 คนขึ้นไป','2025-10-23 07:30:32');
+/*!40000 ALTER TABLE `promotions` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

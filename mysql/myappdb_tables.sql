@@ -40,7 +40,7 @@ CREATE TABLE `tables` (
 
 LOCK TABLES `tables` WRITE;
 /*!40000 ALTER TABLE `tables` DISABLE KEYS */;
-INSERT INTO `tables` VALUES (1,'725b1787-19ff-4f19-b4ce-f8aef510d291',1,4,'ไม่ว่าง'),(2,'5c657528-72fd-469a-ad62-822db11dc56e',2,6,'ไม่ว่าง'),(3,'be34561a-3cf3-426f-ad83-3614e161f4f6',3,6,'ว่าง'),(4,'e3dd4b0f-d682-4fd5-bc82-88e40479ae27',4,2,'ว่าง');
+INSERT INTO `tables` VALUES (1,'725b1787-19ff-4f19-b4ce-f8aef510d291',1,4,'ว่าง'),(2,'5c657528-72fd-469a-ad62-822db11dc56e',2,6,'ว่าง'),(3,'be34561a-3cf3-426f-ad83-3614e161f4f6',3,6,'ว่าง'),(4,'e3dd4b0f-d682-4fd5-bc82-88e40479ae27',4,2,'ว่าง');
 /*!40000 ALTER TABLE `tables` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -53,4 +53,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-10-19 15:43:27
+-- Dump completed on 2025-11-13 15:35:57

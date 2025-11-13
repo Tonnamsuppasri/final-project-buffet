@@ -31,7 +31,7 @@ CREATE TABLE `payment` (
   PRIMARY KEY (`payment_id`),
   UNIQUE KEY `uq_order_id` (`order_id`),
   CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -40,7 +40,7 @@ CREATE TABLE `payment` (
 
 LOCK TABLES `payment` WRITE;
 /*!40000 ALTER TABLE `payment` DISABLE KEYS */;
-INSERT INTO `payment` VALUES (1,1,'2025-10-17 02:19:25',598.00,'เงินสด/โอน'),(2,3,'2025-10-17 03:05:14',219.00,'เงินสด/โอน'),(3,2,'2025-10-17 03:32:36',876.00,'เงินสด/โอน'),(4,4,'2025-10-17 03:41:01',219.00,'เงินสด/โอน'),(5,8,'2025-10-17 21:49:57',219.00,'เงินสด/โอน'),(6,11,'2025-10-18 23:34:53',219.00,'เงินสด');
+INSERT INTO `payment` VALUES (1,1,'2025-10-17 02:19:25',598.00,'เงินสด/โอน'),(2,3,'2025-10-17 03:05:14',219.00,'เงินสด/โอน'),(3,2,'2025-10-17 03:32:36',876.00,'เงินสด/โอน'),(4,4,'2025-10-17 03:41:01',219.00,'เงินสด/โอน'),(5,8,'2025-10-17 21:49:57',219.00,'เงินสด/โอน'),(6,11,'2025-10-18 23:34:53',219.00,'เงินสด'),(7,28,'2025-10-19 16:19:10',219.00,'เงินสด'),(8,29,'2025-10-19 16:32:42',219.00,'เงินโอน'),(9,30,'2025-10-23 13:02:22',438.00,'เงินโอน'),(10,31,'2025-10-23 13:11:19',43840.00,'เงินโอน'),(11,32,'2025-10-23 13:13:35',638.00,'เงินโอน'),(12,33,'2025-10-23 13:15:44',219.00,'เงินโอน'),(13,34,'2025-10-23 13:19:54',249.00,'เงินโอน'),(14,35,'2025-10-23 17:33:23',219.00,'เงินโอน');
 /*!40000 ALTER TABLE `payment` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -53,4 +53,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-10-19 15:43:27
+-- Dump completed on 2025-11-13 15:35:57

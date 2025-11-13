@@ -16,29 +16,33 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `pricing_plans`
+-- Table structure for table `attendance`
 --
 
-DROP TABLE IF EXISTS `pricing_plans`;
+DROP TABLE IF EXISTS `attendance`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pricing_plans` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `plan_name` varchar(255) NOT NULL,
-  `price_per_person` decimal(10,2) NOT NULL,
-  `description` text,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `attendance` (
+  `attendance_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `clock_in_time` datetime NOT NULL,
+  `clock_out_time` datetime DEFAULT NULL,
+  `date` date NOT NULL,
+  `notes` text,
+  PRIMARY KEY (`attendance_id`),
+  KEY `idx_user_date` (`user_id`,`date`),
+  CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `pricing_plans`
+-- Dumping data for table `attendance`
 --
 
-LOCK TABLES `pricing_plans` WRITE;
-/*!40000 ALTER TABLE `pricing_plans` DISABLE KEYS */;
-INSERT INTO `pricing_plans` VALUES (1,'Standard',219.00,'ชุดธรรมดา'),(2,'Premium',299.00,'พิเศษแต่ชื่อ');
-/*!40000 ALTER TABLE `pricing_plans` ENABLE KEYS */;
+LOCK TABLES `attendance` WRITE;
+/*!40000 ALTER TABLE `attendance` DISABLE KEYS */;
+INSERT INTO `attendance` VALUES (1,9,'2025-10-23 15:31:53','2025-10-23 15:32:13','2025-10-23',NULL),(2,11,'2025-10-23 15:41:28','2025-10-23 15:50:11','2025-10-23',NULL),(3,11,'2025-10-23 15:55:07','2025-10-23 15:55:18','2025-10-23',NULL),(4,11,'2025-10-23 16:01:40','2025-10-23 16:02:40','2025-10-23',NULL),(5,12,'2025-10-23 17:12:19','2025-10-23 17:50:56','2025-10-23',NULL);
+/*!40000 ALTER TABLE `attendance` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

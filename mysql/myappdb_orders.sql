@@ -38,7 +38,7 @@ CREATE TABLE `orders` (
   CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`table_id`) REFERENCES `tables` (`table_id`),
   CONSTRAINT `orders_ibfk_2` FOREIGN KEY (`plan_id`) REFERENCES `pricing_plans` (`id`),
   CONSTRAINT `orders_ibfk_3` FOREIGN KEY (`plan_id`) REFERENCES `pricing_plans` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -47,7 +47,7 @@ CREATE TABLE `orders` (
 
 LOCK TABLES `orders` WRITE;
 /*!40000 ALTER TABLE `orders` DISABLE KEYS */;
-INSERT INTO `orders` VALUES (1,1,2,2,'ปิ้งย่าง','2025-10-17 00:42:08','completed',NULL,0),(2,1,4,1,'ปิ้งย่าง','2025-10-17 02:51:42','completed',NULL,0),(3,2,1,1,'ปิ้งย่าง','2025-10-17 03:04:35','completed',NULL,0),(4,1,1,1,'ปิ้งย่าง','2025-10-17 03:38:32','completed',NULL,0),(8,1,1,1,'ปิ้งย่าง','2025-10-17 20:35:35','completed',NULL,0),(11,1,1,1,'ปิ้งย่าง','2025-10-18 14:35:21','completed',NULL,0),(22,2,1,1,'ปิ้งย่าง','2025-10-19 15:38:09','in-progress',NULL,0),(23,1,1,1,'ปิ้งย่าง','2025-10-19 15:38:27','in-progress',NULL,0);
+INSERT INTO `orders` VALUES (1,1,2,2,'ปิ้งย่าง','2025-10-17 00:42:08','completed',NULL,0),(2,1,4,1,'ปิ้งย่าง','2025-10-17 02:51:42','completed',NULL,0),(3,2,1,1,'ปิ้งย่าง','2025-10-17 03:04:35','completed',NULL,0),(4,1,1,1,'ปิ้งย่าง','2025-10-17 03:38:32','completed',NULL,0),(8,1,1,1,'ปิ้งย่าง','2025-10-17 20:35:35','completed',NULL,0),(11,1,1,1,'ปิ้งย่าง','2025-10-18 14:35:21','completed',NULL,0),(28,1,1,1,'ปิ้งย่าง','2025-10-19 16:13:05','completed',NULL,3),(29,1,1,1,'ปิ้งย่าง','2025-10-19 16:32:38','completed',NULL,0),(30,1,2,1,'ชาบู','2025-10-23 13:01:23','completed',NULL,0),(31,1,2,1,'ชาบู','2025-10-23 13:07:52','completed',NULL,2),(32,1,2,2,'ชาบู','2025-10-23 13:13:18','completed',NULL,2),(33,1,1,1,'ชาบู','2025-10-23 13:14:39','completed',NULL,2),(34,1,1,1,'ชาบู','2025-10-23 13:17:05','completed',NULL,1),(35,1,1,1,'ปิ้งย่าง','2025-10-23 13:39:19','completed',NULL,1);
 /*!40000 ALTER TABLE `orders` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -60,4 +60,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-10-19 15:43:26
+-- Dump completed on 2025-11-13 15:35:57
