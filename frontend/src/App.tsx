@@ -32,7 +32,7 @@ function App() {
         });
 
         const user = res.data.user;
-        
+        localStorage.setItem('userId', user.id.toString());
         // ✅ กลับมาใช้วิธีส่งข้อมูลผ่าน navigate state เหมือนเดิม
         navigate('/welcome', { state: { username: user.username, role: user.role } });
       }

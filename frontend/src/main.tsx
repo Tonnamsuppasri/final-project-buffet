@@ -2,10 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './App'; // This is your main login/entry page
-import Report from './pages/report';
 import Staff from './pages/staff';
-import MonthReport from './pages/month-report';
-import DayReport from './pages/day-report';
 import Menu from './components/menu'; // This is your Sidebar/Layout component
 import EditProfile from './pages/edit-profile';
 import Table from './pages/table';
@@ -15,8 +12,14 @@ import Welcome from './pages/welcome';
 import Order from './pages/order';
 import CustomerOrderPage from './customer-pages/CustomerOrderPage';
 import CustomerBillPage from './customer-pages/CustomerBillPage';
-
 import './index.css';
+import ReportOverview from './pages/ReportOverview';
+import ReportSales from './pages/ReportSales';
+import ReportMenu from './pages/ReportMenu';
+import ReportStock from './pages/ReportStock';
+import StockManagement from './pages/StockManagement';
+import AttendanceReport from './pages/AttendanceReport';
+import AttendanceSummaryReport from './pages/AttendanceSummaryReport';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -33,15 +36,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         {/* --- Staff-facing routes with the Menu/Sidebar Layout --- */}
         <Route element={<Menu />}>
           <Route path="/welcome" element={<Welcome />} />
-          <Route path="/report" element={<Report />} />
-          <Route path="/day-report" element={<DayReport />} />
-          <Route path="/month-report" element={<MonthReport />} />
           <Route path="/staff" element={<Staff />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/table" element={<Table />} />
           <Route path="/PaymentPage" element={<PaymentPage />} />
           <Route path="/setting" element={<Setting />} />
           <Route path="/order" element={<Order />} />
+          <Route path="/report-overview" element={<ReportOverview />} />
+          <Route path="/report-sales" element={<ReportSales />} />
+          <Route path="/report-menu" element={<ReportMenu />} />
+          <Route path="/report-stock" element={<ReportStock />} />
+          <Route path="/stock-management" element={<StockManagement />} />
+          <Route path="/attendance-report" element={<AttendanceReport />} />
+          <Route path="/attendance-summary-report" element={<AttendanceSummaryReport />} />
         </Route>
 
         {/* Catch-all 404 Page (Optional) */}
