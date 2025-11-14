@@ -2,10 +2,10 @@ import React, { useState, useEffect, type ChangeEvent, type FormEvent } from 're
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import DatePicker from 'react-datepicker'; // 👈 Import DatePicker
-import "react-datepicker/dist/react-datepicker.css"; // 👈 Import CSS for DatePicker
-import { format, parseISO } from 'date-fns'; // 👈 Import date-fns functions
-import './setting.css'; // ตรวจสอบว่ามี CSS ที่จำเป็นในไฟล์นี้
+import DatePicker from 'react-datepicker'; 
+import "react-datepicker/dist/react-datepicker.css"; 
+import { format, parseISO } from 'date-fns'; 
+import './setting.css'; 
 
 // --- Interfaces ---
 interface ShopData {
@@ -25,11 +25,11 @@ interface TableData {
     status: 'ว่าง' | 'ไม่ว่าง';
 }
 
-interface PlanData { // แนะนำให้เปลี่ยนชื่อ Interface นี้เป็น PricingPlanData เพื่อความชัดเจน
+interface PlanData { 
     id: number;
     plan_name: string;
     price_per_person: number;
-    description: string | null; // Database อนุญาต NULL
+    description: string | null; 
 }
 
 interface MenuData {
@@ -38,12 +38,10 @@ interface MenuData {
     menu_description: string | null;
     menu_category: string | null;
     price: number;
-    menu_quantity: number | null; // Database อนุญาต NULL
+    menu_quantity: number | null; 
     menu_image: string | null;
 }
 
-
-// ✨ --- Interface สำหรับ Promotion --- ✨
 interface PromotionData {
     promotion_id: number;
     name: string;
@@ -51,19 +49,19 @@ interface PromotionData {
     type: 'percentage' | 'fixed_amount' | 'special';
     value: number;
     code: string | null;
-    start_date: string; // เก็บเป็น string จาก API/DB
-    end_date: string;   // เก็บเป็น string จาก API/DB
-    is_active: number; // 0 หรือ 1 จาก DB
+    start_date: string; 
+    end_date: string;   
+    is_active: number; 
     conditions: string | null;
-    created_at?: string; // Optional
+    created_at?: string; 
 }
-// Interface for the state holding menu data while editing (uses strings for inputs)
+
 interface EditingMenuState {
   menu_name: string;
   menu_description: string | null;
   menu_category: string | null;
-  price: string; // Use string for input field value
-  menu_quantity: string | null; // Use string or null for input field value
+  price: string; 
+  menu_quantity: string | null; 
   menu_image: string | null;
 }
 
@@ -84,7 +82,7 @@ const Setting = () => {
     const [editingTableId, setEditingTableId] = useState<number | null>(null);
     const [editingTableData, setEditingTableData] = useState({ table_number: '', seat_capacity: '' });
 
-    // Plan (Pricing Plan) states
+    // Plan states
     const [plans, setPlans] = useState<PlanData[]>([]);
     const [newPlan, setNewPlan] = useState({ plan_name: '', price_per_person: '', description: '' });
 
@@ -95,51 +93,44 @@ const Setting = () => {
         menu_description: '',
         menu_category: '',
         price: '',
-        menu_quantity: null as number | null | string, // ใช้ string ชั่วคราวสำหรับ input
+        menu_quantity: null as number | null | string, 
         menu_image: null as string | null
     });
     const [editingMenuId, setEditingMenuId] = useState<number | null>(null);
-    // ใช้ Partial<> หรือ Omit<> เพื่อสร้าง type สำหรับ editing data
     const [editingMenuData, setEditingMenuData] = useState<EditingMenuState>({
         menu_name: '',
-        menu_description: '', // Default to '' which fits string | null
-        menu_category: '',   // Default to '' which fits string | null
-        price: '',           // Default to '' which fits string
-        menu_quantity: null, // Default to null which fits string | null
+        menu_description: '', 
+        menu_category: '',   
+        price: '',           
+        menu_quantity: null, 
         menu_image: null
     });
 
-
-    // ✨ --- START: เพิ่ม Promotion States --- ✨
+    // Promotion States
     const [promotions, setPromotions] = useState<PromotionData[]>([]);
-    // State สำหรับ Form "เพิ่มโปรโมชั่น"
     const [newPromotion, setNewPromotion] = useState({
         name: '',
         description: '',
-        type: 'percentage' as PromotionData['type'], // กำหนดค่า default type
-        value: '', // เก็บเป็น string สำหรับ input
+        type: 'percentage' as PromotionData['type'], 
+        value: '', 
         code: '',
-        start_date: new Date(), // ใช้ Date object สำหรับ DatePicker
-        end_date: new Date(),   // ใช้ Date object สำหรับ DatePicker
+        start_date: new Date(), 
+        end_date: new Date(),   
         conditions: ''
     });
     const [editingPromotionId, setEditingPromotionId] = useState<number | null>(null);
-    // State สำหรับ Form "แก้ไขโปรโมชั่น"
     const [editingPromotionData, setEditingPromotionData] = useState({
         name: '',
         description: '',
         type: 'percentage' as PromotionData['type'],
-        value: '', // เก็บเป็น string สำหรับ input
+        value: '', 
         code: '',
-        start_date: new Date(), // ใช้ Date object สำหรับ DatePicker
-        end_date: new Date(),   // ใช้ Date object สำหรับ DatePicker
+        start_date: new Date(), 
+        end_date: new Date(),   
         conditions: ''
     });
-    // ✨ --- END: เพิ่ม Promotion States --- ✨
 
-    // General states
     const [loading, setLoading] = useState(true);
-    // เพิ่ม 'promotions' ใน state ของ accordion
     const [accordionState, setAccordionState] = useState({
         shop: true, tables: false, plans: false, menu: false, promotions: false
     });
@@ -151,23 +142,22 @@ const Setting = () => {
         const fetchAllData = async () => {
             setLoading(true);
             try {
-                // ✨ Fetch Promotions พร้อมกับข้อมูลอื่นๆ
                 const [shopRes, tablesRes, plansRes, menuRes, promotionsRes] = await Promise.all([
                     axios.get<ShopData>(`${apiUrl}/api/shop`),
                     axios.get<TableData[]>(`${apiUrl}/api/tables`),
                     axios.get<PlanData[]>(`${apiUrl}/api/plans`),
                     axios.get<MenuData[]>(`${apiUrl}/api/menu`),
-                    axios.get<PromotionData[]>(`${apiUrl}/api/promotions`) // ✨ ดึง promotions
+                    axios.get<PromotionData[]>(`${apiUrl}/api/promotions`)
                 ]);
                 setShopData({
                     ...shopRes.data,
                     open_time: shopRes.data.open_time?.substring(0, 5) || '',
                     close_time: shopRes.data.close_time?.substring(0, 5) || ''
                 });
-                setTables(tablesRes.data.sort((a,b) => a.table_number - b.table_number)); // เรียงโต๊ะตามหมายเลข
+                setTables(tablesRes.data.sort((a,b) => a.table_number - b.table_number)); 
                 setPlans(plansRes.data);
                 setMenuItems(menuRes.data);
-                setPromotions(promotionsRes.data); // ✨ เก็บข้อมูล promotions ลง state
+                setPromotions(promotionsRes.data); 
 
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -176,19 +166,17 @@ const Setting = () => {
                 setLoading(false);
             }
         };
-        // ดึงข้อมูลเฉพาะเมื่อเป็น Admin
+        
         if (role === 'Admin') {
             fetchAllData();
         } else {
-            setLoading(false); // หยุดโหลดถ้าไม่ใช่ Admin
+            setLoading(false); 
         }
-    }, [apiUrl, role]); // Dependencies
+    }, [apiUrl, role]); 
 
     // --- Handlers ---
-    // ฟังก์ชัน Toggle Accordion (เพิ่ม 'promotions')
     const toggleAccordion = (section: 'shop' | 'tables' | 'plans' | 'menu' | 'promotions') => {
         setAccordionState(prevState => ({
-            // ปิดอันอื่นทั้งหมดเมื่อเปิดอันใหม่
             shop: section === 'shop' ? !prevState.shop : false,
             tables: section === 'tables' ? !prevState.tables : false,
             plans: section === 'plans' ? !prevState.plans : false,
@@ -197,7 +185,7 @@ const Setting = () => {
         }));
     };
 
-    // --- Shop Handlers (เหมือนเดิม) ---
+    // --- Shop Handlers ---
     const handleShopChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setShopData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleLogoChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -232,14 +220,13 @@ const Setting = () => {
         }
     };
 
-    // --- Table Handlers (เหมือนเดิม) ---
+    // --- Table Handlers ---
     const handleNewTableChange = (e: ChangeEvent<HTMLInputElement>) => setNewTable(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleAddTable = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!newTable.table_number || !newTable.seat_capacity) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
         try {
-            const response = await axios.post(`${apiUrl}/api/tables`, newTable); // Use POST
-             // Instead of response.data, refetch or add locally and sort
+            await axios.post(`${apiUrl}/api/tables`, newTable); 
             const tablesRes = await axios.get<TableData[]>(`${apiUrl}/api/tables`);
             setTables(tablesRes.data.sort((a,b) => a.table_number - b.table_number));
             setNewTable({ table_number: '', seat_capacity: '' });
@@ -276,11 +263,10 @@ const Setting = () => {
     const handleUpdateTable = async (tableToUpdate: TableData) => {
         if (!editingTableId) return;
         try {
-            // Include status when updating
             const updatedData = {
                 table_number: editingTableData.table_number,
                 seat_capacity: editingTableData.seat_capacity,
-                status: tableToUpdate.status // Keep the original status when editing number/capacity
+                status: tableToUpdate.status 
             };
             await axios.put(`${apiUrl}/api/tables/${editingTableId}`, updatedData);
             setTables(tables.map(table =>
@@ -293,7 +279,7 @@ const Setting = () => {
         }
     };
 
-    // --- Plan (Pricing Plan) Handlers (เหมือนเดิม) ---
+    // --- Plan Handlers ---
     const handleNewPlanChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewPlan(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleAddPlan = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -324,10 +310,9 @@ const Setting = () => {
         }
     };
 
-    // --- Menu Handlers (ปรับปรุงเล็กน้อย) ---
+    // --- Menu Handlers ---
     const handleNewMenuChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-         // Handle menu_quantity separately to store as string|null
         if (name === 'menu_quantity') {
             setNewMenu(prev => ({ ...prev, [name]: value === '' ? null : value }));
         } else {
@@ -353,16 +338,15 @@ const Setting = () => {
         e.preventDefault();
         if (!newMenu.menu_name || !newMenu.price) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกชื่อเมนูและราคา', 'warning');
         try {
-             // Convert price and quantity before sending
             const dataToSend = {
                 ...newMenu,
                 price: parseFloat(newMenu.price) || 0,
                 menu_quantity: newMenu.menu_quantity === null || newMenu.menu_quantity === '' ? null : parseInt(String(newMenu.menu_quantity), 10) || 0,
             };
             await axios.post(`${apiUrl}/api/menu`, dataToSend);
-            const menuRes = await axios.get<MenuData[]>(`${apiUrl}/api/menu`); // Refetch
+            const menuRes = await axios.get<MenuData[]>(`${apiUrl}/api/menu`); 
             setMenuItems(menuRes.data);
-            setNewMenu({ menu_name: '', menu_description: '', menu_category: '', price: '', menu_quantity: null, menu_image: null }); // Reset form
+            setNewMenu({ menu_name: '', menu_description: '', menu_category: '', price: '', menu_quantity: null, menu_image: null }); 
             Swal.fire('สำเร็จ!', 'เพิ่มเมนูเรียบร้อย', 'success');
         } catch (error: any) {
             Swal.fire('ผิดพลาด!', error.response?.data?.error || 'ไม่สามารถเพิ่มเมนูได้', 'error');
@@ -388,10 +372,9 @@ const Setting = () => {
         setEditingMenuId(menu.menu_id);
         setEditingMenuData({
             menu_name: menu.menu_name,
-            menu_description: menu.menu_description || '', // Ensure string or null
-            menu_category: menu.menu_category || '',   // Ensure string or null
-            price: String(menu.price), // Convert number to string
-            // Convert number or null to string or null for the input
+            menu_description: menu.menu_description || '', 
+            menu_category: menu.menu_category || '',   
+            price: String(menu.price), 
             menu_quantity: menu.menu_quantity === null ? null : String(menu.menu_quantity),
             menu_image: menu.menu_image
         });
@@ -399,9 +382,8 @@ const Setting = () => {
     const handleCancelMenuEdit = () => setEditingMenuId(null);
     const handleEditingMenuChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
          const { name, value } = e.target;
-         // Handle menu_quantity separately
         if (name === 'menu_quantity') {
-            setEditingMenuData(prev => ({ ...prev, [name]: value === '' ? '' : value })); // Keep as string or empty string
+            setEditingMenuData(prev => ({ ...prev, [name]: value === '' ? '' : value })); 
         } else {
              setEditingMenuData(prev => ({ ...prev, [name]: value }));
         }
@@ -410,16 +392,15 @@ const Setting = () => {
         e.preventDefault();
         if (!editingMenuId) return;
         try {
-            // Convert price and quantity before sending
             const dataToSend = {
                 ...editingMenuData,
                 price: parseFloat(editingMenuData.price) || 0,
                 menu_quantity: editingMenuData.menu_quantity === null || editingMenuData.menu_quantity === '' ? null : parseInt(String(editingMenuData.menu_quantity), 10) || 0,
             };
             await axios.put(`${apiUrl}/api/menu/${editingMenuId}`, dataToSend);
-            const menuRes = await axios.get<MenuData[]>(`${apiUrl}/api/menu`); // Refetch
+            const menuRes = await axios.get<MenuData[]>(`${apiUrl}/api/menu`); 
             setMenuItems(menuRes.data);
-            setEditingMenuId(null); // Close edit form
+            setEditingMenuId(null); 
             Swal.fire('สำเร็จ!', 'อัปเดตข้อมูลเมนูเรียบร้อย', 'success');
         } catch (error: any) {
             Swal.fire('ผิดพลาด!', error.response?.data?.error || 'ไม่สามารถอัปเดตข้อมูลเมนูได้', 'error');
@@ -427,38 +408,31 @@ const Setting = () => {
     };
 
 
-    // ✨ --- START: เพิ่ม Promotion Handlers --- ✨
-    // Handler สำหรับ Input ทั่วไปใน Form เพิ่มโปรโมชั่น
+    // --- Promotion Handlers ---
     const handleNewPromotionChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setNewPromotion(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    // Handler สำหรับ DatePicker ใน Form เพิ่มโปรโมชั่น
     const handleNewPromotionDateChange = (date: Date | null, field: 'start_date' | 'end_date') => {
-        setNewPromotion(prev => ({ ...prev, [field]: date || new Date() })); // ใช้ new Date() เป็น fallback ป้องกัน null
+        setNewPromotion(prev => ({ ...prev, [field]: date || new Date() })); 
     };
 
-    // Handler สำหรับ Submit Form เพิ่มโปรโมชั่น
     const handleAddPromotion = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const { name, type, value, start_date, end_date } = newPromotion;
-        // Validation เบื้องต้น
         if (!name || !type || !value || !start_date || !end_date) {
             return Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลโปรโมชั่นที่จำเป็น (ชื่อ, ประเภท, ค่า, วันเริ่ม, วันสิ้นสุด)', 'warning');
         }
         try {
-            // Format วันที่ก่อนส่ง และแปลง value เป็นตัวเลข
             const dataToSend = {
                 ...newPromotion,
-                start_date: format(start_date, 'yyyy-MM-dd HH:mm:ss'), // Format ให้ตรงกับ DATETIME MySQL
+                start_date: format(start_date, 'yyyy-MM-dd HH:mm:ss'), 
                 end_date: format(end_date, 'yyyy-MM-dd HH:mm:ss'),
-                value: parseFloat(value) || 0 // แปลงค่าเป็นตัวเลข
+                value: parseFloat(value) || 0 
             };
             await axios.post(`${apiUrl}/api/promotions`, dataToSend);
-            // ดึงข้อมูลโปรโมชั่นใหม่หลังเพิ่มสำเร็จ
             const promoRes = await axios.get<PromotionData[]>(`${apiUrl}/api/promotions`);
             setPromotions(promoRes.data);
-            // Reset Form
             setNewPromotion({
                 name: '', description: '', type: 'percentage', value: '', code: '',
                 start_date: new Date(), end_date: new Date(), conditions: ''
@@ -469,7 +443,6 @@ const Setting = () => {
         }
     };
 
-    // Handler สำหรับปุ่มลบโปรโมชั่น
     const handleDeletePromotion = async (promotionId: number) => {
         const result = await Swal.fire({
             title: 'แน่ใจหรือไม่?', text: "คุณต้องการลบโปรโมชั่นนี้ใช่หรือไม่?", icon: 'warning',
@@ -479,7 +452,7 @@ const Setting = () => {
         if (result.isConfirmed) {
             try {
                 await axios.delete(`${apiUrl}/api/promotions/${promotionId}`);
-                setPromotions(promotions.filter(p => p.promotion_id !== promotionId)); // ลบออกจาก State
+                setPromotions(promotions.filter(p => p.promotion_id !== promotionId)); 
                 Swal.fire('ลบแล้ว!', 'โปรโมชั่นถูกลบเรียบร้อย', 'success');
             } catch (error: any) {
                 Swal.fire('ผิดพลาด!', error.response?.data?.error || 'ไม่สามารถลบโปรโมชั่นได้', 'error');
@@ -487,63 +460,49 @@ const Setting = () => {
         }
     };
 
-    // Handler สำหรับปุ่มสลับสถานะ (เปิด/ปิดใช้งาน)
     const handleTogglePromotionStatus = async (promotionId: number) => {
         try {
             await axios.put(`${apiUrl}/api/promotions/${promotionId}/toggle`);
-            // อัปเดต State ทันทีเพื่อ User Experience ที่ดี
             setPromotions(promotions.map(p =>
                 p.promotion_id === promotionId ? { ...p, is_active: p.is_active === 1 ? 0 : 1 } : p
             ));
         } catch (error: any) {
             Swal.fire('ผิดพลาด!', error.response?.data?.error || 'ไม่สามารถเปลี่ยนสถานะโปรโมชั่นได้', 'error');
-            // อาจจะ Fetch ข้อมูลใหม่ถ้าต้องการความแน่นอน 100%
-            // const promoRes = await axios.get<PromotionData[]>(`${apiUrl}/api/promotions`);
-            // setPromotions(promoRes.data);
         }
     };
 
-    // Handler เมื่อกดปุ่ม "แก้ไข" โปรโมชั่น
     const handleEditPromotionClick = (promo: PromotionData) => {
         setEditingPromotionId(promo.promotion_id);
-        // ตั้งค่า State ของ Form แก้ไข
         setEditingPromotionData({
             name: promo.name,
             description: promo.description || '',
             type: promo.type,
-            value: promo.value.toString(), // แปลงเป็น string สำหรับ input
+            value: promo.value.toString(), 
             code: promo.code || '',
-            // แปลง ISO string จาก DB/API เป็น Date object สำหรับ DatePicker
             start_date: promo.start_date ? parseISO(promo.start_date) : new Date(),
             end_date: promo.end_date ? parseISO(promo.end_date) : new Date(),
             conditions: promo.conditions || ''
         });
     };
 
-    // Handler ปุ่ม "ยกเลิก" ใน Form แก้ไขโปรโมชั่น
     const handleCancelPromotionEdit = () => setEditingPromotionId(null);
 
-    // Handler สำหรับ Input ทั่วไปใน Form แก้ไขโปรโมชั่น
     const handleEditingPromotionChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setEditingPromotionData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    // Handler สำหรับ DatePicker ใน Form แก้ไขโปรโมชั่น
      const handleEditingPromotionDateChange = (date: Date | null, field: 'start_date' | 'end_date') => {
         setEditingPromotionData(prev => ({ ...prev, [field]: date || new Date() }));
     };
 
-    // Handler สำหรับ Submit Form แก้ไขโปรโมชั่น
     const handleUpdatePromotion = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!editingPromotionId) return;
         const { name, type, value, start_date, end_date } = editingPromotionData;
-        // Validation
         if (!name || !type || !value || !start_date || !end_date) {
             return Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลโปรโมชั่นที่จำเป็นให้ครบถ้วน', 'warning');
         }
          try {
-            // Format วันที่ และแปลง value เป็นตัวเลข ก่อนส่ง
             const dataToSend = {
                 ...editingPromotionData,
                 start_date: format(start_date, 'yyyy-MM-dd HH:mm:ss'),
@@ -551,19 +510,17 @@ const Setting = () => {
                 value: parseFloat(value) || 0
             };
             await axios.put(`${apiUrl}/api/promotions/${editingPromotionId}`, dataToSend);
-            // ดึงข้อมูลโปรโมชั่นใหม่หลังอัปเดต
             const promoRes = await axios.get<PromotionData[]>(`${apiUrl}/api/promotions`);
             setPromotions(promoRes.data);
-            setEditingPromotionId(null); // ปิด Form แก้ไข
+            setEditingPromotionId(null); 
             Swal.fire('สำเร็จ!', 'อัปเดตโปรโมชั่นเรียบร้อย', 'success');
         } catch (error: any) {
             Swal.fire('ผิดพลาด!', error.response?.data?.error || 'ไม่สามารถอัปเดตโปรโมชั่นได้', 'error');
         }
     };
-    // ✨ --- END: เพิ่ม Promotion Handlers --- ✨
 
 
-    // --- Loading and Access Control ---
+    // --- Render ---
     if (loading) {
         return <div className="p-8 text-center">กำลังโหลดข้อมูล...</div>;
     }
@@ -576,13 +533,12 @@ const Setting = () => {
         );
     }
 
-    // --- JSX ---
     return (
-        <div className="p-4 sm:p-8 space-y-6"> {/* Responsive padding */}
-            <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-gray-800">ตั้งค่าทั่วไป</h1> {/* Responsive text */}
-            <div className="space-y-4 max-w-4xl mx-auto"> {/* Increased max-width */}
+        <div className="p-4 sm:p-8 space-y-6"> 
+            <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-gray-800">ตั้งค่าทั่วไป</h1> 
+            <div className="space-y-4 max-w-4xl mx-auto"> 
 
-                {/* Accordion: Shop Management (JSX เหมือนเดิม) */}
+                {/* Accordion: Shop Management */}
                 <div className="accordion-item border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                     <button onClick={() => toggleAccordion('shop')} className="accordion-header">
                         <span>จัดการข้อมูลร้านค้า</span>
@@ -590,7 +546,6 @@ const Setting = () => {
                     </button>
                     <div className={`accordion-content ${accordionState.shop ? 'open' : ''}`}>
                          <form onSubmit={handleShopSubmit} className="p-6 space-y-4">
-                            {/* Logo Section */}
                              <div>
                                  <label className="block text-gray-700 text-sm font-bold mb-2 text-center">โลโก้ร้าน</label>
                                  <div className="logo-section">
@@ -605,22 +560,18 @@ const Setting = () => {
                                      <input id="logo-upload" type="file" accept="image/png, image/jpeg, image/webp" onChange={handleLogoChange} style={{ display: 'none' }}/>
                                  </div>
                              </div>
-                             {/* Shop Name */}
                             <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="shop_name">ชื่อร้าน</label>
                                 <input type="text" name="shop_name" value={shopData.shop_name} onChange={handleShopChange} className="input-field" />
                             </div>
-                            {/* Shop Address */}
                             <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="shop_address">ที่อยู่</label>
                                 <textarea name="shop_address" value={shopData.shop_address} onChange={handleShopChange} className="input-field" rows={3}/>
                             </div>
-                             {/* Shop Phone */}
                             <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="shop_phone">เบอร์ติดต่อ</label>
                                 <input type="text" name="shop_phone" value={shopData.shop_phone} onChange={handleShopChange} className="input-field" />
                             </div>
-                            {/* Open/Close Time */}
                             <div className="flex flex-col sm:flex-row gap-4">
                                 <div className="w-full sm:w-1/2">
                                     <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="open_time">เวลาเปิด</label>
@@ -631,7 +582,6 @@ const Setting = () => {
                                     <input type="time" name="close_time" value={shopData.close_time} onChange={handleShopChange} className="input-field" />
                                 </div>
                             </div>
-                             {/* QR Code Section */}
                             <div>
                                 <label className="block text-gray-700 text-sm font-bold mb-2">QR Code ชำระเงิน</label>
                                 <div className="qr-code-section">
@@ -649,15 +599,15 @@ const Setting = () => {
                                     </div>
                                 </div>
                             </div>
-                            {/* Submit Button */}
-                            <div className="flex justify-end pt-4">
+                            {/* ✅ FIX: เปลี่ยน justify-end เป็น justify-center */}
+                            <div className="flex justify-center pt-4">
                                 <button type="submit" className="btn-primary">บันทึกข้อมูลร้านค้า</button>
                             </div>
                         </form>
                     </div>
                  </div>
 
-                {/* Accordion: Table Management (JSX เหมือนเดิม) */}
+                {/* Accordion: Table Management */}
                  <div className="accordion-item border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                     <button onClick={() => toggleAccordion('tables')} className="accordion-header">
                         <span>จัดการโต๊ะ</span>
@@ -667,13 +617,13 @@ const Setting = () => {
                          <div className="p-6">
                             <h3 className="text-xl font-semibold mb-4 text-green-700">เพิ่มโต๊ะใหม่</h3>
                             <form onSubmit={handleAddTable} className="flex flex-col sm:flex-row items-end gap-4 mb-6">
-                                <div>
+                                <div className="w-full sm:w-auto">
                                     <label htmlFor="table_number" className="block text-sm font-medium text-gray-700">หมายเลขโต๊ะ</label>
-                                    <input type="number" name="table_number" value={newTable.table_number} onChange={handleNewTableChange} className="input-field mt-1 w-full sm:w-auto" placeholder="เช่น 1, 2..." required/>
+                                    <input type="number" name="table_number" value={newTable.table_number} onChange={handleNewTableChange} className="input-field mt-1 w-full" placeholder="เช่น 1, 2..." required/>
                                 </div>
-                                <div>
+                                <div className="w-full sm:w-auto">
                                     <label htmlFor="seat_capacity" className="block text-sm font-medium text-gray-700">จำนวนที่นั่ง</label>
-                                    <input type="number" name="seat_capacity" value={newTable.seat_capacity} onChange={handleNewTableChange} className="input-field mt-1 w-full sm:w-auto" placeholder="เช่น 4" required/>
+                                    <input type="number" name="seat_capacity" value={newTable.seat_capacity} onChange={handleNewTableChange} className="input-field mt-1 w-full" placeholder="เช่น 4" required/>
                                 </div>
                                 <button type="submit" className="btn-primary w-full sm:w-auto">เพิ่มโต๊ะ</button>
                             </form>
@@ -717,7 +667,7 @@ const Setting = () => {
                     </div>
                 </div>
 
-                {/* Accordion: Menu Management (JSX เหมือนเดิม) */}
+                {/* Accordion: Menu Management */}
                 <div className="accordion-item border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                     <button onClick={() => toggleAccordion('menu')} className="accordion-header">
                         <span>จัดการเมนูอาหาร</span>
@@ -726,16 +676,13 @@ const Setting = () => {
                     <div className={`accordion-content ${accordionState.menu ? 'open' : ''}`}>
                          <div className="p-6">
                             {editingMenuId ? (
-                                /* --- Edit Menu Form --- */
                                 <>
                                     <h3 className="text-xl font-semibold mb-4 text-purple-700">แก้ไขเมนู</h3>
                                     <form onSubmit={handleUpdateMenu} className="menu-form space-y-4">
-                                        {/* Name */}
                                         <div>
                                             <label htmlFor="edit_menu_name" className="form-label">ชื่อเมนู</label>
                                             <input type="text" id="edit_menu_name" name="menu_name" value={editingMenuData.menu_name || ''} onChange={handleEditingMenuChange} className="input-field" required />
                                         </div>
-                                        {/* Price, Category, Quantity Grid */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label htmlFor="edit_price" className="form-label">ราคา (บาท)</label>
@@ -751,12 +698,10 @@ const Setting = () => {
                                                 <p className="text-xs text-gray-500 mt-1">ใส่จำนวนถ้าต้องการนับสต็อก</p>
                                             </div>
                                         </div>
-                                        {/* Description */}
                                         <div>
                                             <label htmlFor="edit_menu_description" className="form-label">คำอธิบาย</label>
                                             <textarea id="edit_menu_description" name="menu_description" value={editingMenuData.menu_description || ''} onChange={handleEditingMenuChange} className="input-field" rows={2} />
                                         </div>
-                                        {/* Image */}
                                         <div>
                                             <label className="form-label">รูปภาพเมนู</label>
                                             <div className="menu-image-uploader">
@@ -773,7 +718,6 @@ const Setting = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        {/* Buttons */}
                                         <div className="flex justify-end gap-2 pt-4">
                                             <button type="button" onClick={handleCancelMenuEdit} className="btn-secondary">ยกเลิก</button>
                                             <button type="submit" className="btn-success">บันทึกการแก้ไข</button>
@@ -781,16 +725,13 @@ const Setting = () => {
                                     </form>
                                 </>
                             ) : (
-                                /* --- Add Menu Form --- */
                                 <>
                                     <h3 className="text-xl font-semibold mb-4 text-purple-700">เพิ่มเมนูใหม่</h3>
                                     <form onSubmit={handleAddMenu} className="menu-form space-y-4">
-                                        {/* Name */}
                                         <div>
                                             <label htmlFor="menu_name" className="form-label">ชื่อเมนู</label>
                                             <input type="text" id="menu_name" name="menu_name" value={newMenu.menu_name} onChange={handleNewMenuChange} className="input-field" placeholder="เช่น หมูสามชั้น" required />
                                         </div>
-                                        {/* Price, Category, Quantity Grid */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label htmlFor="price" className="form-label">ราคา (บาท)</label>
@@ -806,12 +747,10 @@ const Setting = () => {
                                                  <p className="text-xs text-gray-500 mt-1">ใส่จำนวนถ้าต้องการนับสต็อก</p>
                                             </div>
                                         </div>
-                                         {/* Description */}
                                         <div>
                                             <label htmlFor="menu_description" className="form-label">คำอธิบาย</label>
                                             <textarea id="menu_description" name="menu_description" value={newMenu.menu_description} onChange={handleNewMenuChange} className="input-field" rows={2} placeholder="เช่น หมักซอสสูตรพิเศษ" />
                                         </div>
-                                         {/* Image */}
                                         <div>
                                             <label className="form-label">รูปภาพเมนู</label>
                                             <div className="menu-image-uploader">
@@ -828,8 +767,8 @@ const Setting = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                         {/* Submit Button */}
-                                        <div className="flex justify-end pt-4">
+                                        {/* ✅ FIX: เปลี่ยน justify-end เป็น justify-center */}
+                                        <div className="flex justify-center pt-4">
                                             <button type="submit" className="btn-primary">เพิ่มเมนู</button>
                                         </div>
                                     </form>
@@ -839,23 +778,26 @@ const Setting = () => {
                             <h3 className="text-xl font-semibold mb-4 text-purple-700">รายการเมนูทั้งหมด ({menuItems.length})</h3>
                             <ul className="space-y-3">
                                 {menuItems.map(menu => (
-                                    <li key={menu.menu_id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 p-3 rounded-md shadow-sm gap-2">
-                                        <div className="flex items-center gap-4">
+                                    <li key={menu.menu_id} className="flex flex-col sm:flex-row justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm gap-2">
+                                        <div className="flex items-center gap-4 w-full">
                                             <img
                                                 src={menu.menu_image ? `data:image/png;base64,${menu.menu_image}` : 'https://via.placeholder.com/50'}
                                                 alt={menu.menu_name}
                                                 className="menu-list-thumbnail"
                                             />
-                                            <div>
+                                            {/* ✅ FIX: จัด layout ของ text ให้สวยงามขึ้น */}
+                                            <div className="flex-grow">
                                                 <span className="font-bold text-lg text-gray-800">{menu.menu_name}</span>
-                                                <span className="text-gray-600 ml-3">({menu.price} บาท)</span>
-                                                {menu.menu_category && <span className="ml-2 text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">{menu.menu_category}</span>}
-                                                 {/* แสดงสต็อกถ้ามี */}
-                                                 {menu.menu_quantity !== null && <span className="ml-2 text-xs font-semibold px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">สต็อก: {menu.menu_quantity}</span>}
+                                                <span className="text-gray-600 ml-2 sm:ml-3">({menu.price} บาท)</span>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                    {menu.menu_category && <span className="text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">{menu.menu_category}</span>}
+                                                    {menu.menu_quantity !== null && <span className="text-xs font-semibold px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">สต็อก: {menu.menu_quantity}</span>}
+                                                </div>
                                                 {menu.menu_description && <p className="text-sm text-gray-500 mt-1">{menu.menu_description}</p>}
                                             </div>
                                         </div>
-                                        <div className="flex gap-2 flex-shrink-0 mt-2 sm:mt-0 self-end sm:self-center">
+                                        {/* ✅ FIX: เปลี่ยน self-end เป็น self-center (สำหรับ mobile) */}
+                                        <div className="flex gap-2 flex-shrink-0 mt-2 sm:mt-0 self-center">
                                             <button onClick={() => handleEditMenuClick(menu)} className="btn-secondary btn-sm">แก้ไข</button>
                                             <button onClick={() => handleDeleteMenu(menu.menu_id)} className="btn-danger btn-sm">ลบ</button>
                                         </div>
@@ -867,7 +809,7 @@ const Setting = () => {
                     </div>
                  </div>
 
-                {/* Accordion: Pricing Plan Management (JSX เหมือนเดิม) */}
+                {/* Accordion: Pricing Plan Management */}
                  <div className="accordion-item border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                     <button onClick={() => toggleAccordion('plans')} className="accordion-header">
                         <span>จัดการแพ็กเกจราคา (บุฟเฟต์)</span>
@@ -889,8 +831,8 @@ const Setting = () => {
                                     <label htmlFor="description" className="block text-sm font-medium text-gray-700">คำอธิบาย (ไม่บังคับ)</label>
                                     <textarea name="description" value={newPlan.description} onChange={handleNewPlanChange} className="input-field mt-1" rows={2} placeholder="เช่น พิเศษ! เพิ่มเมนูเนื้อพรีเมียม" />
                                 </div>
-                                <div className="flex justify-end pt-2">
-                                    <button type="submit" className="btn-primary">เพิ่มแพ็กเกจ</button>
+                                <div className="flex justify-center md:justify-end pt-2">
+                                    <button type="submit" className="btn-primary w-full md:w-auto">เพิ่มแพ็กเกจ</button>
                                 </div>
                             </form>
                              <hr className="my-6 border-t border-gray-300" />
@@ -903,7 +845,7 @@ const Setting = () => {
                                             <span className="text-gray-600 ml-3">({plan.price_per_person} บาท/คน)</span>
                                             {plan.description && <p className="text-sm text-gray-500 mt-1">{plan.description}</p>}
                                         </div>
-                                        <button onClick={() => handleDeletePlan(plan.id)} className="btn-danger btn-sm mt-2 sm:mt-0 self-end sm:self-center">ลบ</button>
+                                        <button onClick={() => handleDeletePlan(plan.id)} className="btn-danger btn-sm mt-2 sm:mt-0 self-center md:self-auto">ลบ</button>
                                     </li>
                                 ))}
                                 {plans.length === 0 && <p className="text-center text-gray-500 py-4">ยังไม่มีแพ็กเกจราคา</p>}
@@ -913,7 +855,7 @@ const Setting = () => {
                  </div>
 
 
-                {/* ✨ --- START: เพิ่ม Promotion Accordion --- ✨ */}
+                {/* Accordion: Promotions */}
                 <div className="accordion-item border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                     <button onClick={() => toggleAccordion('promotions')} className="accordion-header">
                         <span>จัดการโปรโมชั่น/ส่วนลด</span>
@@ -926,12 +868,10 @@ const Setting = () => {
                                 <>
                                     <h3 className="text-xl font-semibold mb-4 text-blue-700">แก้ไขโปรโมชั่น</h3>
                                     <form onSubmit={handleUpdatePromotion} className="space-y-4 promotion-form">
-                                        {/* Name */}
                                         <div>
                                             <label htmlFor="edit_promo_name" className="form-label">ชื่อโปรโมชั่น</label>
                                             <input type="text" id="edit_promo_name" name="name" value={editingPromotionData.name} onChange={handleEditingPromotionChange} className="input-field" required />
                                         </div>
-                                         {/* Type & Value Grid */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label htmlFor="edit_promo_type" className="form-label">ประเภท</label>
@@ -947,12 +887,10 @@ const Setting = () => {
                                                  {editingPromotionData.type === 'special' && <p className="text-xs text-gray-500 mt-1">สำหรับ 'ข้อเสนอพิเศษ' เช่น ใส่ '3' สำหรับโปร 'มา 4 จ่าย 3'</p>}
                                              </div>
                                          </div>
-                                        {/* Code */}
                                         <div>
                                             <label htmlFor="edit_promo_code" className="form-label">รหัสคูปอง (ถ้ามี)</label>
                                             <input type="text" id="edit_promo_code" name="code" value={editingPromotionData.code} onChange={handleEditingPromotionChange} className="input-field" placeholder="เช่น SUMMERDEAL" />
                                         </div>
-                                        {/* Date Range Grid */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                              <div>
                                                  <label htmlFor="edit_promo_start_date" className="form-label">วันที่เริ่ม</label>
@@ -988,20 +926,17 @@ const Setting = () => {
                                                 />
                                              </div>
                                          </div>
-                                         {/* Description */}
                                         <div>
                                             <label htmlFor="edit_promo_description" className="form-label">คำอธิบาย</label>
                                             <textarea id="edit_promo_description" name="description" value={editingPromotionData.description} onChange={handleEditingPromotionChange} className="input-field" rows={2} />
                                         </div>
-                                        {/* Conditions */}
                                         <div>
                                             <label htmlFor="edit_promo_conditions" className="form-label">เงื่อนไขเพิ่มเติม</label>
                                             <textarea id="edit_promo_conditions" name="conditions" value={editingPromotionData.conditions} onChange={handleEditingPromotionChange} className="input-field" rows={2} placeholder="เช่น ใช้ได้เฉพาะวันจันทร์-ศุกร์, ยอดขั้นต่ำ 500 บาท" />
                                         </div>
-                                         {/* Buttons */}
-                                        <div className="flex justify-end gap-2 pt-4">
-                                            <button type="button" onClick={handleCancelPromotionEdit} className="btn-secondary">ยกเลิก</button>
-                                            <button type="submit" className="btn-success">บันทึกการแก้ไข</button>
+                                        <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2 pt-4">
+                                            <button type="button" onClick={handleCancelPromotionEdit} className="btn-secondary w-full sm:w-auto">ยกเลิก</button>
+                                            <button type="submit" className="btn-success w-full sm:w-auto">บันทึกการแก้ไข</button>
                                         </div>
                                     </form>
                                 </>
@@ -1010,12 +945,10 @@ const Setting = () => {
                                 <>
                                     <h3 className="text-xl font-semibold mb-4 text-blue-700">เพิ่มโปรโมชั่นใหม่</h3>
                                     <form onSubmit={handleAddPromotion} className="space-y-4 promotion-form">
-                                         {/* Name */}
                                         <div>
                                             <label htmlFor="promo_name" className="form-label">ชื่อโปรโมชั่น</label>
                                             <input type="text" id="promo_name" name="name" value={newPromotion.name} onChange={handleNewPromotionChange} className="input-field" required placeholder="เช่น ส่วนลด 10% ฉลองเปิดร้าน" />
                                         </div>
-                                        {/* Type & Value Grid */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label htmlFor="promo_type" className="form-label">ประเภท</label>
@@ -1031,12 +964,10 @@ const Setting = () => {
                                                  {newPromotion.type === 'special' && <p className="text-xs text-gray-500 mt-1">สำหรับ 'ข้อเสนอพิเศษ' เช่น ใส่ '3' สำหรับโปร 'มา 4 จ่าย 3'</p>}
                                              </div>
                                          </div>
-                                          {/* Code */}
                                         <div>
                                             <label htmlFor="promo_code" className="form-label">รหัสคูปอง (ถ้ามี)</label>
                                             <input type="text" id="promo_code" name="code" value={newPromotion.code} onChange={handleNewPromotionChange} className="input-field" placeholder="เช่น SUMMERDEAL" />
                                         </div>
-                                         {/* Date Range Grid */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
                                                 <label htmlFor="promo_start_date" className="form-label">วันที่เริ่ม</label>
@@ -1046,11 +977,11 @@ const Setting = () => {
                                                     selectsStart
                                                     startDate={newPromotion.start_date}
                                                     endDate={newPromotion.end_date}
-                                                    showTimeSelect // เปิดให้เลือกเวลา
-                                                    timeFormat="HH:mm" // รูปแบบเวลา
-                                                    timeIntervals={15} // ช่วงเวลา
-                                                    dateFormat="dd/MM/yyyy HH:mm" // รูปแบบแสดงผล
-                                                    className="input-field w-full" // ทำให้ DatePicker กว้างเต็มช่อง
+                                                    showTimeSelect
+                                                    timeFormat="HH:mm"
+                                                    timeIntervals={15}
+                                                    dateFormat="dd/MM/yyyy HH:mm"
+                                                    className="input-field w-full"
                                                     required
                                                 />
                                             </div>
@@ -1062,7 +993,7 @@ const Setting = () => {
                                                     selectsEnd
                                                     startDate={newPromotion.start_date}
                                                     endDate={newPromotion.end_date}
-                                                    minDate={newPromotion.start_date} // วันสิ้นสุดต้องไม่น้อยกว่าวันเริ่ม
+                                                    minDate={newPromotion.start_date}
                                                     showTimeSelect
                                                     timeFormat="HH:mm"
                                                     timeIntervals={15}
@@ -1072,19 +1003,16 @@ const Setting = () => {
                                                 />
                                              </div>
                                         </div>
-                                        {/* Description */}
                                         <div>
                                             <label htmlFor="promo_description" className="form-label">คำอธิบาย</label>
                                             <textarea id="promo_description" name="description" value={newPromotion.description} onChange={handleNewPromotionChange} className="input-field" rows={2} placeholder="เช่น เฉพาะวันจันทร์ - ศุกร์"/>
                                         </div>
-                                         {/* Conditions */}
                                         <div>
                                             <label htmlFor="promo_conditions" className="form-label">เงื่อนไขเพิ่มเติม</label>
                                             <textarea id="promo_conditions" name="conditions" value={newPromotion.conditions} onChange={handleNewPromotionChange} className="input-field" rows={2} placeholder="เช่น ยอดขั้นต่ำ 500 บาท, ไม่รวมเครื่องดื่ม" />
                                         </div>
-                                        {/* Submit Button */}
-                                        <div className="flex justify-end pt-4">
-                                            <button type="submit" className="btn-primary">เพิ่มโปรโมชั่น</button>
+                                        <div className="flex justify-center md:justify-end pt-4">
+                                            <button type="submit" className="btn-primary w-full md:w-auto">เพิ่มโปรโมชั่น</button>
                                         </div>
                                     </form>
                                 </>
@@ -1093,8 +1021,10 @@ const Setting = () => {
                             <hr className="my-8 border-t border-gray-300" />
 
                             <h3 className="text-xl font-semibold mb-4 text-blue-700">โปรโมชั่นที่มีอยู่ ({promotions.length})</h3>
+                            
+                            {/* ✅ Responsive Table/Card Container (เพิ่มคลาส mobile-card-table) */}
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md">
+                                <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md mobile-card-table">
                                      <thead className="bg-gray-100">
                                         <tr>
                                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">ชื่อ</th>
@@ -1110,29 +1040,28 @@ const Setting = () => {
                                          {promotions.length > 0 ? (
                                             promotions.map(promo => (
                                                 <tr key={promo.promotion_id} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900 max-w-xs">{/* Allow wrap */}
+                                                    <td className="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900 max-w-xs" data-label="ชื่อ">
                                                         {promo.name}
                                                         {promo.description && <p className="text-xs text-gray-500 mt-1">{promo.description}</p>}
                                                         {promo.conditions && <p className="text-xs text-red-500 mt-1">เงื่อนไข: {promo.conditions}</p>}
                                                     </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700" data-label="ประเภท">
                                                         {promo.type === 'percentage' && 'เปอร์เซ็นต์'}
                                                         {promo.type === 'fixed_amount' && 'จำนวนเงิน'}
                                                         {promo.type === 'special' && 'ข้อเสนอพิเศษ'}
                                                     </td>
-                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700">
+                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700" data-label="ค่า">
                                                         {promo.value} {promo.type === 'percentage' && '%'}
                                                         {promo.type === 'fixed_amount' && ' บาท'}
                                                         {promo.type === 'special' && ` (พิเศษ)`}
                                                     </td>
-                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-mono">
+                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-mono" data-label="Code">
                                                         {promo.code || '-'}
                                                     </td>
-                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                                                        {/* ใช้ parseISO เพราะค่าจาก DB/API เป็น string */}
+                                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700" data-label="ระยะเวลา">
                                                         {format(parseISO(promo.start_date), 'dd/MM/yy HH:mm')} - {format(parseISO(promo.end_date), 'dd/MM/yy HH:mm')}
                                                     </td>
-                                                     <td className="px-4 py-3 whitespace-nowrap text-center">
+                                                     <td className="px-4 py-3 whitespace-nowrap text-center" data-label="สถานะ">
                                                          <button
                                                             onClick={() => handleTogglePromotionStatus(promo.promotion_id)}
                                                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 ${
@@ -1145,7 +1074,7 @@ const Setting = () => {
                                                              {promo.is_active ? 'ใช้งาน' : 'ไม่ใช้งาน'}
                                                          </button>
                                                      </td>
-                                                     <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium space-x-1 sm:space-x-2"> {/* Responsive spacing */}
+                                                     <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium space-x-1 sm:space-x-2" data-label="จัดการ"> 
                                                           <button onClick={() => handleEditPromotionClick(promo)} className="btn-sm btn-secondary" title="แก้ไข">✏️</button>
                                                           <button onClick={() => handleDeletePromotion(promo.promotion_id)} className="btn-sm btn-danger" title="ลบ">🗑️</button>
                                                      </td>
@@ -1162,10 +1091,9 @@ const Setting = () => {
                         </div>
                     </div>
                 </div>
-                 {/* ✨ --- END: Add Promotion Accordion --- ✨ */}
 
-            </div> {/* End max-width container */}
-        </div> // End main div
+            </div> 
+        </div> 
     );
 }
 

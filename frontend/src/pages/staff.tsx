@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import './staff.css';
+import './staff.css'; // (ยังคง import ไว้สำหรับตาราง)
 import { PlusCircleIcon } from '@heroicons/react/24/solid';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
@@ -8,7 +8,7 @@ interface StaffType {
   id: number;
   username: string;
   role: string;
-  phone: string | null; // ✅ แก้ไข: ทำให้ phone สามารถเป็น null ได้
+  phone: string | null; 
   email: string;
   first_name?: string;
   last_name?: string;
@@ -36,6 +36,7 @@ const Staff = () => {
       });
   };
 
+  // ... (ฟังก์ชัน handleImageUpload, addStaff, editStaff, deleteStaff, formatPhone ทั้งหมดเหมือนเดิม) ...
   const handleImageUpload = (event: Event): Promise<string | null> => {
     return new Promise((resolve) => {
       const input = event.target as HTMLInputElement;
@@ -327,18 +328,32 @@ const Staff = () => {
 
   return (
     <div className="rounded-t-3xl border staff-container">
-      <div className="w-full h-30 rounded-t-3xl mx-auto flex md:flex-row items-center justify-between staff-header ">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white text-center staff-header-title">
+      {/* ✅✅✅ FIX: ย้ายสไตล์ทั้งหมดจาก staff.css มาไว้ที่นี่ ✅✅✅
+        - Mobile (Default): flex-col, items-center, p-5 (อ้างอิงจาก @media 600px)
+        - Desktop (md:): md:flex-row, md:justify-between, md:p-8 (อ้างอิงจาก .staff-header)
+        - ลบ 'staff-header' ออกจาก className เพื่อป้องกันการตีกัน
+      */}
+      <div className="w-full rounded-t-3xl mx-auto 
+                    bg-gradient-to-br from-slate-800 to-slate-900 min-h-[150px] 
+                    flex flex-col items-center gap-4 p-5 
+                    md:flex-row md:justify-between md:items-center md:p-8">
+        
+        {/* Title (ลบ text-center ออก) */}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white staff-header-title">
           จัดการพนักงาน
         </h1>
+        
+        {/* Button (ลบ justify-center ออก) */}
         <button
           onClick={addStaff}
-          className="bg-white text-black font-bold py-2 px-4 rounded flex items-center gap-2 transition duration-300 hover:bg-gray-200 hover:scale-105 justify-center"
+          className="bg-white text-black font-bold py-2 px-4 rounded flex items-center gap-2 transition duration-300 hover:bg-gray-200 hover:scale-105"
         >
           <PlusCircleIcon className="w-6 h-6 sm:w-8 sm:h-8" />
           เพิ่มพนักงานใหม่
         </button>
       </div>
+
+      {/* (เนื้อหาส่วนที่เหลือของ Component เหมือนเดิม) */}
       <div className="p-4 overflow-x-auto">
         <table className="border border-gray-300 rounded-lg table-staff">
           <thead className="bg-gray-400 text-black text-center">
@@ -417,4 +432,3 @@ const Staff = () => {
 };
 
 export default Staff;
-

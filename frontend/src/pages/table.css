@@ -495,3 +495,51 @@ body {
     height: 1.15em;
     accent-color: #3b82f6; /* blue-500 */
 }
+/* ============================
+   ✅ Mobile Responsive Fixes (Table Page)
+   ============================ */
+@media (max-width: 640px) {
+    /* --- ปรับหน้าต่างเช็คบิล (SweetAlert) --- */
+    .billing-modal-content {
+        flex-direction: column; /* เรียงแนวตั้ง */
+        gap: 1.5rem;
+        padding: 1rem; /* ลด padding */
+    }
+
+    .billing-modal-details {
+        width: 100%;
+    }
+
+    .billing-modal-qr {
+        width: 100%;
+        border-left: none; /* ลบเส้นกั้นซ้าย */
+        border-top: 2px solid #e5e7eb; /* เพิ่มเส้นกั้นบนแทน */
+        padding-left: 0;
+        padding-top: 1.5rem;
+        margin-top: 0;
+    }
+
+    .billing-modal-qr img {
+        max-width: 180px; /* ลดขนาด QR Code เล็กน้อย */
+        align-self: center;
+    }
+
+    /* ปรับตัวเลือกการชำระเงินให้กดง่ายขึ้น */
+    .checkbox-group {
+        flex-direction: column; /* เรียงตัวเลือกแนวตั้ง */
+        align-items: flex-start;
+        gap: 1rem;
+        background-color: #f9fafb;
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+    
+    .checkbox-label {
+        width: 100%; /* พื้นที่กดเต็มความกว้าง */
+    }
+
+    /* ปรับขนาดตัวอักษร */
+    .modal-subtitle, .total-price {
+        text-align: center; /* จัดกลาง */
+    }
+}

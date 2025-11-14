@@ -13,17 +13,34 @@ const { th } = require('date-fns/locale'); // 👈 Import Thai locale
 const http = require('http');
 const { Server } = require("socket.io");
 
-// ✅ 2. CREATE HTTP SERVER & SOCKET.IO INSTANCE
+// Middleware
+const allowedOrigins = [
+  'http://localhost:5173',          // สำหรับตอนพัฒนาบนคอม
+  'http://192.168.0.101:5173',   // ⭐️ เพิ่ม IP มือถือ/Network ของคุณ
+  'http://10.160.136.160:5173'
+  // เพิ่ม IP อื่นๆ ที่คุณอาจใช้ในอนาคตที่นี่
+];
+
+const corsOptions = {
+  origin: allowedOrigins, // ⬅️ ⭐️ ใช้ Array ตรงๆ
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // ⬅️ ⭐️ เพิ่ม 'OPTIONS' ให้ชัดเจน
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-User-Id'], // ⬅️ ⭐️ เพิ่ม Header ที่จำเป็น (เผื่ออนาคต)
+};
+
+// ✅ 2. สร้าง Server
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: "*", // Should change to your Frontend URL in production
-    methods: ["GET", "POST", "PUT", "DELETE"]
-  }
+  cors: corsOptions // ⬅️ ⭐️ ใช้ corsOptions ที่นี่
 });
 
-// Middleware
-app.use(cors());
+// ✅ 3. ใช้งาน CORS Middleware (สำคัญมาก)
+
+// ⭐️ 3.1) เปิดรับ OPTIONS request (Preflight)
+app.options(/.*/, cors(corsOptions));
+
+// ⭐️ 3.2) ใช้งาน CORS สำหรับ request อื่นๆ
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 
 // ============================

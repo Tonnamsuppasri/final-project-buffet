@@ -219,3 +219,125 @@
     text-align: right;
     min-width: 100px;
 }
+/* ============================
+   ✅ Mobile Responsive Fix
+   ============================ */
+@media (max-width: 640px) { /* 👈 ทำงานเมื่อหน้าจอเล็กกว่า 640px */
+    
+    .payment-history-container,
+    .payment-detail-container {
+        padding: 1rem; /* 👈 ลดช่องว่างขอบๆ ลงเล็กน้อย */
+    }
+
+    .search-form {
+        /* ไม่ต้องเปลี่ยน flex-direction ก็ได้ 
+           เพราะเราจะบังคับให้ลูกๆ กว้าง 100% */
+    }
+
+    /* บังคับให้ input และ button ทุกตัว
+      กว้าง 100% และมี margin-bottom 
+    */
+    .search-input,
+    .date-input,
+    .search-button {
+        width: 100%;
+        margin-bottom: 0.5rem; /* 👈 เพิ่มช่องว่างระหว่างปุ่ม/input ที่เรียงกัน */
+    }
+
+    .search-input {
+        min-width: 0; /* 👈 ล้าง min-width เก่า */
+    }
+}
+/* ============================
+   Mobile Card View (max-width: 600px)
+   ============================ */
+@media (max-width: 600px) {
+    /* --- ซ่อนหัวตารางบนมือถือ --- */
+    .payment-table thead {
+        display: none;
+    }
+
+    .payment-table,
+    .payment-table tbody,
+    .payment-table tr,
+    .payment-table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .table-wrapper {
+        border-radius: 0;
+        box-shadow: none;
+        background: transparent;
+        overflow-x: hidden; /* ไม่ต้องเลื่อนแนวนอนแล้ว */
+    }
+
+    .payment-table {
+        border: none;
+    }
+
+    /* --- เปลี่ยนแถว (tr) ให้เป็นการ์ด --- */
+    .payment-table tr.clickable-row {
+        display: block;
+        margin-bottom: 1rem;
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        padding: 0.5rem 1rem; /* เพิ่ม padding ภายในการ์ด */
+        border: 1px solid #e5e7eb;
+    }
+    
+    .payment-table tr:hover {
+        background-color: #eff6ff; /* คง hover effect ไว้ */
+    }
+
+    /* --- จัดเรียงเซลล์ (td) ใหม่ --- */
+    .payment-table td {
+        display: flex;
+        justify-content: space-between; /* จัดให้หัวข้ออยู่ซ้าย ข้อมูลอยู่ขวา */
+        align-items: center;
+        text-align: right; /* ข้อมูลชิดขวา */
+        padding: 0.6rem 0.5rem;
+        border-bottom: 1px solid #f0f0f0; /* เส้นคั่นบางๆ ระหว่างข้อมูล */
+        font-size: 0.9rem;
+    }
+    
+    .payment-table td:last-child {
+        border-bottom: none; /* เส้นสุดท้ายไม่ต้องมี */
+    }
+
+    /* --- สร้าง "หัวข้อ" โดยใช้ data-label --- */
+    .payment-table td::before {
+        content: attr(data-label); /* ดึงค่าจาก data-label มาแสดง */
+        font-weight: 600;
+        color: #4b5563; /* สีเทาเข้ม */
+        text-align: left; /* หัวข้อชิดซ้าย */
+        margin-right: 1rem;
+        font-size: 0.85rem;
+    }
+
+    /* --- จัดสไตล์ให้สวยงาม --- */
+    .payment-table td[data-label="Order ID"] {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #3b82f6; /* สีฟ้า */
+        padding-top: 0.8rem;
+    }
+    
+    .payment-table td.price-cell {
+        font-size: 1rem;
+        font-weight: bold;
+    }
+    
+    .payment-table td[data-label="โต๊ะ"],
+    .payment-table td[data-label="จำนวนลูกค้า"],
+    .payment-table td[data-label="ช่องทาง"] {
+        color: #374151;
+    }
+    
+    .payment-table td[data-label="เวลาที่ชำระ"] {
+        font-size: 0.85rem;
+        color: #6b7280;
+        padding-bottom: 0.8rem;
+    }
+}

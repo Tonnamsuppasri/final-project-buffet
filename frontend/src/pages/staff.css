@@ -5,18 +5,6 @@
   overflow: hidden;
 }
 
-/* ---------- Header ---------- */
-.staff-header {
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  padding: 1.5rem 2rem;
-  min-height: 150px;
-  border-radius: 1.5rem 1.5rem 0 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .staff-header-title {
   font-size: 2.8rem;
   font-weight: 800;
@@ -215,176 +203,156 @@
   .staff-header-title {
     font-size: 1.5rem;
   }
-}
+  /* ---------- Mobile Card Table ---------- */
+  @media (max-width: 600px) {
+    
+    .table-responsive-wrapper {
+      padding: 0.8rem;
+    }
+    
+    .table-staff,
+    .table-staff thead,
+    .table-staff tbody,
+    .table-staff th,
+    .table-staff td,
+    .table-staff tr {
+      display: block;
+      width: 100%;
+    }
 
-/* ---------- Mobile Card Table ---------- */
-@media (max-width: 600px) {
-  .staff-header {
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1.2rem;
-    min-height: auto;
-    text-align: center;
-  }
-  
-  .staff-header-title {
-    font-size: 1.8rem;
-    margin-bottom: 0;
-  }
-  
-  .staff-header button {
-    align-self: center;
-    padding: 0.8rem 1.5rem;
-    font-size: 0.95rem;
-    width: auto;
-  }
-  
-  .table-responsive-wrapper {
-    padding: 0.8rem;
-  }
-  
-  .table-staff,
-  .table-staff thead,
-  .table-staff tbody,
-  .table-staff th,
-  .table-staff td,
-  .table-staff tr {
-    display: block;
-    width: 100%;
-  }
+    .table-staff thead {
+      display: none; /* ซ่อนหัวตาราง */
+    }
+    
+    .table-staff {
+      border: none;
+      box-shadow: none;
+      background: transparent;
+    }
 
-  .table-staff thead {
-    display: none; /* ซ่อนหัวตาราง */
-  }
-  
-  .table-staff {
-    border: none;
-    box-shadow: none;
-    background: transparent;
-  }
+    .table-staff tr {
+      margin-bottom: 1.2rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: 1px solid #e2e8f0;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .table-staff tr:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+    }
+    
+    /* เพิ่ม accent color ที่ด้านบนของการ์ด */
+    .table-staff tr::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed);
+    }
 
-  .table-staff tr {
-    margin-bottom: 1.2rem;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border-radius: 1rem;
-    padding: 1rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    border: 1px solid #e2e8f0;
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .table-staff tr:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-    transition: all 0.3s ease;
-  }
-  
-  /* เพิ่ม accent color ที่ด้านบนของการ์ด */
-  .table-staff tr::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #4f46e5, #7c3aed);
-  }
+    .table-staff td {
+      text-align: left;
+      padding: 0.7rem 0;
+      border: none;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 0.6rem;
+    }
+    
+    .table-staff td:last-child {
+      margin-bottom: 0;
+    }
 
-  .table-staff td {
-    text-align: left;
-    padding: 0.7rem 0;
-    border: none;
-    font-size: 0.95rem;
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 0.6rem;
-  }
-  
-  .table-staff td:last-child {
-    margin-bottom: 0;
-  }
-
-  .table-staff td::before {
-    content: attr(data-label);
-    font-weight: 700;
-    color: #475569;
-    min-width: 80px;
-    margin-right: 1rem;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-  }
-  
-  /* สไตล์พิเศษสำหรับ ID */
-  .table-staff td[data-label="ID"] {
-    font-weight: 800;
-    font-size: 1.1rem;
-    color: #1e293b;
-    margin-bottom: 0.8rem;
-    padding-bottom: 0.6rem;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  
-  .table-staff td[data-label="ID"]::before {
-    color: #4f46e5;
-    font-size: 0.9rem;
-  }
-  
-  /* สไตล์พิเศษสำหรับ Contact */
-  .table-staff td[data-label="Contact"] {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .table-staff td[data-label="Contact"]::before {
-    margin-bottom: 0.5rem;
-  }
-  
-  .table-staff td[data-label="Contact"] div {
-    margin-bottom: 0.3rem;
-    font-size: 0.9rem;
-    line-height: 1.4;
-  }
-  
-  .table-staff td[data-label="Contact"] strong {
-    color: #374151;
-    font-weight: 600;
-  }
-  
-  /* ปรับ Actions ให้สวยกว่า */
-  .table-staff td[data-label="Actions"] {
-    justify-content: flex-start;
-    margin-top: 0.5rem;
-    padding-top: 0.8rem;
-    border-top: 1px solid #e2e8f0;
-  }
-  
-  .table-staff td[data-label="Actions"] .staff-actions-buttons {
-    gap: 0.8rem;
-  }
-  
-  .table-staff td[data-label="Actions"] .staff-actions-buttons button {
-    padding: 0.6rem 1rem;
-    font-size: 0.9rem;
-    border-radius: 0.6rem;
-    font-weight: 600;
-    flex: 1;
-    justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  
-  .table-staff td[data-label="Actions"] .staff-actions-buttons button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  }
-  
-  .table-staff td[data-label="Actions"] .staff-actions-buttons button span {
-    display: inline !important;
-  }
-  
-  /* ซ่อน empty rows ในมือถือ */
-  .table-staff tr:has(td[data-label="Username"]:empty) {
-    display: none;
+    .table-staff td::before {
+      content: attr(data-label);
+      font-weight: 700;
+      color: #475569;
+      min-width: 80px;
+      margin-right: 1rem;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+    }
+    
+    /* สไตล์พิเศษสำหรับ ID */
+    .table-staff td[data-label="ID"] {
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #1e293b;
+      margin-bottom: 0.8rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .table-staff td[data-label="ID"]::before {
+      color: #4f46e5;
+      font-size: 0.9rem;
+    }
+    
+    /* สไตล์พิเศษสำหรับ Contact */
+    .table-staff td[data-label="Contact"] {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .table-staff td[data-label="Contact"]::before {
+      margin-bottom: 0.5rem;
+    }
+    
+    .table-staff td[data-label="Contact"] div {
+      margin-bottom: 0.3rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    
+    .table-staff td[data-label="Contact"] strong {
+      color: #374151;
+      font-weight: 600;
+    }
+    
+    /* ปรับ Actions ให้สวยกว่า */
+    .table-staff td[data-label="Actions"] {
+      justify-content: flex-start;
+      margin-top: 0.5rem;
+      padding-top: 0.8rem;
+      border-top: 1px solid #e2e8f0;
+    }
+    
+    .table-staff td[data-label="Actions"] .staff-actions-buttons {
+      gap: 0.8rem;
+    }
+    
+    .table-staff td[data-label="Actions"] .staff-actions-buttons button {
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+      border-radius: 0.6rem;
+      font-weight: 600;
+      flex: 1;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .table-staff td[data-label="Actions"] .staff-actions-buttons button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .table-staff td[data-label="Actions"] .staff-actions-buttons button span {
+      display: inline !important;
+    }
+    
+    /* ซ่อน empty rows ในมือถือ */
+    .table-staff tr:has(td[data-label="Username"]:empty) {
+      display: none;
+    }
   }
 }

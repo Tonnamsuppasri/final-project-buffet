@@ -4,7 +4,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import QRCode from 'qrcode';
 import './table.css';
-import { socket } from '../components/menu'; // ✅ 1. Import socket
+import { socket } from '../components/menu';
 
 // --- Interfaces ---
 interface TableData {
@@ -87,7 +87,7 @@ const Timer = ({ startTime }: { startTime: string }) => {
 
 const Table = () => {
     const location = useLocation();
-    const role = location.state?.role;
+    // const role = location.state?.role; // (ไม่ได้ใช้ใน logic ปัจจุบัน แต่เก็บไว้ได้)
 
     // --- States ---
     const [tables, setTables] = useState<TableData[]>([]);
@@ -112,10 +112,7 @@ const Table = () => {
     const customerOrderUrlBase = import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173/order';
 
 
-    // ✅ 3. หุ้ม fetchAllData ด้วย useCallback
     const fetchAllData = useCallback(async () => {
-        // ไม่ต้อง setLoading(true) ทุกครั้งที่ socket ทำงาน เพื่อให้หน้าจอกระพริบน้อยลง
-        // setLoading(true); 
         try {
             const [tablesRes, plansRes, activeOrdersRes, shopRes] = await Promise.all([
                 axios.get<TableData[]>(`${apiUrl}/api/tables`),
@@ -134,29 +131,24 @@ const Table = () => {
             console.error("Error fetching data:", error);
             Swal.fire('ผิดพลาด!', 'ไม่สามารถโหลดข้อมูลได้', 'error');
         } finally {
-            setLoading(false); // ปิด loading แค่ครั้งแรก
+            setLoading(false);
         }
-    }, [apiUrl, selectedPlanId]); // เพิ่ม dependency ที่จำเป็น
+    }, [apiUrl, selectedPlanId]);
 
-    // ✅ 4. สร้าง useEffect สำหรับจัดการ Socket
     useEffect(() => {
-        // ดึงข้อมูลครั้งแรกเมื่อ Component โหลด
         fetchAllData();
 
-        // ฟังก์ชัน Handler ที่จะถูกเรียกเมื่อมี event
         const handleDataUpdate = () => {
             console.log("🎉 Socket event received: tables_updated. Refetching all data...");
             fetchAllData();
         };
 
-        // เริ่มดักฟัง event จาก server
         socket.on('tables_updated', handleDataUpdate);
 
-        // Cleanup function: หยุดดักฟังเมื่อ Component ถูกปิด
         return () => {
             socket.off('tables_updated', handleDataUpdate);
         };
-    }, [fetchAllData]); // ทำงานเมื่อ fetchAllData เปลี่ยน (ซึ่งจะเกิดแค่ครั้งเดียวเพราะ useCallback)
+    }, [fetchAllData]);
 
 
     useEffect(() => {
@@ -188,8 +180,9 @@ const Table = () => {
         `;
 
         printableBillRef.current.innerHTML = billHtml;
-        // ใช้ handlePrint จาก useReactToPrint
         
+        // หมายเหตุ: ตรงนี้ปกติจะต้องมี logic สั่ง print (เช่น window.print() หรือใช้ library react-to-print)
+        // ในโค้ดเดิมของคุณอาจจะมี หรืออาจจะเรียกใช้ฟังก์ชันอื่นต่อ
     };
 
     const handleCheckBillButtonClick = async (table: TableData) => {
@@ -253,7 +246,6 @@ const Table = () => {
                         payment_method: selectedPaymentMethod
                     });
                     await Swal.fire('สำเร็จ!', 'บันทึกการชำระเงินเรียบร้อย', 'success');
-                    // fetchAllData(); // ❗ ไม่ต้องเรียกเอง Socket จะจัดการให้
                 } catch (error: any) {
                     Swal.fire('ผิดพลาด!', error.response?.data?.message || "ไม่สามารถบันทึกการชำระเงินได้", 'error');
                 }
@@ -313,7 +305,6 @@ const Table = () => {
                 timer: 1500,
                 showConfirmButton: false
             });
-            // fetchAllData(); // ❗ ไม่ต้องเรียกเอง Socket จะจัดการให้
             handleBackToGrid();
         } catch (error: any) {
             Swal.fire('ผิดพลาด!', error.response?.data?.message || "ไม่สามารถเปิดโต๊ะได้", 'error');
@@ -342,7 +333,6 @@ const Table = () => {
                         `ออเดอร์ของโต๊ะ ${table.table_number} ถูกยกเลิกเรียบร้อย`,
                         'success'
                     );
-                    // fetchAllData(); // ❗ ไม่ต้องเรียกเอง Socket จะจัดการให้
                 } catch (error: any) {
                     Swal.fire('ผิดพลาด!', error.response?.data?.message || "ไม่สามารถยกเลิกออเดอร์ได้", 'error');
                 }
@@ -482,29 +472,43 @@ const Table = () => {
                 </div>
             )}
 
+            {/* ✅ ส่วน QR Code Modal ที่แก้ไข Responsive แล้ว */}
             {showQrDetailsModal && currentOrderDetails && (
-                <div className="fixed inset-0 bg-gray-900/80 bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-8 rounded-xl shadow-2xl relative w-full max-w-md modal-qr-details">
+                <div className="fixed inset-0 bg-gray-900/80 bg-opacity-50 flex items-center justify-center z-50 p-4"> {/* เพิ่ม p-4 กันชิดขอบ */}
+                    <div className="bg-white p-6 md:p-8 rounded-xl shadow-2xl relative w-full max-w-sm md:max-w-md modal-qr-details"> {/* ปรับขนาด responsive */}
                         <button
-                            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"
+                            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl md:top-4 md:right-4 md:text-2xl"
                             onClick={() => setShowQrDetailsModal(false)}
                         >
                             &times;
                         </button>
-                        <h2 className="text-3xl font-bold mb-6 text-center">โต๊ะ {currentOrderDetails.table_number}</h2>
-                        <div className="flex flex-col items-center space-y-4">
-                            <h3 className="text-xl font-semibold text-gray-800">สแกนเพื่อสั่งอาหาร</h3>
+                        
+                        <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 text-center">
+                            โต๊ะ {currentOrderDetails.table_number}
+                        </h2>
+                        
+                        <div className="flex flex-col items-center space-y-3 md:space-y-4">
+                            <h3 className="text-lg md:text-xl font-semibold text-gray-800">สแกนเพื่อสั่งอาหาร</h3>
+                            
                             {qrCodeImageUrl && (
-                                <img src={qrCodeImageUrl} alt={`QR Code for Table ${currentOrderDetails.table_number}`} className="w-64 h-64 border p-2"/>
+                                <img 
+                                    src={qrCodeImageUrl} 
+                                    alt={`QR Code for Table ${currentOrderDetails.table_number}`} 
+                                    className="w-48 h-48 md:w-64 md:h-64 border p-2 rounded-lg" /* ปรับขนาดรูป */
+                                />
                             )}
-                            <p className="text-sm text-gray-600">ประเภท: {currentOrderDetails.service_type}</p>
-                            <p className="text-sm text-gray-600">ลูกค้า: {currentOrderDetails.customer_quantity} คน</p>
-                            <p className="text-sm text-gray-600">โปรโมชัน: {currentOrderDetails.plan_name}</p>
+                            
+                            <div className="text-center space-y-1">
+                                <p className="text-sm text-gray-600">ประเภท: {currentOrderDetails.service_type}</p>
+                                <p className="text-sm text-gray-600">ลูกค้า: {currentOrderDetails.customer_quantity} คน</p>
+                                <p className="text-sm text-gray-600">โปรโมชัน: {currentOrderDetails.plan_name}</p>
+                            </div>
+
                             <button
-                                className="btn-secondary mt-6"
+                                className="btn-secondary mt-4 w-full md:w-auto" /* ปุ่มเต็มจอเมื่อมือถือ */
                                 onClick={() => setShowQrDetailsModal(false)}
                             >
-                                ปิด
+                                ปิดหน้าต่าง
                             </button>
                         </div>
                     </div>

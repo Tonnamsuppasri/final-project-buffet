@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, type FormEvent } from 'react'; // ✅ 1. เพิ่ม useCallback
+import { useState, useEffect, useCallback, type FormEvent } from 'react'; //
 import axios from 'axios';
-import './PaymentPage.css'; // เราจะใช้ไฟล์ CSS ที่รวมกันแล้ว
-import { socket } from '../components/menu'; // ✅ 1. Import socket
+import './PaymentPage.css'; //
+import { socket } from '../components/menu'; //
 
 
-// --- Interfaces (รวมจากทั้ง 2 ไฟล์) ---
+// --- Interfaces (คงเดิม) ---
 interface PaymentHistoryItem {
     payment_id: number;
     order_id: number;
@@ -45,8 +45,8 @@ const PaymentPage = () => {
     const [view, setView] = useState<'list' | 'detail'>('list');
     const [selectedPaymentId, setSelectedPaymentId] = useState<number | null>(null);
 
-    // URL ของ API
-    const apiUrl = 'http://localhost:3001';
+    // ✅✅✅ FIX: เปลี่ยนมาใช้ VITE_API_URL ✅✅✅
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
     // --- Helper Function ---
     const formatDateTime = (isoString: string, style: 'short' | 'medium' = 'short') => {
@@ -107,11 +107,11 @@ const PaymentPage = () => {
             };
 
             // 3. เริ่มดักฟัง
-            socket.on('new_payment', handleNewPayment);
+            socket.on('new_payment', handleNewPayment); //
 
             // 4. Cleanup: หยุดดักฟังเมื่อ unmount หรือ view เปลี่ยน
             return () => {
-                socket.off('new_payment', handleNewPayment);
+                socket.off('new_payment', handleNewPayment); //
             };
         }
     }, [view, fetchPayments]); // ทำงานใหม่เมื่อ view เปลี่ยน หรือ filter เปลี่ยน
@@ -189,12 +189,14 @@ const PaymentPage = () => {
                             ) : payments.length > 0 ? (
                                 payments.map((payment) => (
                                     <tr key={payment.payment_id} onClick={() => handleRowClick(payment.payment_id)} className="clickable-row">
-                                        <td>#{payment.order_id}</td>
-                                        <td>{payment.table_number}</td>
-                                        <td>{payment.customer_quantity} คน</td>
-                                        <td>{formatDateTime(payment.payment_time, 'short')}</td>
-                                        <td>{payment.payment_method || 'ไม่ระบุ'}</td>
-                                        <td className="price-cell">{Number(payment.total_price).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                                        <td data-label="Order ID">#{payment.order_id}</td>
+                                        <td data-label="โต๊ะ">{payment.table_number}</td>
+                                        <td data-label="จำนวนลูกค้า">{payment.customer_quantity} คน</td>
+                                        <td data-label="เวลาที่ชำระ">{formatDateTime(payment.payment_time, 'short')}</td>
+                                        <td data-label="ช่องทาง">{payment.payment_method || 'ไม่ระบุ'}</td>
+                                        <td data-label="ยอดรวม (บาท)" className="price-cell">
+                                            {Number(payment.total_price).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                        </td>
                                     </tr>
                                 ))
                             ) : (

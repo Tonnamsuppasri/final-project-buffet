@@ -36,7 +36,7 @@ const AttendanceReport = () => {
     const [error, setError] = useState<string | null>(null);
 
     // Filters
-    const [selectedUserId, setSelectedUserId] = useState<string>(''); // Store ID as string for select value
+    const [selectedUserId, setSelectedUserId] = useState<string>(''); 
     const [startDate, setStartDate] = useState(new Date());
     const [endDate, setEndDate] = useState(new Date());
 
@@ -44,8 +44,10 @@ const AttendanceReport = () => {
     useEffect(() => {
         const fetchStaff = async () => {
             try {
-                // *** ต้องมี Header สำหรับ Authentication ถ้า API /api/staff ต้องการ ***
-                const response = await axios.get<User[]>(`${apiUrl}/api/staff`/*, { headers: { ... } }*/);
+                const adminUserId = localStorage.getItem('userId');
+                const response = await axios.get<User[]>(`${apiUrl}/api/staff`, { 
+                    headers: { 'x-user-id': adminUserId || '' }
+                });
                 setStaffList(response.data);
             } catch (err) {
                 console.error("Error fetching staff list:", err);
@@ -65,35 +67,29 @@ const AttendanceReport = () => {
                 if (startDate) params.startDate = format(startDate, 'yyyy-MM-dd');
                 if (endDate) params.endDate = format(endDate, 'yyyy-MM-dd');
 
-                // --- 👇 เพิ่ม headers ตรงนี้ 👇 ---
-                // ดึง Admin User ID จาก localStorage (ต้องแน่ใจว่าเก็บไว้ตอน Login)
                 const adminUserId = localStorage.getItem('userId');
                 if (!adminUserId) {
                     setError("ไม่พบข้อมูล Admin User ID ใน localStorage");
                     setLoading(false);
-                    return; // หยุดทำงานถ้าไม่เจอ ID
+                    return; 
                 }
 
                 const response = await axios.get<AttendanceRecord[]>(`${apiUrl}/api/attendance`, {
                     params,
                     headers: {
-                        'x-user-id': adminUserId // 👈 ส่ง ID ของ Admin ที่ Login อยู่
-                        // ถ้าใช้ JWT: 'Authorization': `Bearer ${yourAdminToken}`
+                        'x-user-id': adminUserId 
                     }
                 });
-                // --- 👆 เพิ่ม headers ตรงนี้ 👆 ---
-
                 setAttendanceData(response.data);
-            } catch (err: any) { // เพิ่ม any type ชั่วคราว
+            } catch (err: any) { 
                 console.error("Error fetching attendance report:", err);
-                // แสดง error จาก backend ถ้ามี
                 setError(err.response?.data?.error || "ไม่สามารถดึงข้อมูลรายงานการลงเวลาได้");
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, [selectedUserId, startDate, endDate]); // Refetch when filters change
+    }, [selectedUserId, startDate, endDate]); 
 
     // --- Calculate Work Duration ---
     const calculateDuration = (start: string, end: string | null): string => {
@@ -102,7 +98,7 @@ const AttendanceReport = () => {
             const startTime = parseISO(start);
             const endTime = parseISO(end);
             const minutes = differenceInMinutes(endTime, startTime);
-            if (minutes < 0) return 'N/A'; // Error case
+            if (minutes < 0) return 'N/A'; 
             const hours = Math.floor(minutes / 60);
             const remainingMinutes = minutes % 60;
             return `${hours} ชม. ${remainingMinutes} นาที`;
@@ -114,7 +110,7 @@ const AttendanceReport = () => {
      // --- Group data by date for better display ---
      const groupedData = useMemo(() => {
         return attendanceData.reduce((acc, record) => {
-            const dateStr = format(parseISO(record.date), 'yyyy-MM-dd');
+            const dateStr = format(parseISO(record.date), 'yyyy-MM-dd'); //
             if (!acc[dateStr]) {
                 acc[dateStr] = [];
             }
@@ -130,7 +126,7 @@ const AttendanceReport = () => {
         <div className="p-4 sm:p-6 space-y-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">รายงานการลงเวลาทำงาน</h1>
 
-            {/* Filters */}
+            {/* Filters (คงเดิม) */}
             <div className="p-4 bg-white rounded-lg shadow-md flex flex-col sm:flex-row flex-wrap items-center gap-4">
                  <div className="w-full sm:w-auto">
                     <label htmlFor="userFilter" className="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
@@ -138,7 +134,7 @@ const AttendanceReport = () => {
                         id="userFilter"
                         value={selectedUserId}
                         onChange={(e) => setSelectedUserId(e.target.value)}
-                        className="input-field w-full sm:w-48" // Responsive width
+                        className="input-field w-full sm:w-48" 
                     >
                         <option value="">-- ทั้งหมด --</option>
                         {staffList.map(staff => (
@@ -173,10 +169,9 @@ const AttendanceReport = () => {
                         className="input-field w-full"
                     />
                 </div>
-                 {/* Optional: Add a refresh button if needed */}
             </div>
 
-            {/* Loading/Error State */}
+            {/* Loading/Error State (คงเดิม) */}
             {loading && <div className="text-center p-6">กำลังโหลดข้อมูล...</div>}
             {error && <div className="text-center p-6 text-red-500 bg-red-100 border border-red-400 rounded">{error}</div>}
 
@@ -185,37 +180,69 @@ const AttendanceReport = () => {
                  <div className="space-y-6">
                     {sortedDates.length === 0 && <p className="text-center text-gray-500 py-6">ไม่พบข้อมูลการลงเวลาในช่วงที่เลือก</p>}
                     {sortedDates.map(date => (
-                        <div key={date} className="bg-white rounded-lg shadow-md overflow-hidden">
+                        // ลบ overflow-hidden ออก (ตามที่คุยกันครั้งก่อน)
+                        <div key={date} className="bg-white rounded-lg shadow-md">
                              <h2 className="p-3 bg-gray-100 text-lg font-semibold text-gray-700 border-b">
                                 {format(parseISO(date), 'EEEE dd MMMM yyyy', { locale: th })}
                              </h2>
+                             {/* overflow-x-auto ยังจำเป็นเผื่อจอเล็กมากๆ หรือชื่อพนักงานยาวมาก */}
                              <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
+                                            {/* ✅ 1. หัวตาราง: ซ่อน 4 อันหลังบนมือถือ */}
                                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">พนักงาน</th>
-                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">เวลาเข้า</th>
-                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">เวลาออก</th>
-                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">รวมเวลาทำงาน</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">หมายเหตุ</th>
+                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">เวลาเข้า</th>
+                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">เวลาออก</th>
+                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">รวมเวลาทำงาน</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">หมายเหตุ</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {groupedData[date].map(record => (
                                             <tr key={record.attendance_id}>
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    {record.nickname || record.first_name || record.username}
+                                                
+                                                {/* ✅ 2. เซลล์พนักงาน: แสดงข้อมูลทั้งหมดในนี้ */}
+                                                <td className="px-4 py-3 whitespace-normal text-sm">
+                                                    {/* ชื่อ (แสดงตลอด) */}
+                                                    <div className="font-medium text-gray-900">
+                                                        {record.nickname || record.first_name || record.username}
+                                                    </div>
+                                                    
+                                                    {/* (ใหม่) ข้อมูลที่เหลือ (แสดงเฉพาะบนมือถือ) */}
+                                                    <div className="md:hidden mt-2 text-gray-700 space-y-1 text-xs">
+                                                        <div className="flex justify-between">
+                                                            <span className="font-medium text-gray-500">เวลาเข้า:</span>
+                                                            <span>{format(parseISO(record.clock_in_time), 'HH:mm:ss น.')}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="font-medium text-gray-500">เวลาออก:</span>
+                                                            <span>{record.clock_out_time ? format(parseISO(record.clock_out_time), 'HH:mm:ss น.') : '-'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="font-medium text-gray-500">รวมเวลา:</span>
+                                                            <span className="font-bold">{calculateDuration(record.clock_in_time, record.clock_out_time)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="font-medium text-gray-500">หมายเหตุ:</span>
+                                                            <span className="truncate">{record.notes || '-'}</span>
+                                                        </div>
+                                                    </div>
                                                 </td>
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-700">
+                                                
+                                                {/* ✅ 3. เซลล์ที่เหลือ: ซ่อนบนมือถือ */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-700 hidden md:table-cell">
                                                     {format(parseISO(record.clock_in_time), 'HH:mm:ss น.')}
                                                 </td>
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-700">
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-700 hidden md:table-cell">
                                                     {record.clock_out_time ? format(parseISO(record.clock_out_time), 'HH:mm:ss น.') : '-'}
                                                 </td>
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-800 font-medium">
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-800 font-medium hidden md:table-cell">
                                                     {calculateDuration(record.clock_in_time, record.clock_out_time)}
                                                 </td>
-                                                <td className="px-4 py-3 whitespace-normal text-sm text-gray-500">{record.notes || '-'}</td>
+                                                <td className="px-4 py-3 whitespace-normal text-sm text-gray-500 hidden md:table-cell">
+                                                    {record.notes || '-'}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

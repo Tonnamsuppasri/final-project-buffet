@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import './CustomerOrder.css';
+import './CustomerOrder.css'; 
 import { 
     FaShoppingCart, 
     FaPlus, 
@@ -17,15 +17,16 @@ import {
     FaChevronDown
 } from 'react-icons/fa';
 import QRCode from 'qrcode'; 
+import { v4 as uuidv4 } from 'uuid'; 
 
-// --- Interfaces ---
+// --- Interfaces (คงเดิม) ---
 interface MenuItem {
     menu_id: number;
     menu_name: string;
     menu_description?: string;
     menu_category: string;
     price: number;
-    menu_image?: string; // base64 string
+    menu_image?: string; 
 }
 
 interface ActiveOrder {
@@ -49,7 +50,68 @@ interface CartItem extends MenuItem {
     quantity: number;
 }
 
-// --- Timer Component ---
+// ✅✅✅ Custom Hook: สำหรับทำ Drag to Close (ลากเพื่อปิด) ✅✅✅
+const useSheetDrag = (onClose: () => void, isOpen: boolean) => {
+    const [dragOffset, setDragOffset] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const touchStartY = useRef<number | null>(null);
+
+    // Reset เมื่อเปิดหน้าต่างใหม่
+    useEffect(() => {
+        if (isOpen) {
+            setDragOffset(0);
+            setIsDragging(false);
+        }
+    }, [isOpen]);
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        touchStartY.current = e.targetTouches[0].clientY;
+        setIsDragging(true);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        if (touchStartY.current === null) return;
+        const currentY = e.targetTouches[0].clientY;
+        const deltaY = currentY - touchStartY.current;
+
+        // ยอมให้ลากลงเท่านั้น (deltaY > 0)
+        if (deltaY > 0) {
+            // e.preventDefault(); // (Optional: ป้องกัน scroll body ถ้าจำเป็น)
+            setDragOffset(deltaY);
+        }
+    };
+
+    const onTouchEnd = () => {
+        setIsDragging(false);
+        touchStartY.current = null;
+
+        // ถ้าลากลงมาเกิน 150px ให้ปิดเลย
+        if (dragOffset > 150) {
+            onClose();
+        } else {
+            // ถ้าไม่ถึง ให้ดีดกลับ (Snap back)
+            setDragOffset(0);
+        }
+    };
+
+    // Style ที่จะเอาไปใส่ใน Sheet Content
+    const style: React.CSSProperties = {
+        transform: `translateY(${dragOffset}px)`,
+        transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)', // ถ้าลากอยู่ไม่ต้องมี transition, ถ้าปล่อยให้ดีดกลับนุ่มๆ
+    };
+
+    // Handlers ที่จะเอาไปใส่ใน Header (พื้นที่ที่จับลากได้)
+    const handlers = {
+        onTouchStart,
+        onTouchMove,
+        onTouchEnd
+    };
+
+    return { style, handlers };
+};
+
+
+// --- Timer Component (คงเดิม) ---
 const Timer = ({ startTime }: { startTime: string }) => {
     const [elapsedTime, setElapsedTime] = useState('00:00');
 
@@ -106,28 +168,37 @@ const CustomerOrderPage = () => {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [cart, setCart] = useState<CartItem[]>([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
-    
-    // --- State สำหรับชื่อลูกค้า ---
     const [sessionCustomerName, setSessionCustomerName] = useState<string | null>(null);
-    
-    // --- State สำหรับ Info Sheet ---
     const [isInfoSheetOpen, setIsInfoSheetOpen] = useState(false);
     const [infoSheetView, setInfoSheetView] = useState<'details' | 'qr'>('details');
     const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
-
-    // --- State สำหรับ Category Sheet ---
     const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
-
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
     const cartButtonRef = useRef<HTMLButtonElement>(null);
+    
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     const customerOrderUrlBase = import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173/order';
 
     const navigate = useNavigate();
 
-    // --- Data Fetching & Name Assignment ---
+    // ✅ เรียกใช้ Hook สำหรับแต่ละหน้าต่าง
+    const cartDrag = useSheetDrag(() => setIsCartOpen(false), isCartOpen);
+    const infoDrag = useSheetDrag(() => setIsInfoSheetOpen(false), isInfoSheetOpen);
+    const categoryDrag = useSheetDrag(() => setIsCategorySheetOpen(false), isCategorySheetOpen);
+
+    // --- Body Scroll Lock Effect ---
+    useEffect(() => {
+        if (isCartOpen || isInfoSheetOpen || isCategorySheetOpen) {
+            document.body.style.overflow = 'hidden'; 
+        } else {
+            document.body.style.overflow = 'unset'; 
+        }
+        return () => { document.body.style.overflow = 'unset'; };
+    }, [isCartOpen, isInfoSheetOpen, isCategorySheetOpen]);
+
+
+    // --- Data Fetching (คงเดิม) ---
     useEffect(() => {
         const fetchDataAndAssignName = async () => {
             if (!uuid) {
@@ -137,9 +208,9 @@ const CustomerOrderPage = () => {
             }
             try {
                 const [activeOrdersRes, menuRes, shopRes] = await Promise.all([
-                    axios.get<ActiveOrder[]>(`${apiUrl}/api/orders/active`),
-                    axios.get<MenuItem[]>(`${apiUrl}/api/menu`),
-                    axios.get<ShopInfo>(`${apiUrl}/api/shop`) 
+                    axios.get<ActiveOrder[]>(`${apiUrl}/api/orders/active`, { withCredentials: true }),
+                    axios.get<MenuItem[]>(`${apiUrl}/api/menu`, { withCredentials: true }),
+                    axios.get<ShopInfo>(`${apiUrl}/api/shop`, { withCredentials: true })
                 ]);
 
                 const currentOrder = activeOrdersRes.data.find(o => o.uuid === uuid);
@@ -153,11 +224,9 @@ const CustomerOrderPage = () => {
                 setMenu(menuRes.data);
                 setShopInfo(shopRes.data);
 
-                // Extract unique categories
                 const uniqueCategories = ['All', ...Array.from(new Set(menuRes.data.map(item => item.menu_category)))];
                 setCategories(uniqueCategories);
 
-                // --- Name Assignment Logic ---
                 const storedNameKey = `customerName-${uuid}`;
                 const storedNameData = localStorage.getItem(storedNameKey);
                 let sessionName: string | null = null;
@@ -178,13 +247,14 @@ const CustomerOrderPage = () => {
                 if (!sessionName) {
                     let sessionId = sessionStorage.getItem(`my-session-${uuid}`);
                     if (!sessionId) {
-                        sessionId = crypto.randomUUID();
+                        sessionId = uuidv4(); 
                         sessionStorage.setItem(`my-session-${uuid}`, sessionId);
                     }
                     
                     const joinRes = await axios.post<{ customerName: string }>(
                         `${apiUrl}/api/orders/${currentOrder.order_id}/join`,
-                        { sessionId } 
+                        { sessionId },
+                        { withCredentials: true } 
                     );
                     
                     const newName = joinRes.data.customerName; 
@@ -204,17 +274,13 @@ const CustomerOrderPage = () => {
         fetchDataAndAssignName();
     }, [uuid, apiUrl]);
 
-    // --- Memoized Calculations ---
-    
-    // (A) ใช้สำหรับเมื่อเลือกหมวดหมู่ใดหมวดหมู่หนึ่ง (ที่ไม่ใช่ 'All')
+    // --- Memoized Calculations (คงเดิม) ---
     const filteredMenu = useMemo(() => {
-        if (selectedCategory === 'All') return []; // ถ้าเป็น 'All' ให้ใช้ groupedMenu แทน
+        if (selectedCategory === 'All') return [];
         return menu.filter(item => item.menu_category === selectedCategory);
     }, [menu, selectedCategory]);
 
-    // (B) ✅ NEW: ใช้สำหรับเมื่อเลือก 'All'
     const groupedMenu = useMemo(() => {
-        // Group items by category
         const groups: Record<string, MenuItem[]> = menu.reduce((acc, item) => {
             const category = item.menu_category || 'อื่น ๆ';
             if (!acc[category]) {
@@ -224,16 +290,15 @@ const CustomerOrderPage = () => {
             return acc;
         }, {} as Record<string, MenuItem[]>);
 
-        // Convert object to array, but respect the order from `categories` (minus 'All')
         return categories
-            .filter(cat => cat !== 'All') // Exclude 'All'
+            .filter(cat => cat !== 'All')
             .map(category => ({
                 category: category,
-                items: groups[category] || [] // Get items for this category
+                items: groups[category] || []
             }))
-            .filter(group => group.items.length > 0); // Only show categories that have items
+            .filter(group => group.items.length > 0);
             
-    }, [menu, categories]); // Depend on menu and the categories list
+    }, [menu, categories]);
 
     const totalCartItems = useMemo(() => {
         return cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -243,7 +308,7 @@ const CustomerOrderPage = () => {
         return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     }, [cart]);
 
-    // --- Cart Handlers ---
+    // --- Cart Handlers (คงเดิม) ---
     const handleAddToCart = (item: MenuItem, event: React.MouseEvent<HTMLButtonElement>) => {
         setCart(prevCart => {
             const existingItem = prevCart.find(cartItem => cartItem.menu_id === item.menu_id);
@@ -257,7 +322,6 @@ const CustomerOrderPage = () => {
             return [...prevCart, { ...item, quantity: 1 }];
         });
 
-        // --- Animation Logic ---
         const cartRect = cartButtonRef.current?.getBoundingClientRect();
         const buttonRect = event.currentTarget.getBoundingClientRect(); 
 
@@ -299,7 +363,7 @@ const CustomerOrderPage = () => {
         });
     };
 
-    // --- Order Submission ---
+    // --- Order Submission (คงเดิม) ---
     const handleSubmitOrder = async () => {
         if (cart.length === 0 || !orderInfo || !sessionCustomerName) {
             Swal.fire('ผิดพลาด', 'ยังไม่มีชื่อลูกค้า (กรุณารอ) หรือไม่พบข้อมูลออเดอร์', 'warning');
@@ -314,7 +378,11 @@ const CustomerOrderPage = () => {
         }));
         
         try {
-            await axios.post(`${apiUrl}/api/orders/${orderInfo.order_id}/details`, orderDetails);
+            await axios.post(
+                `${apiUrl}/api/orders/${orderInfo.order_id}/details`, 
+                orderDetails,
+                { withCredentials: true }
+            );
             Swal.fire({
                 icon: 'success',
                 title: 'ส่งออเดอร์สำเร็จ!',
@@ -330,7 +398,7 @@ const CustomerOrderPage = () => {
         }
     };
 
-    // --- Info Sheet Handlers ---
+    // --- Info Sheet Handlers (คงเดิม) ---
     const handleOpenInfoSheet = () => {
         setInfoSheetView('details'); 
         setIsInfoSheetOpen(true);
@@ -357,7 +425,7 @@ const CustomerOrderPage = () => {
         setInfoSheetView('qr');
     };
     
-    // --- Category Sheet Handler ---
+    // --- Category Sheet Handler (คงเดิม) ---
     const handleCategorySelect = (category: string) => {
         setSelectedCategory(category);
         setIsCategorySheetOpen(false);
@@ -375,7 +443,7 @@ const CustomerOrderPage = () => {
         );
     }
     
-    // Helper component for rendering a single item
+    // Helper component (คงเดิม)
     const MenuItemCard = ({ item }: { item: MenuItem }) => (
         <div key={item.menu_id} className="menu-item-list">
             <img 
@@ -398,7 +466,7 @@ const CustomerOrderPage = () => {
 
     return (
         <div className="customer-order-container">
-            {/* Page Header */}
+            {/* Page Header (คงเดิม) */}
             <header className="order-header" style={{ backgroundImage: `url('/src/assets/images/background.jpg')`}}>
                  <div className="header-overlay">
                     <div className="logo-container">
@@ -413,9 +481,7 @@ const CustomerOrderPage = () => {
                          )}
                     </div>
                     
-                    {/* JSX ของ Header (แบบแยก) */}
                     <div className="header-right-stack">
-                        {/* บล็อกที่ 1: ข้อมูลโต๊ะ */}
                         <div className="table-info"> 
                             <span>โต๊ะที่ {orderInfo.table_number} ({sessionCustomerName})</span>
                             <button className="info-icon-button" onClick={handleOpenInfoSheet} title="ดูข้อมูลโต๊ะ">
@@ -423,7 +489,6 @@ const CustomerOrderPage = () => {
                             </button>
                         </div>
                         
-                        {/* บล็อกที่ 2: ปุ่ม Bill และ Cart (แยกออกมา) */}
                         <div className="header-actions">
                             <button 
                                 className="icon-button" 
@@ -447,7 +512,7 @@ const CustomerOrderPage = () => {
                  </div>
             </header>
             
-            {/* Category Tabs (เพิ่มปุ่ม List) */}
+            {/* Category Tabs (คงเดิม) */}
             <div className="category-container">
                 <button className="category-list-btn" onClick={() => setIsCategorySheetOpen(true)} title="แสดงประเภทอาหาร">
                     <FaListUl />
@@ -465,10 +530,9 @@ const CustomerOrderPage = () => {
                 </nav>
             </div>
 
-            {/* ✅ 16. แก้ไข Logic การแสดงผลเมนู */}
+            {/* Main Menu List (คงเดิม) */}
             <main className="menu-list-container">
                 {selectedCategory === 'All' ? (
-                    // --- Render by Group when 'All' is selected ---
                     groupedMenu.map(group => (
                         <section key={group.category} className="menu-group-section">
                             <h2 className="menu-group-header">{group.category}</h2>
@@ -478,23 +542,27 @@ const CustomerOrderPage = () => {
                         </section>
                     ))
                 ) : (
-                    // --- Render filtered list (original logic) ---
                     filteredMenu.map(item => (
                         <MenuItemCard key={item.menu_id} item={item} />
                     ))
                 )}
             </main>
-            {/* ✅ สิ้นสุดการแก้ไข */}
 
-
-            {/* Cart Modal (For adding new items) */}
+            {/* Cart Modal */}
             {isCartOpen && (
                 <div className="cart-modal-overlay">
-                    <div className="cart-modal">
-                        <div className="cart-header">
+                    {/* ✅ ใส่ style (transform) ให้ content */}
+                    <div className="cart-modal" style={cartDrag.style}>
+                        
+                        {/* ✅ ใส่ Handlers ให้ header */}
+                        <div className="cart-header" {...cartDrag.handlers}>
+                            {/* เพิ่มขีด visual cue ตรงกลาง */}
+                            <div style={{position:'absolute', top:'8px', left:'50%', transform:'translateX(-50%)', width:'40px', height:'4px', backgroundColor:'#e0e0e0', borderRadius:'2px'}}></div>
+                            
                             <h2>รายการสั่ง (ใหม่)</h2>
                             <button className="close-cart-btn" onClick={() => setIsCartOpen(false)}><FaTimes /></button>
                         </div>
+                        
                         <div className="cart-body">
                             {cart.length === 0 ? (
                                 <p className="empty-cart-message">ยังไม่มีรายการในตะกร้า</p>
@@ -535,8 +603,14 @@ const CustomerOrderPage = () => {
             {/* Info Sheet (Bottom Sheet) */}
             {isInfoSheetOpen && (
                 <div className="info-sheet-overlay" onClick={handleCloseInfoSheet}>
-                    <div className="info-sheet-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="info-sheet-header">
+                    {/* ✅ ใส่ style ให้ content */}
+                    <div className="info-sheet-content" style={infoDrag.style} onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* ✅ ใส่ Handlers ให้ header */}
+                        <div className="info-sheet-header" {...infoDrag.handlers}>
+                            {/* visual cue */}
+                            <div style={{position:'absolute', top:'8px', left:'50%', transform:'translateX(-50%)', width:'40px', height:'4px', backgroundColor:'#e0e0e0', borderRadius:'2px'}}></div>
+
                             {infoSheetView === 'qr' && (
                                 <button className="back-sheet-btn" onClick={() => setInfoSheetView('details')}>
                                     <FaArrowLeft />
@@ -551,7 +625,6 @@ const CustomerOrderPage = () => {
                         </div>
                         
                         <div className="info-sheet-body">
-                            {/* Shop Info Header (Logo + Name) */}
                             <div className="shop-info-header">
                                 {shopInfo?.shop_logo && (
                                     <img 
@@ -564,7 +637,6 @@ const CustomerOrderPage = () => {
                             </div>
                             
                             {infoSheetView === 'details' ? (
-                                // --- มุมมอง Details ---
                                 <>
                                     <div className="info-sheet-block">
                                         <div className="info-sheet-row">
@@ -585,7 +657,6 @@ const CustomerOrderPage = () => {
                                     </button>
                                 </>
                             ) : (
-                                // --- มุมมอง QR Code ---
                                 <div className="qr-code-container">
                                     <h3>โต๊ะ {orderInfo.table_number}</h3>
                                     <p>สแกน QR Code นี้เพื่อสั่งอาหาร</p>
@@ -604,8 +675,14 @@ const CustomerOrderPage = () => {
             {/* Category Sheet (Bottom Sheet) */}
             {isCategorySheetOpen && (
                 <div className="category-sheet-overlay" onClick={() => setIsCategorySheetOpen(false)}>
-                    <div className="category-sheet-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="category-sheet-header">
+                    {/* ✅ ใส่ style ให้ content */}
+                    <div className="category-sheet-content" style={categoryDrag.style} onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* ✅ ใส่ Handlers ให้ header */}
+                        <div className="category-sheet-header" {...categoryDrag.handlers}>
+                            {/* visual cue */}
+                            <div style={{position:'absolute', top:'8px', left:'50%', transform:'translateX(-50%)', width:'40px', height:'4px', backgroundColor:'#e0e0e0', borderRadius:'2px'}}></div>
+
                             <h3>ประเภทอาหาร</h3>
                             <button className="close-sheet-btn" onClick={() => setIsCategorySheetOpen(false)}>
                                 <FaChevronDown />

@@ -21,7 +21,13 @@ function App() {
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const res = await axios.post(`${apiUrl}/api/login`, { username, password });
+      const res = await axios.post(
+        `${apiUrl}/api/login`, 
+        { username, password },
+        {
+          withCredentials: true // ⬅️ ⭐️⭐️ เพิ่มบรรทัดนี้ครับ
+        }
+      );
 
       if (res.data.success) {
         await Swal.fire({
@@ -37,6 +43,7 @@ function App() {
         navigate('/welcome', { state: { username: user.username, role: user.role } });
       }
     } catch (err: any) {
+      console.error("Login attempt failed:", err); // เพิ่มบรรทัดนี้เพื่อ Debug
       Swal.fire({
         icon: 'error',
         title: 'เข้าสู่ระบบล้มเหลว',

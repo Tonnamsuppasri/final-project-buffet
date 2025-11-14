@@ -103,7 +103,8 @@ const Welcome = () => {
         : 'เริ่มต้นการทำงานวันนี้กันเลย';
 
     return (
-        <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden">
+        // ✅ 1. เพิ่ม flex flex-col ที่ Container หลัก
+        <div className="h-full w-full bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden flex flex-col">
             {/* Background decorative elements */}
             <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-blue-200/20 rounded-full blur-xl animate-pulse"></div>
@@ -114,7 +115,8 @@ const Welcome = () => {
             </div>
 
             {/* Main content */}
-            <div className="relative z-10 min-h-full flex flex-col items-center justify-start pt-8 px-6 text-center overflow-y-auto">
+            {/* ✅ 2. ลบ min-h-full และเพิ่ม flex-1 */}
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-start pt-8 px-6 text-center overflow-y-auto">
                 
                 {/* Welcome header */}
                 <div className="mb-8 relative">

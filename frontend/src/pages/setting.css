@@ -235,3 +235,123 @@
     border: 1px solid #e5e7eb; /* gray-200 */
     flex-shrink: 0;
 }
+.menu-image-uploader {
+        display: flex;
+        flex-direction: column; /* เรียงแนวตั้ง */
+        align-items: center;  /* จัดกลางแนวนอน */
+        gap: 1rem;
+    }
+
+
+/* --- ✅ Mobile Responsive Adjustments --- */
+@media (max-width: 640px) {
+    /* ปรับส่วนอัปโหลด QR Code ให้เรียงแนวตั้ง */
+    .qr-code-section {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    /* ปรับส่วนอัปโหลดรูปเมนูให้เรียงแนวตั้ง */
+    .menu-image-uploader {
+        flex-direction: column;
+        align-items: flex-start; /* หรือ center ตามชอบ */
+        gap: 1rem;
+    }
+
+    /* ปรับขนาดตัวอักษรหัวข้อ Accordion */
+    .accordion-header {
+        padding: 0.75rem 1rem;
+        font-size: 1rem; 
+    }
+    
+    /* ปรับ padding ภายใน accordion content */
+    .p-6 {
+        padding: 1rem; 
+    }
+
+    /* --- ✅ Mobile Card View (สำหรับตาราง) --- */
+    /* ซ่อนหัวตาราง */
+    .mobile-card-table thead {
+        display: none;
+    }
+
+    /* เปลี่ยน Table เป็น Block */
+    .mobile-card-table, 
+    .mobile-card-table tbody, 
+    .mobile-card-table tr, 
+    .mobile-card-table td {
+        display: block;
+        width: 100%;
+    }
+
+    /* สไตล์ของการ์ด (แต่ละแถว) */
+    .mobile-card-table tr {
+        margin-bottom: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem; /* มุมโค้ง */
+        background-color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+    }
+    
+    .mobile-card-table tr:hover {
+        background-color: #f9fafb;
+    }
+
+    /* สไตล์ของเนื้อหาในแต่ละบรรทัด (Cell) */
+    .mobile-card-table td {
+        display: flex;
+        justify-content: space-between; /* หัวข้ออยู่ซ้าย เนื้อหาอยู่ขวา */
+        align-items: flex-start; /* จัดชิดบน */
+        text-align: right;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 0.95rem;
+    }
+
+    .mobile-card-table td:last-child {
+        border-bottom: none; /* เส้นสุดท้ายไม่ต้องมี */
+        justify-content: flex-end; /* ปุ่มอยู่ขวาสุด */
+        padding-top: 1rem;
+        gap: 0.5rem;
+    }
+
+    /* สร้าง "หัวข้อ" จาก data-label */
+    .mobile-card-table td::before {
+        content: attr(data-label); /* ดึงค่าจาก data-label */
+        font-weight: 600;
+        color: #4b5563;
+        text-align: left;
+        margin-right: 1rem;
+        min-width: 30%; /* ความกว้างขั้นต่ำของหัวข้อ */
+    }
+    
+    /* ปรับแต่งเฉพาะบางคอลัมน์ */
+    .mobile-card-table td[data-label="ชื่อ"] {
+        flex-direction: column; /* ชื่อโปรโมชั่นให้เรียงลงมา */
+        align-items: flex-start;
+        text-align: left;
+    }
+    .mobile-card-table td[data-label="ชื่อ"]::before {
+        margin-bottom: 0.25rem;
+        color: #2563eb; /* สีหัวข้อ */
+        font-size: 0.85rem;
+    }
+    .mobile-card-table td[data-label="ระยะเวลา"] {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+    
+    /* ซ่อน overflow แนวนอนของ container หลัก */
+    .accordion-content {
+        overflow-x: hidden; 
+    }
+    .menu-image-uploader {
+        display: flex;
+        flex-direction: column; /* เรียงแนวตั้ง */
+        align-items: center;  /* จัดกลางแนวนอน */
+        gap: 1rem;
+    }
+}
