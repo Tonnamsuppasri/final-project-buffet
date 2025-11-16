@@ -731,3 +731,102 @@
 .category-sheet-item:hover:not(.active) {
     background-color: #f9f9f9;
 }
+/* ... (โค้ดเดิมทั้งหมด) ... */
+
+/* ============================
+   ✅✅✅ PIN Modal Styles
+   ============================ */
+.pin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 1rem;
+}
+
+.pin-modal-content {
+    background-color: white;
+    border-radius: 1.5rem; /* 24px */
+    padding: 2rem;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+}
+
+.pin-modal-icon {
+    font-size: 2.5rem; /* 40px */
+    color: #3b82f6; /* blue-500 */
+    margin-bottom: 1rem;
+}
+
+.pin-modal-title {
+    font-size: 1.5rem; /* 24px */
+    font-weight: 700;
+    color: #1f2937; /* gray-800 */
+    margin: 0;
+}
+
+.pin-modal-subtitle {
+    font-size: 0.9rem; /* 14px */
+    color: #6b7280; /* gray-500 */
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+    max-width: 250px;
+}
+
+.pin-modal-input {
+    width: 100%;
+    max-width: 200px;
+    padding: 0.75rem;
+    font-size: 2.5rem; /* 40px */
+    text-align: center;
+    letter-spacing: 0.5em; /* ให้ตัวเลขห่างกัน */
+    font-weight: 700;
+    font-family: monospace;
+    border: 2px solid #d1d5db; /* gray-300 */
+    border-radius: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+.pin-modal-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+.pin-modal-input::placeholder {
+    color: #e0e0e0;
+}
+
+.pin-modal-error {
+    color: #ef4444; /* red-500 */
+    font-size: 0.9rem;
+    height: 1.25rem; /* จองที่ไว้กัน Layout กระโดด */
+}
+
+.pin-modal-button {
+    width: 100%;
+    background-color: #3b82f6; /* blue-500 */
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background-color 0.2s;
+}
+.pin-modal-button:hover {
+    background-color: #2563eb; /* blue-600 */
+}
+.pin-modal-button:disabled {
+    background-color: #9ca3af; /* gray-400 */
+    cursor: not-allowed;
+}

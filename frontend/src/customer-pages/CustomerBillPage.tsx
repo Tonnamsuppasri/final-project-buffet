@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { io, Socket } from 'socket.io-client'; //
+import { io, Socket } from 'socket.io-client'; 
 import Swal from 'sweetalert2';
 import './CustomerBillPage.css'; //
 import { FaArrowLeft, FaBell } from 'react-icons/fa';
 
-// --- Interfaces (คงเดิม) ---
+// --- Interfaces ---
 interface ActiveOrder {
     order_id: number;
     table_id: number;
     table_number: number;
-    uuid: string;
+    uuid: string; // (นี่คือ Table UUID)
+    table_uuid: string; // (เพิ่ม)
 }
 
 interface OrderDetailItem {
@@ -28,16 +29,16 @@ interface OrderDetailItem {
 //   Customer Bill Page Component
 // ============================
 const CustomerBillPage = () => {
-    const { uuid } = useParams<{ uuid: string }>();
+    // ✅ FIX: เปลี่ยนชื่อ param
+    const { order_uuid } = useParams<{ order_uuid: string }>(); // ⬅️
     const navigate = useNavigate();
-    const [orderInfo, setOrderInfo] = useState<ActiveOrder | null>(null);
+    const [orderInfo, setOrderInfo] = useState<ActiveOrder | null>(null); 
     const [allOrderItems, setAllOrderItems] = useState<OrderDetailItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'; //
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     
-    // Memoized socket instance (คงเดิม)
     const socket = useMemo(() => {
         return io(apiUrl, {
             autoConnect: false, 
@@ -46,7 +47,6 @@ const CustomerBillPage = () => {
         });
     }, [apiUrl]);
     
-    // useEffect สำหรับการเชื่อมต่อ Socket (คงเดิม)
     useEffect(() => {
         socket.connect();
         return () => {
@@ -54,38 +54,36 @@ const CustomerBillPage = () => {
         };
     }, [socket]); 
 
-    // useEffect หลักสำหรับ Fetch ข้อมูล (แก้ไข)
+    // ✅ FIX: แก้ไข useEffect หลัก
     useEffect(() => {
         const fetchData = async () => {
-            if (!uuid) {
-                setError("ไม่พบรหัสโต๊ะ (UUID)");
+            if (!order_uuid) {
+                setError("ไม่พบรหัสออเดอร์ (Order UUID)");
                 setLoading(false);
                 return;
             }
             try {
-                // 1. หา Order ID ก่อน
-                // ✅✅✅ FIX 1: เพิ่ม { withCredentials: true } ✅✅✅
-                const activeOrdersRes = await axios.get<ActiveOrder[]>(`${apiUrl}/api/orders/active`, { withCredentials: true }); //
-                const currentOrder = activeOrdersRes.data.find(o => o.uuid === uuid);
+                // 1. เรียก API ใหม่ที่ปลอดภัย
+                const response = await axios.get(
+                    `${apiUrl}/api/order-session/${order_uuid}`, 
+                    { withCredentials: true }
+                );
 
-                if (!currentOrder) {
-                    setError("ไม่พบออเดอร์สำหรับโต๊ะนี้ หรือโต๊ะถูกปิดไปแล้ว");
-                    setLoading(false);
-                    return;
-                }
-                setOrderInfo(currentOrder); 
+                // (เราใช้แค่ orderInfo จาก response นี้)
+                setOrderInfo(response.data.orderInfo);
+                
             } catch (err) {
-                setError("ไม่สามารถโหลดข้อมูลออเดอร์ได้ กรุณาลองใหม่อีกครั้ง"); //
-                console.error("Error fetching active order:", err);
+                setError("ไม่สามารถโหลดข้อมูลออเดอร์ได้ กรุณาลองใหม่อีกครั้ง");
+                console.error("Error fetching order session:", err);
                 setLoading(false);
             }
         };
         
         fetchData();
         
-    }, [uuid, apiUrl]);
+    }, [order_uuid, apiUrl]);
 
-    // useEffect นี้จะทำงาน *หลังจาก* ที่เราได้ orderInfo แล้ว (แก้ไข)
+    // (useEffect นี้จะทำงาน *หลังจาก* ที่เราได้ orderInfo แล้ว)
     useEffect(() => {
         if (!orderInfo) {
             if (!loading && !error) { 
@@ -94,24 +92,22 @@ const CustomerBillPage = () => {
             return;
         }
 
-        // Function สำหรับดึงรายละเอียดออเดอร์
         const fetchOrderDetails = async () => {
             try {
-                // ✅✅✅ FIX 2: เพิ่ม { withCredentials: true } ✅✅✅
                 const detailsRes = await axios.get<OrderDetailItem[]>(
                     `${apiUrl}/api/orders/${orderInfo.order_id}/details`,
-                    { withCredentials: true } //
+                    { withCredentials: true }
                 );
                 setAllOrderItems(detailsRes.data);
             } catch (err) {
-                setError("ไม่สามารถโหลดรายละเอียดออเดอร์ได้ กรุณาลองใหม่อีกครั้ง"); //
+                setError("ไม่สามารถโหลดรายละเอียดออเดอร์ได้ กรุณาลองใหม่อีกครั้ง");
                 console.error("Error fetching order details:", err);
             } finally {
                 setLoading(false); 
             }
         };
 
-        fetchOrderDetails(); // เรียกใช้งานทันที
+        fetchOrderDetails(); 
 
         // --- Socket Listeners (คงเดิม) ---
         const handleNewOrderItem = (data: { orderId: number; items: any[] }) => {
@@ -130,17 +126,16 @@ const CustomerBillPage = () => {
             );
         };
 
-        socket.on('new_order_item', handleNewOrderItem); //
-        socket.on('item_status_updated', handleItemStatusUpdate); //
+        socket.on('new_order_item', handleNewOrderItem);
+        socket.on('item_status_updated', handleItemStatusUpdate);
 
         return () => {
-            socket.off('new_order_item', handleNewOrderItem); //
-            socket.off('item_status_updated', handleItemStatusUpdate); //
+            socket.off('new_order_item', handleNewOrderItem);
+            socket.off('item_status_updated', handleItemStatusUpdate);
         };
     }, [orderInfo, socket, apiUrl, loading, error]); 
 
-    // ... (Memoized Grouping, Handlers, Render Logic - คงเดิม) ...
-    // --- Memoized Grouping ---
+    // --- Memoized Grouping (คงเดิม) ---
     const makingItems = useMemo(() => {
         return allOrderItems.filter(item => item.item_status === 'กำลังจัดทำ');
     }, [allOrderItems]);
@@ -153,7 +148,7 @@ const CustomerBillPage = () => {
         return allOrderItems.reduce((sum, item) => sum + item.price_per_item * item.quantity, 0);
     }, [allOrderItems]);
     
-    // --- Handlers ---
+    // --- Handlers (คงเดิม) ---
     const handleCallStaff = () => {
         if (orderInfo) {
             socket.emit('call_for_bill', { 
@@ -173,7 +168,7 @@ const CustomerBillPage = () => {
         }
     };
 
-    // --- Render Logic ---
+    // --- Render Logic (คงเดิม) ---
     if (loading) return <div className="bill-loading-container">กำลังโหลด...</div>;
     if (error) return <div className="bill-error-container">{error}</div>;
 
@@ -206,10 +201,10 @@ const CustomerBillPage = () => {
     return (
         <div className="bill-page-container">
             <header className="bill-header">
-                <button onClick={() => navigate(`/order/${uuid}`)} className="bill-back-button">
+                {/* ✅ FIX: ปุ่ม Back กลับไปที่ /order/:order_uuid */}
+                <button onClick={() => navigate(`/order/${order_uuid}`)} className="bill-back-button">
                     <FaArrowLeft /> Back
                 </button>
-                 {/* --- [แก้ไข] ลบการแสดงชื่อลูกค้าออก --- */}
                 <h2>รายการอาหาร</h2>
                 <div style={{ width: '80px' }}></div> {/* Spacer */}
             </header>

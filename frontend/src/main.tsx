@@ -30,8 +30,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
         {/* --- Customer Order Page Route (No Sidebar) --- */}
         {/* ✅ FIXED: The path now correctly includes the ':uuid' parameter */}
-        <Route path="/order/:uuid" element={<CustomerOrderPage />} />
-          <Route path="/order/:uuid/bill" element={<CustomerBillPage />} />
+        <Route path="/order/:order_uuid" element={<CustomerOrderPage />} />
+        <Route path="/order/:order_uuid/bill" element={<CustomerBillPage />} />
 
         {/* --- Staff-facing routes with the Menu/Sidebar Layout --- */}
         <Route element={<Menu />}>
