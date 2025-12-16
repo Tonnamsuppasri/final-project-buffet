@@ -1,22 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { 
     ClockIcon, 
     ArrowRightEndOnRectangleIcon, 
     ArrowLeftStartOnRectangleIcon,
-    ChevronRightIcon // ✅ 1. Import ไอคอนสำหรับ "หด" (ชี้ซ้าย)
 } from '@heroicons/react/24/outline';
-import { format, parseISO, differenceInSeconds } from 'date-fns'; 
-import { th } from 'date-fns/locale';
-import { io } from 'socket.io-client'; 
-
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-// ✅ FIX: อ้างอิง path ไปยัง menu.tsx ให้ถูกต้อง (ขึ้นอยู่กับโครงสร้างไฟล์ของคุณ)
-// หาก ClockInOutButton.tsx อยู่ใน components/ ให้ใช้ import { socket } from './menu';
-// หาก ClockInOutButton.tsx อยู่ที่เดียวกับ menu.tsx ให้ใช้ import { socket } from './menu';
-// *** กรุณาตรวจสอบ Path นี้ให้ถูกต้อง ***
-import { socket } from './menu'; //
+import { socket } from './menu'; // ✅ ตรวจสอบ path ให้ถูกต้อง
 
 interface AttendanceStatus {
     status: 'not_clocked_in' | 'clocked_in' | 'clocked_out';
@@ -27,71 +17,106 @@ const ClockInOutButton = () => {
     const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus | null>(null);
     const [loading, setLoading] = useState(false); 
     const [statusLoading, setStatusLoading] = useState(true); 
-    const [userId, setUserId] = useState<number | null>(null);
-    const [elapsedTime, setElapsedTime] = useState<string>('');
-
-    // ✅ 2. เปลี่ยน State เริ่มต้นเป็น 'false' (หด)
+    const [userId, setUserId] = useState<string | null>(null);
+    const [elapsedTime, setElapsedTime] = useState<string>('00:00:00');
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // --- (Effect, fetchStatus, Handlers ทั้งหมดคงเดิม) ---
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
     useEffect(() => {
         const storedUserId = localStorage.getItem('userId');
         if (storedUserId) {
-            const parsedId = parseInt(storedUserId, 10);
-            if (!isNaN(parsedId)) {
-                setUserId(parsedId);
-            } else {
-                 setStatusLoading(false); 
-            }
+            setUserId(storedUserId);
         } else {
-             setStatusLoading(false); 
+            setStatusLoading(false);
         }
-    }, []); 
+    }, []);
 
     const fetchStatus = useCallback(async () => {
-        if (!userId) {
-             setStatusLoading(false); 
-            return;
-        }
-        // ไม่ต้อง setStatusLoading(true) ทุกครั้งที่ refetch
+        if (!userId) return;
         try {
-            // ✅ FIX: เพิ่ม withCredentials: true (สำคัญมากสำหรับ CORS)
-            const response = await axios.get<AttendanceStatus>(`${apiUrl}/api/attendance/status`, {
-                headers: { 'x-user-id': userId },
-                withCredentials: true 
+            const res = await axios.get(`${apiUrl}/api/attendance/status`, {
+                withCredentials: true,
+                headers: { 'X-User-Id': userId }
             });
-            setAttendanceStatus(response.data);
-        } catch (error: any) {
-            console.error("ClockInOutButton: Error fetching status:", error);
-            setAttendanceStatus(null); 
+            setAttendanceStatus(res.data);
+        } catch (error) {
+            console.error("Error fetching status:", error);
         } finally {
-             setStatusLoading(false); 
+            setStatusLoading(false);
         }
-    }, [userId]); 
+    }, [userId, apiUrl]);
 
     useEffect(() => {
-        if (userId) { 
-            fetchStatus(); 
-            const attendanceUpdateEvent = `attendance_updated_${userId}`;
-            socket.on(attendanceUpdateEvent, fetchStatus); 
-            return () => {
-                socket.off(attendanceUpdateEvent, fetchStatus);
+        if (userId) fetchStatus();
+    }, [userId, fetchStatus]);
+
+    useEffect(() => {
+        if (!userId) return;
+        const handleUpdate = () => {
+            console.log("Attendance updated via socket");
+            fetchStatus();
+        };
+        socket.on(`attendance_updated_${userId}`, handleUpdate);
+        return () => {
+            socket.off(`attendance_updated_${userId}`, handleUpdate);
+        };
+    }, [userId, fetchStatus]);
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (attendanceStatus?.status === 'clocked_in' && attendanceStatus.lastClockIn) {
+            const startTime = new Date(attendanceStatus.lastClockIn).getTime();
+            const updateTimer = () => {
+                const now = new Date().getTime();
+                const diff = Math.floor((now - startTime) / 1000);
+                if (diff < 0) {
+                    setElapsedTime("00:00:00");
+                    return;
+                }
+                const hours = Math.floor(diff / 3600);
+                const minutes = Math.floor((diff % 3600) / 60);
+                const seconds = diff % 60;
+                setElapsedTime(
+                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+                );
             };
+            updateTimer();
+            interval = setInterval(updateTimer, 1000);
+        } else {
+            setElapsedTime("00:00:00");
         }
-    }, [userId, fetchStatus]); 
+        return () => clearInterval(interval);
+    }, [attendanceStatus]);
 
     const handleClockIn = async () => {
         if (!userId) return;
-        setLoading(true); 
         try {
-            // ✅ FIX: เพิ่ม withCredentials: true
-            await axios.post(`${apiUrl}/api/attendance/clock-in`, {}, {
-               headers: { 'x-user-id': userId },
-               withCredentials: true 
+            const { value: note, isConfirmed } = await Swal.fire({
+                title: 'ยืนยันการเข้างาน',
+                input: 'text',
+                inputLabel: 'หมายเหตุ (ถ้ามี)',
+                inputPlaceholder: 'เช่น มาสายเนื่องจาก...',
+                showCancelButton: true,
+                confirmButtonText: 'บันทึกเวลา',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#10B981',
+                cancelButtonColor: '#d33'
             });
-            Swal.fire('สำเร็จ', 'บันทึกเวลาเข้างานเรียบร้อย', 'success');
+
+            if (isConfirmed) {
+                setLoading(true);
+                await axios.post(`${apiUrl}/api/attendance/clock-in`, 
+                    { note: note || '' }, 
+                    { withCredentials: true, headers: { 'X-User-Id': userId } }
+                );
+                
+                await Swal.fire({ icon: 'success', title: 'บันทึกเวลาเข้างานสำเร็จ', timer: 1500, showConfirmButton: false });
+                fetchStatus();
+                setIsExpanded(true);
+            }
         } catch (error: any) {
-             Swal.fire('ผิดพลาด', error.response?.data?.message || 'ไม่สามารถบันทึกเวลาเข้างานได้', 'error');
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.response?.data?.message || 'ไม่สามารถบันทึกเวลาได้' });
         } finally {
             setLoading(false);
         }
@@ -99,178 +124,113 @@ const ClockInOutButton = () => {
 
     const handleClockOut = async () => {
         if (!userId) return;
-        setLoading(true); 
         try {
-            // ✅ FIX: เพิ่ม withCredentials: true
-             await axios.post(`${apiUrl}/api/attendance/clock-out`, {}, {
-                 headers: { 'x-user-id': userId },
-                 withCredentials: true 
-             });
-             Swal.fire('สำเร็จ', 'บันทึกเวลาออกงานเรียบร้อย', 'success');
+            const { value: note, isConfirmed } = await Swal.fire({
+                title: 'ยืนยันการออกงาน',
+                input: 'text',
+                inputLabel: 'หมายเหตุ (ถ้ามี)',
+                inputPlaceholder: 'เช่น กลับก่อนเวลาเนื่องจาก...',
+                showCancelButton: true,
+                confirmButtonText: 'บันทึกเวลาออก',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#F59E0B',
+                cancelButtonColor: '#d33'
+            });
+
+            if (isConfirmed) {
+                setLoading(true);
+                await axios.post(`${apiUrl}/api/attendance/clock-out`, 
+                    { note: note || '' },
+                    { withCredentials: true, headers: { 'X-User-Id': userId } }
+                );
+
+                await Swal.fire({ icon: 'success', title: 'บันทึกเวลาออกงานสำเร็จ', timer: 1500, showConfirmButton: false });
+                fetchStatus();
+                setIsExpanded(false);
+            }
         } catch (error: any) {
-             Swal.fire('ผิดพลาด', error.response?.data?.message || 'ไม่สามารถบันทึกเวลาออกงานได้', 'error');
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.response?.data?.message || 'ไม่สามารถบันทึกเวลาได้' });
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        let timer: NodeJS.Timeout | undefined;
-
-        if (attendanceStatus?.status === 'clocked_in' && attendanceStatus.lastClockIn) {
-            const clockInTime = parseISO(attendanceStatus.lastClockIn);
-            
-            const updateTimer = () => {
-                const now = new Date();
-                const totalSeconds = differenceInSeconds(now, clockInTime);
-
-                if (totalSeconds < 0) {
-                    setElapsedTime('00:00:00');
-                    return;
-                }
-
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                const seconds = totalSeconds % 60;
-                
-                setElapsedTime(
-                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-                );
-            };
-            
-            updateTimer(); // เรียกครั้งแรกทันที
-            timer = setInterval(updateTimer, 1000); 
-        
-        }
-
-        return () => {
-            if (timer) {
-                clearInterval(timer); 
-            }
-            if (attendanceStatus?.status !== 'clocked_in') {
-                setElapsedTime(''); 
-            }
-        };
-    }, [attendanceStatus]); 
-
-    // ฟังก์ชันคำนวณสีปุ่ม (หด)
-    const collapsedColorClass = useMemo(() => {
-        if (statusLoading) return 'bg-gray-500 hover:bg-gray-600';
-        if (attendanceStatus?.status === 'clocked_in') return 'bg-green-600 hover:bg-green-700';
-        return 'bg-red-600 hover:bg-red-700'; 
-    }, [statusLoading, attendanceStatus]);
-
-
-    if (!userId) {
-        return null;
-    }
-
-    // ฟังก์ชัน Render ปุ่มเข้า/ออกงาน
     const renderButton = () => {
-        if (statusLoading) {
-            return <div className="text-sm font-medium text-gray-500">รอ...</div>;
-        }
-        if (!attendanceStatus) {
-             return <div className="text-sm font-medium text-gray-500">Error</div>;
+        if (loading || statusLoading) {
+            return <button className="bg-gray-400 text-white font-bold py-2 px-4 rounded-full cursor-not-allowed">...</button>;
         }
 
-        switch (attendanceStatus.status) {
-            case 'not_clocked_in':
-            case 'clocked_out':
-                return (
-                    <button onClick={handleClockIn} disabled={loading} className="btn-success btn-sm flex items-center gap-1 justify-center whitespace-nowrap">
-                        <ArrowRightEndOnRectangleIcon className="w-4 h-4" /> 
-                        <span>เข้างาน</span>
-                    </button>
-                );
-            case 'clocked_in':
-                return (
-                    <button onClick={handleClockOut} disabled={loading} className="btn-danger btn-sm flex items-center gap-1 justify-center whitespace-nowrap">
-                        <ArrowLeftStartOnRectangleIcon className="w-4 h-4" /> 
-                        <span>
-                            ออกงาน
-                        </span>
-                    </button>
-                );
-            default:
-                return <div className="text-sm font-medium text-gray-500">?</div>;
+        if (attendanceStatus?.status === 'clocked_in') {
+            return (
+                <button onClick={handleClockOut} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-1.5 px-4 rounded-full shadow-lg transition-all flex items-center gap-2 text-sm whitespace-nowrap">
+                    <ArrowLeftStartOnRectangleIcon className="w-5 h-5" />
+                    ออกงาน
+                </button>
+            );
+        } else {
+            return (
+                <button onClick={handleClockIn} className="bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-4 rounded-full shadow-lg transition-all flex items-center gap-2 text-sm whitespace-nowrap">
+                    <ArrowRightEndOnRectangleIcon className="w-5 h-5" />
+                    เข้างาน
+                </button>
+            );
         }
     };
 
-    // ==========================================================
-    // ✅ 3. แก้ไข Container หลัก (return) ใหม่ทั้งหมด
-    // ==========================================================
+    // --- Logic เลือกสีปุ่มตอนยังไม่ขยาย ---
+    const getCollapsedStyle = () => {
+        if (statusLoading) return 'bg-gray-400 text-white';
+        
+        if (attendanceStatus?.status === 'clocked_in') {
+            // 🟢 กำลังทำงาน: สีเขียว + กระพริบ
+            return 'bg-green-500 text-white ring-4 ring-green-200 animate-pulse';
+        } else {
+            // 🔴 ยังไม่เข้างาน: สีแดง (เพื่อให้เด่นว่าต้องกด)
+            return 'bg-red-500 text-white hover:bg-red-600';
+        }
+    };
+
+    if (!userId) return null;
+
     return (
         <div 
             className={`
-                flex items-center shadow-lg backdrop-blur-sm
+                flex items-center bg-white shadow-xl rounded-full p-1 border border-gray-200 
                 transition-all duration-300 ease-in-out
-                ${isExpanded 
-                    ? 'w-auto max-w-xs bg-white bg-opacity-80 rounded-lg p-2 gap-1' // 🔹 สไตล์ตอนขยาย
-                    : `w-12 h-12 justify-center rounded-full text-white ${collapsedColorClass}` // 🔹 สไตล์ตอนหด
-                }
+                ${isExpanded ? 'pr-4 pl-1' : 'w-14 h-14 justify-center hover:scale-110 cursor-pointer'}
             `}
+            onMouseEnter={() => !isExpanded && setIsExpanded(true)}
+            onMouseLeave={() => setIsExpanded(false)}
         >
-            
-            {/* 1. ปุ่ม "หด" (Chevron) - อยู่ซ้ายสุด */}
-            <button 
-                onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} 
-                title="ย่อ"
-                className={`
-                    flex-shrink-0 p-1 rounded-full text-gray-500 hover:bg-gray-200 
-                    transition-all duration-200 ease-in-out
-                    ${isExpanded 
-                        ? 'w-6 opacity-100' // แสดง
-                        : 'w-0 opacity-0 hidden'   // ✅ FIX: ซ่อน (hidden) ตอนหด
-                    }
-                `}
-            >
-                <ChevronRightIcon className="w-5 h-5" />
-            </button>
-            
-            {/* 2. ไอคอนนาฬิกา (ปุ่ม "ขยาย") */}
-            <button
-                onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }}
-                title="ขยาย"
-                className={`
-                    flex items-center justify-center flex-shrink-0
-                    transition-colors duration-200 rounded-full
-                    ${isExpanded 
-                        ? 'p-0.5 text-gray-600' // สีตอนขยาย
-                        : 'w-12 h-12 text-white' // ✅ FIX: ขนาดตอนหด
-                    }
-                `}
-                disabled={isExpanded}
-            >
-                <ClockIcon className="w-6 h-6" /> 
-            </button>
-            
-            {/* 3. เนื้อหา (เวลา, ปุ่มเข้า/ออก) */}
+            {/* ส่วนหัวปุ่ม (Icon) ที่เปลี่ยนสีตามสถานะ */}
             <div className={`
-                flex items-center gap-2 overflow-hidden
-                transition-all duration-200 ease-in-out
+                flex items-center justify-center rounded-full transition-all duration-300 shadow-md
                 ${isExpanded 
-                    ? 'max-w-xs opacity-100 ml-1' // แสดง
-                    : 'max-w-0 opacity-0 hidden' // ✅ FIX: ซ่อน (hidden) ตอนหด
+                    ? 'bg-blue-100 text-blue-600 w-10 h-10'  // ตอนขยายแล้ว (เป็นสีฟ้าอ่อนๆ สบายตา)
+                    : `w-12 h-12 ${getCollapsedStyle()}`      // ตอนหดอยู่ (แดง/เขียว ตามสถานะ)
                 }
             `}>
-                <span className="text-gray-700 whitespace-nowrap flex-shrink-0">
-                    {statusLoading ? (
-                        "กำลังโหลด..."
-                    ) : attendanceStatus?.status === 'clocked_in' ? (
-                        <span className="font-mono text-gray-900 text-base w-20">
-                            {elapsedTime || '00:00:00'}
-                        </span>
-                    ) : (
-                        "ยังไม่ได้เข้างาน"
-                    )}
-                </span>
+                <ClockIcon className={`${isExpanded ? 'w-6 h-6' : 'w-7 h-7'}`} />
+            </div>
+            
+            {/* เนื้อหาที่จะยืด/หด */}
+            <div className={`
+                flex items-center gap-3 overflow-hidden transition-all duration-300 ease-in-out
+                ${isExpanded ? 'max-w-[300px] opacity-100 ml-3' : 'max-w-0 opacity-0'}
+            `}>
+                <div className="flex flex-col">
+                    <span className="text-xs text-gray-500 font-medium">
+                        {attendanceStatus?.status === 'clocked_in' ? 'เวลาทำงาน' : 'สถานะ'}
+                    </span>
+                    <span className={`font-mono font-bold text-lg leading-none min-w-[80px] ${attendanceStatus?.status === 'clocked_in' ? 'text-green-600' : 'text-gray-900'}`}>
+                         {attendanceStatus?.status === 'clocked_in' ? elapsedTime : 'พร้อมทำงาน'}
+                    </span>
+                </div>
                 
-                <div className="flex-shrink-0">
+                <div className="pl-2 border-l border-gray-200">
                     {renderButton()}
                 </div>
             </div>
-
         </div>
     );
 };

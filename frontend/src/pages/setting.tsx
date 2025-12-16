@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import React, { useState, useEffect, useMemo, type ChangeEvent, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
@@ -65,9 +65,32 @@ interface EditingMenuState {
   menu_image: string | null;
 }
 
+interface UserPermissionData {
+    id: number;
+    username: string;
+    role: string;
+    permissions: string[];
+}
+
 const Setting = () => {
     const location = useLocation();
-    const role = location.state?.role;
+
+    // ✅ [แก้ไข 1] ดึง Role และ Permissions อย่างปลอดภัย (รองรับ Refresh หน้าจอ)
+    const userData = useMemo(() => {
+        if (location.state) return location.state;
+        
+        // ถ้าไม่มีใน state ให้ลองดึงจาก localStorage
+        try {
+            const storedUser = localStorage.getItem('user');
+            return storedUser ? JSON.parse(storedUser) : {};
+        } catch (e) {
+            return {};
+        }
+    }, [location.state]);
+
+    const role = userData.role;
+    // ตรวจสอบให้แน่ใจว่าเป็น Array
+    const permissions = Array.isArray(userData.permissions) ? userData.permissions : [];
 
     // --- States ---
     const [shopData, setShopData] = useState<ShopData>({
@@ -130,9 +153,12 @@ const Setting = () => {
         conditions: ''
     });
 
+    // Employee States
+    const [employees, setEmployees] = useState<UserPermissionData[]>([]);
+
     const [loading, setLoading] = useState(true);
     const [accordionState, setAccordionState] = useState({
-        shop: true, tables: false, plans: false, menu: false, promotions: false
+        shop: true, tables: false, plans: false, menu: false, promotions: false, employee: false
     });
 
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -142,22 +168,50 @@ const Setting = () => {
         const fetchAllData = async () => {
             setLoading(true);
             try {
-                const [shopRes, tablesRes, plansRes, menuRes, promotionsRes] = await Promise.all([
+                // ✅ [แก้ไข 2] ระบุ Type เป็น Promise<any>[] เพื่อแก้ Error สีแดง
+                const requests: Promise<any>[] = [
                     axios.get<ShopData>(`${apiUrl}/api/shop`),
                     axios.get<TableData[]>(`${apiUrl}/api/tables`),
                     axios.get<PlanData[]>(`${apiUrl}/api/plans`),
                     axios.get<MenuData[]>(`${apiUrl}/api/menu`),
-                    axios.get<PromotionData[]>(`${apiUrl}/api/promotions`)
-                ]);
+                    axios.get<PromotionData[]>(`${apiUrl}/api/promotions`),
+                ];
+
+                // ถ้าเป็น Admin ถึงจะดึงข้อมูลพนักงาน
+                if (role === 'Admin') {
+                    requests.push(axios.get(`${apiUrl}/api/users-permissions`));
+                }
+
+                const responses = await Promise.all(requests);
+                
+                // ✅ [แก้ไข 3] ใช้ Casting (as ...) เพื่อบอก Type ให้ถูกต้อง
+                const shopRes = responses[0];
+                const shopInfo = shopRes.data as ShopData;
+
+                const tablesRes = responses[1];
+                const plansRes = responses[2];
+                const menuRes = responses[3];
+                const promotionsRes = responses[4];
+
                 setShopData({
-                    ...shopRes.data,
-                    open_time: shopRes.data.open_time?.substring(0, 5) || '',
-                    close_time: shopRes.data.close_time?.substring(0, 5) || ''
+                    ...shopInfo,
+                    open_time: shopInfo.open_time?.substring(0, 5) || '',
+                    close_time: shopInfo.close_time?.substring(0, 5) || ''
                 });
-                setTables(tablesRes.data.sort((a,b) => a.table_number - b.table_number)); 
-                setPlans(plansRes.data);
-                setMenuItems(menuRes.data);
-                setPromotions(promotionsRes.data); 
+                setTables((tablesRes.data as TableData[]).sort((a,b) => a.table_number - b.table_number)); 
+                setPlans(plansRes.data as PlanData[]);
+                setMenuItems(menuRes.data as MenuData[]);
+                setPromotions(promotionsRes.data as PromotionData[]); 
+
+                // ถ้าเป็น Admin จัดการข้อมูลพนักงาน
+                if (role === 'Admin' && responses[5]) {
+                    const usersRes = responses[5];
+                    const formattedUsers = (usersRes.data as any[]).map((u: any) => ({
+                        ...u,
+                        permissions: Array.isArray(u.permissions) ? u.permissions : []
+                    }));
+                    setEmployees(formattedUsers);
+                }
 
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -167,25 +221,63 @@ const Setting = () => {
             }
         };
         
-        if (role === 'Admin') {
+        // ถ้ามีสิทธิ Admin หรือ Manage Settings ให้โหลดข้อมูลได้
+        if (role === 'Admin' || permissions.includes('manage_settings')) {
             fetchAllData();
         } else {
-            setLoading(false); 
+            setLoading(false);
         }
-    }, [apiUrl, role]); 
+
+    }, [apiUrl, role, permissions]); // เพิ่ม permissions ใน dependency
+
+    // ฟังก์ชันจัดการสิทธิพนักงาน
+    const handlePermissionChange = async (userId: number, permissionKey: string, isChecked: boolean) => {
+        setEmployees(prev => prev.map(emp => {
+            if (emp.id === userId) {
+                const currentPerms = emp.permissions || [];
+                let newPerms;
+                if (isChecked) {
+                    newPerms = [...currentPerms, permissionKey];
+                } else {
+                    newPerms = currentPerms.filter(p => p !== permissionKey);
+                }
+                return { ...emp, permissions: newPerms };
+            }
+            return emp;
+        }));
+
+        try {
+            const targetEmp = employees.find(e => e.id === userId);
+            let newPermsToSave = targetEmp?.permissions || [];
+            
+            if (isChecked) {
+                newPermsToSave = [...newPermsToSave, permissionKey];
+            } else {
+                newPermsToSave = newPermsToSave.filter(p => p !== permissionKey);
+            }
+            newPermsToSave = [...new Set(newPermsToSave)];
+
+            await axios.put(`${apiUrl}/api/users/${userId}/permissions`, {
+                permissions: newPermsToSave
+            });
+        } catch (err) {
+            console.error(err);
+            Swal.fire('Error', 'บันทึกสิทธิไม่สำเร็จ', 'error');
+        }
+    };
 
     // --- Handlers ---
-    const toggleAccordion = (section: 'shop' | 'tables' | 'plans' | 'menu' | 'promotions') => {
+    const toggleAccordion = (section: 'shop' | 'tables' | 'plans' | 'menu' | 'promotions' | 'employee') => {
         setAccordionState(prevState => ({
             shop: section === 'shop' ? !prevState.shop : false,
             tables: section === 'tables' ? !prevState.tables : false,
             plans: section === 'plans' ? !prevState.plans : false,
             menu: section === 'menu' ? !prevState.menu : false,
             promotions: section === 'promotions' ? !prevState.promotions : false,
+            employee: section === 'employee' ? !prevState.employee : false,
         }));
     };
 
-    // --- Shop Handlers ---
     const handleShopChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setShopData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleLogoChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -220,7 +312,6 @@ const Setting = () => {
         }
     };
 
-    // --- Table Handlers ---
     const handleNewTableChange = (e: ChangeEvent<HTMLInputElement>) => setNewTable(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleAddTable = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -279,7 +370,6 @@ const Setting = () => {
         }
     };
 
-    // --- Plan Handlers ---
     const handleNewPlanChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewPlan(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleAddPlan = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -310,7 +400,6 @@ const Setting = () => {
         }
     };
 
-    // --- Menu Handlers ---
     const handleNewMenuChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         if (name === 'menu_quantity') {
@@ -407,8 +496,6 @@ const Setting = () => {
         }
     };
 
-
-    // --- Promotion Handlers ---
     const handleNewPromotionChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setNewPromotion(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
@@ -525,7 +612,8 @@ const Setting = () => {
         return <div className="p-8 text-center">กำลังโหลดข้อมูล...</div>;
     }
 
-    if (role !== 'Admin') {
+    // ✅ [แก้ไข 4] เช็คสิทธิทั้ง Admin และ manage_settings
+    if (role !== 'Admin' && !permissions.includes('manage_settings')) {
          return (
              <div className="p-8 text-center text-red-600 bg-red-100 border border-red-400 rounded-md">
                  คุณไม่มีสิทธิ์เข้าถึงหน้านี้
@@ -599,7 +687,6 @@ const Setting = () => {
                                     </div>
                                 </div>
                             </div>
-                            {/* ✅ FIX: เปลี่ยน justify-end เป็น justify-center */}
                             <div className="flex justify-center pt-4">
                                 <button type="submit" className="btn-primary">บันทึกข้อมูลร้านค้า</button>
                             </div>
@@ -767,7 +854,6 @@ const Setting = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        {/* ✅ FIX: เปลี่ยน justify-end เป็น justify-center */}
                                         <div className="flex justify-center pt-4">
                                             <button type="submit" className="btn-primary">เพิ่มเมนู</button>
                                         </div>
@@ -785,7 +871,6 @@ const Setting = () => {
                                                 alt={menu.menu_name}
                                                 className="menu-list-thumbnail"
                                             />
-                                            {/* ✅ FIX: จัด layout ของ text ให้สวยงามขึ้น */}
                                             <div className="flex-grow">
                                                 <span className="font-bold text-lg text-gray-800">{menu.menu_name}</span>
                                                 <span className="text-gray-600 ml-2 sm:ml-3">({menu.price} บาท)</span>
@@ -796,7 +881,6 @@ const Setting = () => {
                                                 {menu.menu_description && <p className="text-sm text-gray-500 mt-1">{menu.menu_description}</p>}
                                             </div>
                                         </div>
-                                        {/* ✅ FIX: เปลี่ยน self-end เป็น self-center (สำหรับ mobile) */}
                                         <div className="flex gap-2 flex-shrink-0 mt-2 sm:mt-0 self-center">
                                             <button onClick={() => handleEditMenuClick(menu)} className="btn-secondary btn-sm">แก้ไข</button>
                                             <button onClick={() => handleDeleteMenu(menu.menu_id)} className="btn-danger btn-sm">ลบ</button>
@@ -864,7 +948,6 @@ const Setting = () => {
                     <div className={`accordion-content ${accordionState.promotions ? 'open' : ''}`}>
                         <div className="p-6">
                              {editingPromotionId ? (
-                                /* --- Edit Promotion Form --- */
                                 <>
                                     <h3 className="text-xl font-semibold mb-4 text-blue-700">แก้ไขโปรโมชั่น</h3>
                                     <form onSubmit={handleUpdatePromotion} className="space-y-4 promotion-form">
@@ -941,7 +1024,6 @@ const Setting = () => {
                                     </form>
                                 </>
                             ) : (
-                                /* --- Add Promotion Form --- */
                                 <>
                                     <h3 className="text-xl font-semibold mb-4 text-blue-700">เพิ่มโปรโมชั่นใหม่</h3>
                                     <form onSubmit={handleAddPromotion} className="space-y-4 promotion-form">
@@ -1022,7 +1104,6 @@ const Setting = () => {
 
                             <h3 className="text-xl font-semibold mb-4 text-blue-700">โปรโมชั่นที่มีอยู่ ({promotions.length})</h3>
                             
-                            {/* ✅ Responsive Table/Card Container (เพิ่มคลาส mobile-card-table) */}
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md mobile-card-table">
                                      <thead className="bg-gray-100">
@@ -1091,6 +1172,84 @@ const Setting = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* ✅ [แก้ไข 4] ซ่อนส่วนจัดการสิทธิพนักงาน ถ้าไม่ใช่ Admin (คนอื่นจะไม่เห็น Accordion นี้เลย) */}
+                {role === 'Admin' && (
+                <div className="accordion-item border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    <button onClick={() => toggleAccordion('employee')} className="accordion-header">
+                        <span>จัดการสิทธิพนักงาน</span>
+                        <span className={`accordion-arrow ${accordionState.employee ? 'open' : ''}`}>▼</span>
+                    </button>
+                    <div className={`accordion-content ${accordionState.employee ? 'open' : ''}`}>
+                        <div className="p-6">
+                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                🛡️ กำหนดสิทธิการใช้งาน (พนักงาน)
+                            </h2>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-[600px]">
+                                    <thead>
+                                        <tr className="bg-gray-100 border-b text-gray-700">
+                                            <th className="p-3 border rounded-tl-lg">ชื่อพนักงาน</th>
+                                            <th className="p-3 border text-center w-32">จัดการสต๊อก</th>
+                                            <th className="p-3 border text-center w-32">ดูรายงาน</th>
+                                            <th className="p-3 border text-center w-32">ตั้งค่าร้านค้า</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {employees.length > 0 ? (
+                                            employees.map((emp) => (
+                                                <tr key={emp.id} className="border-b hover:bg-gray-50 transition-colors">
+                                                    <td className="p-3 border font-medium text-gray-800">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">
+                                                                {emp.username.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div>
+                                                                <div>{emp.username}</div>
+                                                                <div className="text-xs text-gray-400">{emp.role}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3 border text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-5 h-5 accent-blue-600 cursor-pointer"
+                                                            checked={emp.permissions.includes('manage_stock')}
+                                                            onChange={(e) => handlePermissionChange(emp.id, 'manage_stock', e.target.checked)}
+                                                        />
+                                                    </td>
+                                                    <td className="p-3 border text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-5 h-5 accent-blue-600 cursor-pointer"
+                                                            checked={emp.permissions.includes('view_reports')}
+                                                            onChange={(e) => handlePermissionChange(emp.id, 'view_reports', e.target.checked)}
+                                                        />
+                                                    </td>
+                                                    <td className="p-3 border text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-5 h-5 accent-blue-600 cursor-pointer"
+                                                            checked={emp.permissions.includes('manage_settings')}
+                                                            onChange={(e) => handlePermissionChange(emp.id, 'manage_settings', e.target.checked)}
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={4} className="p-8 text-center text-gray-500 bg-gray-50">
+                                                    ไม่พบรายชื่อพนักงานทั่วไป (หรือทุกคนเป็น Admin)
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                )}
 
             </div> 
         </div> 

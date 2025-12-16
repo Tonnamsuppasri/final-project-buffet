@@ -356,3 +356,110 @@
     }
   }
 }
+/* ---------- SweetAlert Custom Layout ---------- */
+/* Container หลักของฟอร์มใน Swal */
+.swal-form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  text-align: left;
+  padding-top: 10px;
+}
+
+/* แถวแนวนอน (Flex Row) */
+.swal-form-row {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+}
+
+/* Input Group (เพื่อให้ Input ขยายเต็มพื้นที่) */
+.swal-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ปรับแต่ง Input ของ SweetAlert เมื่ออยู่ใน Grid */
+.swal2-input.custom-input {
+  width: 100% !important;
+  margin: 0 !important; /* ลบ margin เดิมของ swal */
+  height: 2.625em !important;
+  font-size: 1rem !important;
+  padding: 0 0.75em !important;
+  box-sizing: border-box !important;
+}
+
+/* Label เล็กๆ บน Input (Optional: ถ้าต้องการใส่ label) */
+.swal-label {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+/* ส่วน Upload Image */
+.swal-image-upload-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+
+.image-preview-circle {
+  width: 110px;
+  height: 110px;
+  border: 2px dashed #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  background-color: #f8fafc;
+  transition: all 0.3s ease;
+}
+
+.image-preview-circle:hover {
+  border-color: #6366f1;
+  background-color: #eef2ff;
+}
+
+/* ส่วนเลือก Role */
+.swal-role-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: #f1f5f9;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 5px;
+}
+
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.role-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #4f46e5;
+  cursor: pointer;
+}
+
+.role-option label {
+  cursor: pointer;
+  font-weight: 500;
+  color: #334155;
+}
+
+/* Responsive สำหรับ Swal บนมือถือ */
+@media (max-width: 600px) {
+  .swal-form-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

@@ -1,10 +1,11 @@
-import { useState, useEffect, type FormEvent, useRef, useCallback } from 'react';
+import React, { useState, useEffect, type FormEvent, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import QRCode from 'qrcode';
-import './table.css'; //
-import { socket } from '../components/menu'; 
+import { useReactToPrint } from 'react-to-print';
+import './table.css';
+import { socket } from '../components/menu';
 
 // --- Interfaces ---
 interface TableData {
@@ -12,7 +13,7 @@ interface TableData {
     table_number: number;
     seat_capacity: number;
     status: 'ว่าง' | 'ไม่ว่าง';
-    uuid: string; // UUID ของโต๊ะ (สำหรับอ้างอิง)
+    uuid: string;
 }
 
 interface PlanData {
@@ -25,8 +26,8 @@ interface ActiveOrderData {
     order_id: number;
     table_id: number;
     table_number: number;
-    uuid: string; 
-    order_uuid: string; // ⬅️ UUID "ใหม่" ของออเดอร์นี้
+    uuid: string;
+    order_uuid: string;
     service_type: string;
     customer_quantity: number;
     plan_name: string;
@@ -36,9 +37,26 @@ interface ActiveOrderData {
 
 interface ShopInfo {
     shop_name: string;
-    payment_qr_code: string; 
+    payment_qr_code: string;
 }
 
+// ✅ แก้ไข Interface ให้รองรับ type 'special' เหมือนใน setting.tsx
+interface PromotionData {
+    promotion_id: number;
+    name: string;
+    type: 'percent' | 'percentage' | 'fixed_amount' | 'special'; 
+    value: number;
+    code: string;
+}
+
+interface BillItem {
+    name: string;
+    quantity: number;
+    price: number;
+    total: number;
+}
+
+// --- Helper Components ---
 const Timer = ({ startTime }: { startTime: string }) => {
     const [elapsedTime, setElapsedTime] = useState('--:--:--');
 
@@ -87,34 +105,230 @@ const Timer = ({ startTime }: { startTime: string }) => {
     );
 };
 
-const Table = () => {
-    const location = useLocation();
-    const role = location.state?.role;
+// Component สำหรับพิมพ์ใบเสร็จ
+class PrintableBill extends React.Component<any> {
+    render() {
+        const { order, items, totals, shop, date } = this.props;
+        if (!order || !shop) return null;
+        return (
+            <div className="p-8 bg-white text-black font-mono w-[80mm] mx-auto print:w-full print:p-0">
+                <div className="text-center mb-4">
+                    <h3 className="text-xl font-bold">{shop.shop_name}</h3>
+                    <p className="text-xs text-gray-600">ใบเสร็จรับเงิน / Receipt</p>
+                    <p className="text-xs text-gray-500">{date}</p>
+                </div>
+                <div className="border-b-2 border-dashed border-gray-300 my-2"></div>
 
+                <div className="text-sm mb-2 space-y-1">
+                    <div className="flex justify-between">
+                        <span>Table:</span>
+                        <span className="font-bold">T{order.table_number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Customers:</span>
+                        <span>{order.customer_quantity} ท่าน</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Service:</span>
+                        <span>{order.service_type}</span>
+                    </div>
+                </div>
+
+                <div className="border-b-2 border-dashed border-gray-300 my-2"></div>
+
+                <div className="space-y-1 text-sm">
+                    <div className="flex justify-between font-semibold">
+                        <span>Buffet ({order.plan_name})</span>
+                        <span>{totals.buffetTotal.toLocaleString()}</span>
+                    </div>
+                    <div className="text-xs text-gray-600 pl-2">
+                        {order.customer_quantity} × {order.price_per_person.toLocaleString()}
+                    </div>
+
+                    {items.length > 0 && (
+                        <>
+                            <div className="mt-2 font-semibold">รายการสั่งเพิ่ม:</div>
+                            {items.map((item: BillItem, i: number) => (
+                                <div key={i} className="pl-2 text-gray-700">
+                                    <div className="flex justify-between">
+                                        <span>{item.name} ×{item.quantity}</span>
+                                        <span>{item.total.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </>
+                    )}
+                </div>
+
+                <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
+
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                        <span>Subtotal</span>
+                        <span>{totals.total.toLocaleString()}</span>
+                    </div>
+                    {totals.discount > 0 && (
+                        <div className="flex justify-between text-sm text-red-600">
+                            <span>Discount</span>
+                            <span>-{totals.discount.toLocaleString()}</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between font-bold text-xl mt-2 pt-2 border-t border-gray-800">
+                        <span>NET TOTAL</span>
+                        <span>{totals.netTotal.toLocaleString()} THB</span>
+                    </div>
+                </div>
+
+                {shop.payment_qr_code && (
+                    <>
+                        <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
+                        <div className="text-center">
+                            <p className="text-sm font-semibold mb-2">สแกนเพื่อชำระเงิน</p>
+                            <div className="flex justify-center">
+                                <img
+                                    src={`data:image/png;base64,${shop.payment_qr_code}`}
+                                    alt="Payment QR"
+                                    className="w-40 h-40 object-contain border-2 border-gray-300 p-2"
+                                />
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">PromptPay / QR Payment</p>
+                        </div>
+                    </>
+                )}
+
+                <div className="border-b-2 border-dashed border-gray-300 my-4"></div>
+                <div className="text-center text-xs text-gray-500 mt-4">
+                    <p>ขอบคุณที่ใช้บริการ</p>
+                    <p>Thank you for dining with us!</p>
+                </div>
+            </div>
+        );
+    }
+}
+
+// Component สำหรับพิมพ์ QR โต๊ะ
+class PrintableQRCode extends React.Component<any> {
+    render() {
+        const { order, shop, qrUrl } = this.props;
+        if (!order || !qrUrl) return null;
+
+        const startTime = new Date(order.start_time.replace(' ', 'T'));
+        const formattedTime = startTime.toLocaleString('th-TH', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen p-10 text-center print:p-8">
+                <div className="mb-6">
+                    <h1 className="text-5xl font-bold mb-2">โต๊ะ {order.table_number}</h1>
+                    <div className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-lg font-semibold">
+                        {order.service_type}
+                    </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-6 mb-6 w-full max-w-md">
+                    <div className="grid grid-cols-2 gap-4 text-left">
+                        <div>
+                            <p className="text-sm text-gray-500">แพ็คเกจ</p>
+                            <p className="text-lg font-bold">{order.plan_name}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500">จำนวนลูกค้า</p>
+                            <p className="text-lg font-bold">{order.customer_quantity} ท่าน</p>
+                        </div>
+                        <div className="col-span-2">
+                            <p className="text-sm text-gray-500">ราคา</p>
+                            <p className="text-2xl font-bold text-green-600">
+                                {(order.customer_quantity * order.price_per_person).toLocaleString()} บาท
+                            </p>
+                            <p className="text-xs text-gray-400">
+                                ({order.price_per_person.toLocaleString()} บาท/ท่าน)
+                            </p>
+                        </div>
+                        <div className="col-span-2">
+                            <p className="text-sm text-gray-500">เวลาเริ่ม</p>
+                            <p className="text-sm font-medium">{formattedTime}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="border-4 border-gray-800 p-6 rounded-2xl mb-6 bg-white">
+                    <img
+                        src={qrUrl}
+                        alt="Table QR"
+                        className="w-72 h-72 object-contain"
+                    />
+                </div>
+
+                <div className="mb-6">
+                    <p className="text-2xl font-bold mb-2">สแกนเพื่อสั่งอาหาร</p>
+                    <p className="text-gray-600 text-lg">Scan to Order Food</p>
+                </div>
+
+                {shop && (
+                    <div className="mt-8 pt-6 border-t-2 border-gray-200 w-full max-w-md">
+                        <p className="text-gray-400 font-medium text-lg">{shop.shop_name}</p>
+                    </div>
+                )}
+            </div>
+        );
+    }
+}
+
+// --- Main Component ---
+const Table = () => {
     // --- States ---
+    const location = useLocation();
     const [tables, setTables] = useState<TableData[]>([]);
     const [plans, setPlans] = useState<PlanData[]>([]);
     const [activeOrders, setActiveOrders] = useState<ActiveOrderData[]>([]);
     const [shopInfo, setShopInfo] = useState<ShopInfo | null>(null);
+    const [promotions, setPromotions] = useState<PromotionData[]>([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<'grid' | 'form'>('grid');
     const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
+
+    // Form States
     const [customerQuantity, setCustomerQuantity] = useState(1);
     const [selectedPlanId, setSelectedPlanId] = useState('');
     const [serviceType, setServiceType] = useState('ปิ้งย่าง');
     const [totalPrice, setTotalPrice] = useState(0);
-    const [showQrDetailsModal, setShowQrDetailsModal] = useState(false);
-    const [currentOrderDetails, setCurrentOrderDetails] = useState<ActiveOrderData | null>(null);
-    const [qrCodeImageUrl, setQrCodeImageUrl] = useState('');
 
-    const printableBillRef = useRef<HTMLDivElement>(null);
+    // Bill Modal States
+    const [showCheckBillModal, setShowCheckBillModal] = useState(false);
+    const [checkBillOrder, setCheckBillOrder] = useState<ActiveOrderData | null>(null);
+    const [checkBillItems, setCheckBillItems] = useState<BillItem[]>([]);
+    const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState('เงินสด');
+
+    // QR Modal States
+    const [showQrModal, setShowQrModal] = useState(false);
+    const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [qrTargetOrder, setQrTargetOrder] = useState<ActiveOrderData | null>(null);
+
+    const componentRefBill = useRef(null);
+    const componentRefQR = useRef(null);
 
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-    // ✅✅✅ FIX: แก้ไขบรรทัดนี้ ✅✅✅
-    // (ใช้ค่าจาก .env ตรงๆ ห้ามบวก "/order" ซ้ำ)
     const customerOrderUrlBase = import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173/order';
 
+    const fetchPromotions = async () => {
+        try {
+            const res = await axios.get(`${apiUrl}/api/promotions?active=true`);
+            const formattedPromos = res.data.map((p: any) => ({
+                ...p,
+                promotion_id: Number(p.promotion_id),
+                value: Number(p.value)
+            }));
+            setPromotions(formattedPromos);
+        } catch (error) {
+            console.error("Error fetching promotions", error);
+        }
+    };
 
     const fetchAllData = useCallback(async () => {
         try {
@@ -131,29 +345,26 @@ const Table = () => {
             if (plansRes.data.length > 0 && !selectedPlanId) {
                 setSelectedPlanId(String(plansRes.data[0].id));
             }
+            fetchPromotions();
         } catch (error) {
             console.error("Error fetching data:", error);
             Swal.fire('ผิดพลาด!', 'ไม่สามารถโหลดข้อมูลได้', 'error');
         } finally {
-            setLoading(false); 
+            setLoading(false);
         }
-    }, [apiUrl, selectedPlanId]); 
+    }, [apiUrl, selectedPlanId]);
 
     useEffect(() => {
         fetchAllData();
-
         const handleDataUpdate = () => {
             console.log("🎉 Socket event received: tables_updated. Refetching all data...");
             fetchAllData();
         };
-
         socket.on('tables_updated', handleDataUpdate);
-
         return () => {
             socket.off('tables_updated', handleDataUpdate);
         };
-    }, [fetchAllData]); 
-
+    }, [fetchAllData]);
 
     useEffect(() => {
         if (view === 'form' && selectedPlanId && plans.length > 0) {
@@ -164,28 +375,128 @@ const Table = () => {
         }
     }, [customerQuantity, selectedPlanId, plans, view]);
 
-    // --- Handlers ---
-    const handlePrintBill = (order: ActiveOrderData) => {
-        // ... (โค้ดส่วนนี้คงเดิม) ...
+    // ✅ Calculation Logic (Updated for Special Promotion)
+    const calculateBill = () => {
+        if (!checkBillOrder) return { total: 0, discount: 0, netTotal: 0, buffetTotal: 0, alaCarteTotal: 0 };
+
+        const buffetTotal = checkBillOrder.customer_quantity * checkBillOrder.price_per_person;
+        const alaCarteTotal = checkBillItems.reduce((sum, item) => sum + item.total, 0);
+        const total = buffetTotal + alaCarteTotal;
+
+        let discount = 0;
+
+        if (selectedPromotionId && promotions.length > 0) {
+            const promo = promotions.find(p => Number(p.promotion_id) === Number(selectedPromotionId));
+
+            if (promo) {
+                const promoValue = Number(promo.value);
+                const type = promo.type.toLowerCase().trim();
+
+                if (type.includes('percent') || type === 'percentage') {
+                    // แบบเปอร์เซ็นต์
+                    discount = total * (promoValue / 100);
+                } else if (type.includes('fixed') || type === 'amount' || type === 'fixed_amount') {
+                    // แบบลดจำนวนเงินคงที่
+                    discount = promoValue;
+                } else if (type === 'special') {
+                    // ✅ แบบพิเศษ: มา X จ่าย Y
+                    // promoValue คือจำนวนที่ต้อง "จ่าย" (เช่น 3)
+                    // ดังนั้นขนาดกลุ่มที่ได้สิทธิ์คือ promoValue + 1 (เช่น 4) -> มา 4 จ่าย 3
+                    const groupSize = promoValue + 1;
+                    
+                    if (groupSize > 1) {
+                        // จำนวนหัวที่ลดราคา = จำนวนลูกค้า / ขนาดกลุ่ม (ปัดเศษลง)
+                        // เช่น มา 4 คน / กลุ่มละ 4 = ได้ลด 1 คน
+                        // มา 8 คน / กลุ่มละ 4 = ได้ลด 2 คน
+                        const freeHeads = Math.floor(checkBillOrder.customer_quantity / groupSize);
+                        
+                        // มูลค่าส่วนลด = จำนวนหัวที่ฟรี * ราคาบุฟเฟต์ต่อหัว
+                        discount = freeHeads * checkBillOrder.price_per_person;
+                    }
+                }
+            }
+        }
+
+        const netTotal = Math.max(0, total - discount);
+        return { buffetTotal, alaCarteTotal, total, discount, netTotal };
     };
+
+    // --- Handlers ---
+    const handlePrintBill = useReactToPrint({
+        contentRef: componentRefBill,
+        documentTitle: `Bill-T${checkBillOrder?.table_number}`,
+    });
+
+    const handlePrintQR = useReactToPrint({
+        contentRef: componentRefQR,
+        documentTitle: `QR-T${qrTargetOrder?.table_number}`,
+        onAfterPrint: () => setShowQrModal(false)
+    });
 
     const handleCheckBillButtonClick = async (table: TableData) => {
-        // ... (โค้ดส่วนนี้คงเดิม) ...
-    };
-
-    const handleViewOrderDetails = async (table: TableData) => {
         const order = activeOrders.find(o => o.table_id === table.table_id);
         if (!order) return;
 
-        setCurrentOrderDetails(order);
         try {
-            // ✅✅✅ FIX: สร้าง QR Code จาก `order.order_uuid` (Dynamic) ✅✅✅
-            const qrCodeDataUrl = await QRCode.toDataURL(`${customerOrderUrlBase}/${order.order_uuid}`, { width: 250 });
-            setQrCodeImageUrl(qrCodeDataUrl);
-            setShowQrDetailsModal(true);
+            const detailsRes = await axios.get(`${apiUrl}/api/orders/${order.order_id}/details`);
+            const alaCarteItems = detailsRes.data.map((item: any) => ({
+                name: item.menu_name,
+                quantity: item.quantity,
+                price: item.price_per_item,
+                total: item.quantity * item.price_per_item
+            }));
+
+            setCheckBillItems(alaCarteItems);
+            setCheckBillOrder(order);
+            setSelectedPromotionId(null);
+            setPaymentMethod('เงินสด');
+            setShowCheckBillModal(true);
         } catch (error) {
-            console.error("Failed to generate QR Code:", error);
-            Swal.fire('ผิดพลาด!', 'ไม่สามารถสร้าง QR Code ได้', 'error');
+            console.error("Error", error);
+            Swal.fire('Error', 'ไม่สามารถดึงข้อมูลรายการอาหารได้', 'error');
+        }
+    };
+
+    const handleQrButtonClick = async (table: TableData) => {
+        const order = activeOrders.find(o => o.table_id === table.table_id);
+        if (!order) return;
+
+        try {
+            const url = `${customerOrderUrlBase}/${order.order_uuid}`;
+            const qrDataUrl = await QRCode.toDataURL(url, { width: 300, margin: 2 });
+            setQrCodeUrl(qrDataUrl);
+            setQrTargetOrder(order);
+            setShowQrModal(true);
+        } catch (error) {
+            console.error("QR Gen Error", error);
+            Swal.fire('Error', 'สร้าง QR Code ไม่สำเร็จ', 'error');
+        }
+    };
+
+    const confirmPayment = async () => {
+        if (!checkBillOrder) return;
+        const { netTotal, discount } = calculateBill();
+
+        try {
+            await axios.post(`${apiUrl}/api/payment`, {
+                order_id: checkBillOrder.order_id,
+                payment_method: paymentMethod,
+                discount: discount,
+                promotion_id: selectedPromotionId,
+                final_price_client: netTotal
+            });
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'ชำระเงินเรียบร้อย',
+                text: `ยอดรับชำระ ${netTotal.toLocaleString()} บาท`,
+                timer: 2000,
+                showConfirmButton: false
+            });
+            setShowCheckBillModal(false);
+            fetchAllData();
+        } catch (error: any) {
+            Swal.fire('ผิดพลาด', error.response?.data?.message || 'ไม่สามารถบันทึกการชำระเงินได้', 'error');
         }
     };
 
@@ -195,8 +506,6 @@ const Table = () => {
             setCustomerQuantity(1);
             setServiceType('ปิ้งย่าง');
             setView('form');
-        } else {
-            handleViewOrderDetails(table);
         }
     };
 
@@ -209,21 +518,14 @@ const Table = () => {
         e.preventDefault();
         if (!selectedTable || !selectedPlanId) return;
 
-        const orderData = {
-            table_id: selectedTable.table_id,
-            customer_quantity: customerQuantity,
-            plan_id: Number(selectedPlanId),
-            service_type: serviceType
-        };
-
         try {
-            await axios.post(`${apiUrl}/api/orders`, orderData);
-            await Swal.fire({
-                icon: 'success',
-                title: `เปิดโต๊ะ ${selectedTable.table_number} สำเร็จ!`,
-                timer: 1500,
-                showConfirmButton: false
+            await axios.post(`${apiUrl}/api/orders`, {
+                table_id: selectedTable.table_id,
+                customer_quantity: customerQuantity,
+                plan_id: Number(selectedPlanId),
+                service_type: serviceType
             });
+            await Swal.fire({ icon: 'success', title: `เปิดโต๊ะสำเร็จ!`, timer: 1500, showConfirmButton: false });
             handleBackToGrid();
         } catch (error: any) {
             Swal.fire('ผิดพลาด!', error.response?.data?.message || "ไม่สามารถเปิดโต๊ะได้", 'error');
@@ -247,11 +549,7 @@ const Table = () => {
             if (result.isConfirmed) {
                 try {
                     await axios.delete(`${apiUrl}/api/orders/${order.order_id}`);
-                    await Swal.fire(
-                        'ยกเลิกแล้ว!',
-                        `ออเดอร์ของโต๊ะ ${table.table_number} ถูกยกเลิกเรียบร้อย`,
-                        'success'
-                    );
+                    await Swal.fire('ยกเลิกแล้ว!', `ออเดอร์ของโต๊ะ ${table.table_number} ถูกยกเลิกเรียบร้อย`, 'success');
                 } catch (error: any) {
                     Swal.fire('ผิดพลาด!', error.response?.data?.message || "ไม่สามารถยกเลิกออเดอร์ได้", 'error');
                 }
@@ -265,13 +563,13 @@ const Table = () => {
             : 'bg-red-500 hover:bg-red-600 cursor-pointer';
     };
 
-
     if (loading) {
         return <div className="p-8"><h1 className="text-3xl font-bold">กำลังโหลดข้อมูลโต๊ะ...</h1></div>;
     }
 
     return (
-        <div className="p-4 sm:p-6 app-container">
+        <div className="p-4 sm:p-6 app-container relative">
+            {/* Grid View */}
             {view === 'grid' && (
                 <>
                     <div className="flex justify-between items-center mb-6">
@@ -293,62 +591,57 @@ const Table = () => {
                                     </div>
 
                                     <div className="table-card-footer">
-                                    {order ? (
-                                        <>
-                                            <div className="service-type-selector">
-                                                <span className={`service-type-btn ${order?.service_type === 'ปิ้งย่าง' ? 'active' : 'inactive'}`}>
-                                                    ปิ้งย่าง
-                                                </span>
-                                                <span className={`service-type-btn ${order?.service_type === 'ชาบู' ? 'active' : 'inactive'}`}>
-                                                    ชาบู
-                                                </span>
-                                            </div>
+                                        {order ? (
+                                            <>
+                                                <div className="service-type-selector">
+                                                    <span className={`service-type-btn ${order?.service_type === 'ปิ้งย่าง' ? 'active' : 'inactive'}`}>ปิ้งย่าง</span>
+                                                    <span className={`service-type-btn ${order?.service_type === 'ชาบู' ? 'active' : 'inactive'}`}>ชาบู</span>
+                                                </div>
 
-                                            <div className="table-card-actions">
-                                                <button className="cancel-order-button" onClick={(e) => { e.stopPropagation(); handleCancelOrder(table); }}>
-                                                    ยกเลิก
-                                                </button>
-                                                <button className="check-bill-button" onClick={(e) => { e.stopPropagation(); handleCheckBillButtonClick(table); }}>
-                                                    ชำระเงิน
-                                                </button>
+                                                <div className="table-card-actions mt-2 flex gap-2">
+                                                    <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white p-2 rounded text-sm" onClick={(e) => { e.stopPropagation(); handleCancelOrder(table); }}>
+                                                        ยกเลิก
+                                                    </button>
+                                                    <button className="flex-1 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded text-sm font-bold" onClick={(e) => { e.stopPropagation(); handleQrButtonClick(table); }}>
+                                                        QR Code
+                                                    </button>
+                                                    <button className="flex-1 bg-white text-green-600 hover:bg-gray-100 p-2 rounded text-sm font-bold" onClick={(e) => { e.stopPropagation(); handleCheckBillButtonClick(table); }}>
+                                                        เช็คบิล
+                                                    </button>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="table-card-call-to-action">
+                                                คลิกเพื่อเปิดโต๊ะ
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="table-card-call-to-action">
-                                            คลิกเพื่อเปิดโต๊ะ
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
                             );
                         })}
                     </div>
                 </>
             )}
 
+            {/* Form View */}
             {view === 'form' && selectedTable && (
                 <div className="open-table-form-container">
                     <h2 className="text-3xl font-bold mb-6 text-center">เปิดโต๊ะ {selectedTable.table_number}</h2>
                     <form onSubmit={handleOrderSubmit} className="space-y-6">
                         <div>
-                            <label htmlFor="customer_quantity" className="form-label">จำนวนลูกค้า (คน)</label>
+                            <label className="form-label">จำนวนลูกค้า (คน)</label>
                             <input
                                 type="number"
-                                id="customer_quantity"
                                 value={customerQuantity}
                                 onChange={(e) => setCustomerQuantity(Math.max(1, Number(e.target.value)))}
                                 min="1"
-                                max={selectedTable.seat_capacity}
                                 className="form-input"
                                 required
                             />
-                            <p className="text-xs text-gray-500 mt-1">โต๊ะนี้รองรับได้สูงสุด {selectedTable.seat_capacity} คน</p>
                         </div>
-
                         <div>
-                            <label htmlFor="plan_id" className="form-label">เลือกโปรโมชัน</label>
+                            <label className="form-label">เลือกโปรโมชัน</label>
                             <select
-                                id="plan_id"
                                 value={selectedPlanId}
                                 onChange={(e) => setSelectedPlanId(e.target.value)}
                                 className="form-input"
@@ -361,28 +654,15 @@ const Table = () => {
                                 ))}
                             </select>
                         </div>
-
-                        <div>
-                            <label className="form-label mb-2">ประเภทบริการ</label>
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="service_type" value="ปิ้งย่าง" checked={serviceType === 'ปิ้งย่าง'} onChange={(e) => setServiceType(e.target.value)} className="h-4 w-4"/>
-                                    <span>ปิ้งย่าง</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="service_type" value="ชาบู" checked={serviceType === 'ชาบู'} onChange={(e) => setServiceType(e.target.value)} className="h-4 w-4" />
-                                    <span>ชาบู</span>
-                                </label>
-                            </div>
+                        <div className="flex gap-4">
+                            <label className="flex items-center gap-2"><input type="radio" name="st" value="ปิ้งย่าง" checked={serviceType === 'ปิ้งย่าง'} onChange={e => setServiceType(e.target.value)} /> ปิ้งย่าง</label>
+                            <label className="flex items-center gap-2"><input type="radio" name="st" value="ชาบู" checked={serviceType === 'ชาบู'} onChange={e => setServiceType(e.target.value)} /> ชาบู</label>
                         </div>
-
                         <div className="text-center pt-4 border-t">
-                            <p className="text-lg font-medium text-gray-700">ราคารวม</p>
                             <p className="text-4xl font-bold text-green-600">
                                 {totalPrice.toLocaleString()} บาท
                             </p>
                         </div>
-
                         <div className="flex justify-end gap-4 pt-4">
                             <button type="button" onClick={handleBackToGrid} className="btn-secondary">ยกเลิก</button>
                             <button type="submit" className="btn-primary">ยืนยันเปิดโต๊ะ</button>
@@ -391,54 +671,196 @@ const Table = () => {
                 </div>
             )}
 
-            {/* QR Code Modal (Responsive) */}
-            {showQrDetailsModal && currentOrderDetails && (
-                <div className="fixed inset-0 bg-gray-900/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white p-6 md:p-8 rounded-xl shadow-2xl relative w-full max-w-sm md:max-w-md modal-qr-details">
-                        <button
-                            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl md:top-4 md:right-4 md:text-2xl"
-                            onClick={() => setShowQrDetailsModal(false)}
-                        >
-                            &times;
+            {/* QR Modal */}
+            {showQrModal && qrTargetOrder && (
+                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white p-8 rounded-xl shadow-2xl relative w-full max-w-sm flex flex-col items-center">
+                        <button className="absolute top-3 right-3 text-gray-500 hover:text-red-500 text-2xl" onClick={() => setShowQrModal(false)}>&times;</button>
+                        <h2 className="text-2xl font-bold mb-4">โต๊ะ {qrTargetOrder.table_number}</h2>
+                        <img src={qrCodeUrl} alt="Table QR" className="w-64 h-64 border p-2 rounded mb-4" />
+                        <p className="text-gray-600 mb-4">{qrTargetOrder.plan_name}</p>
+                        <button onClick={handlePrintQR} className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2">
+                            🖨️ พิมพ์ QR Code
                         </button>
-                        
-                        <div className="flex flex-col items-center space-y-3 md:space-y-4">
-                            <h2 className="text-2xl md:text-3xl font-bold mb-2 text-center">
-                                โต๊ะ {currentOrderDetails.table_number}
-                            </h2>
+                    </div>
+                </div>
+            )}
 
-                            {/* (ลบส่วนแสดง PIN ออก) */}
-                            
-                            <h3 className="text-lg md:text-xl font-semibold text-gray-800 pt-2">สแกนเพื่อสั่งอาหาร</h3>
-                            
-                            {qrCodeImageUrl && (
-                                <img 
-                                    src={qrCodeImageUrl} 
-                                    alt={`QR Code for Table ${currentOrderDetails.table_number}`} 
-                                    className="w-48 h-48 md:w-64 md:h-64 border p-2 rounded-lg"
-                                />
-                            )}
-                            
-                            <div className="text-center space-y-1 text-sm text-gray-600">
-                                <p>ประเภท: {currentOrderDetails.service_type}</p>
-                                <p>ลูกค้า: {currentOrderDetails.customer_quantity} คน</p>
-                                <p>โปรโมชัน: {currentOrderDetails.plan_name}</p>
+            {/* Check Bill Modal */}
+            {showCheckBillModal && checkBillOrder && (
+                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-50 p-4 animate-fade-in">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
+
+                        {/* Left Column: Details */}
+                        <div className="p-6 md:w-3/5 border-r overflow-y-auto bg-gray-50">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                    <span>🧾 บิลโต๊ะ {checkBillOrder.table_number}</span>
+                                </h2>
+                                <span className="text-sm bg-blue-100 text-blue-800 py-1 px-3 rounded-full">{checkBillOrder.service_type}</span>
                             </div>
 
+                            <div className="space-y-4">
+                                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="font-semibold text-gray-700">Buffet ({checkBillOrder.plan_name})</span>
+                                        <span className="font-bold text-gray-900">{(checkBillOrder.customer_quantity * checkBillOrder.price_per_person).toLocaleString()}</span>
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                        {checkBillOrder.customer_quantity} ท่าน x {checkBillOrder.price_per_person.toLocaleString()} บาท
+                                    </div>
+                                </div>
+
+                                {checkBillItems.length > 0 ? (
+                                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                        <h4 className="text-sm font-semibold text-gray-500 mb-3 border-b pb-2">รายการสั่งเพิ่ม</h4>
+                                        <div className="space-y-2">
+                                            {checkBillItems.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between text-sm">
+                                                    <span>{item.name} <span className="text-gray-400">x{item.quantity}</span></span>
+                                                    <span>{item.total.toLocaleString()}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-gray-400 py-4 text-sm">ไม่มีรายการสั่งเพิ่ม</div>
+                                )}
+                            </div>
+
+                            <div className="mt-6">
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">ช่องทางชำระเงิน</label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {['เงินสด', 'โอนจ่าย', 'บัตรเครดิต'].map(method => (
+                                        <button
+                                            key={method}
+                                            onClick={() => setPaymentMethod(method)}
+                                            className={`py-3 px-2 rounded-lg border text-sm font-medium transition-all ${paymentMethod === method
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-md transform scale-105'
+                                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {method}
+                                        </button>
+                                    ))}
+                                </div>
+                                {paymentMethod === 'โอนจ่าย' && shopInfo?.payment_qr_code && (
+                                    <div className="mt-4 flex flex-col items-center p-4 bg-white rounded-lg border">
+                                        <p className="text-sm font-medium mb-2">สแกนเพื่อชำระเงิน</p>
+                                        <img src={`data:image/png;base64,${shopInfo.payment_qr_code}`} alt="QR PromptPay" className="w-32 h-32 object-contain" />
+                                        <p className="text-xs text-gray-500 mt-2">{shopInfo.shop_name}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Right Column: Calculation & Actions */}
+                        <div className="p-6 md:w-2/5 flex flex-col bg-white h-full relative">
                             <button
-                                className="btn-secondary mt-4 w-full md:w-auto" 
-                                onClick={() => setShowQrDetailsModal(false)}
+                                onClick={() => setShowCheckBillModal(false)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
                             >
-                                ปิดหน้าต่าง
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
+
+                            <div className="mt-8 flex-grow">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">โปรโมชั่น / ส่วนลด</label>
+                                <select
+                                    className="w-full p-3 border border-gray-300 rounded-lg mb-6 bg-white focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                    value={selectedPromotionId || ''}
+                                    onChange={(e) => setSelectedPromotionId(Number(e.target.value) || null)}
+                                >
+                                    <option value="">-- ราคาปกติ (ไม่ลด) --</option>
+                                    {promotions.map(promo => (
+                                        <option key={promo.promotion_id} value={promo.promotion_id}>
+                                            {promo.name} ({promo.type.includes('percent') 
+                                                ? `-${Number(promo.value)}%` 
+                                                : promo.type === 'special'
+                                                    ? `(มา ${Number(promo.value)+1} จ่าย ${promo.value})`
+                                                    : `-${Number(promo.value)} บ.`})
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {/* Price Display */}
+                                {(() => {
+                                    const { total, discount, netTotal } = calculateBill();
+                                    const selectedPromoName = promotions.find(p => p.promotion_id === selectedPromotionId)?.name;
+                                    return (
+                                        <div className="space-y-3 p-5 rounded-xl bg-gray-50 border border-gray-100">
+                                            {discount > 0 && (
+                                                <div className="flex justify-end">
+                                                    <span className="text-gray-400 line-through text-lg font-medium decoration-red-400 decoration-2">
+                                                        {total.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            <div className="border-t border-gray-200 pt-3 mt-2">
+                                                <div className="flex justify-between items-end">
+                                                    <span className="font-bold text-gray-800 text-lg">ยอดสุทธิ</span>
+                                                    <div className="text-right flex flex-col items-end">
+                                                        <span className={`text-4xl font-extrabold leading-none ${discount > 0 ? 'text-green-600' : 'text-blue-600'}`}>
+                                                            {netTotal.toLocaleString()}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500 mt-1">บาท</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {discount > 0 && (
+                                                <div className="flex justify-between text-red-500 animate-pulse text-sm">
+                                                    <span>ส่วนลด ({selectedPromoName})</span>
+                                                    <span>-{discount.toLocaleString()}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="mt-6 space-y-3">
+                                <button
+                                    onClick={handlePrintBill}
+                                    className="w-full flex items-center justify-center gap-2 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition"
+                                >
+                                    🖨️ พิมพ์ใบเสร็จ
+                                </button>
+
+                                <button
+                                    onClick={confirmPayment}
+                                    className="w-full py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                                >
+                                    ยืนยันรับเงิน
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
-            
-            {/* Div นี้จะถูกซ่อน ใช้สำหรับพิมพ์เท่านั้น */}
+
             <div style={{ display: 'none' }}>
-              <div id="printable-bill" ref={printableBillRef}></div>
+                {checkBillOrder && shopInfo && (
+                    <div ref={componentRefBill}>
+                        <PrintableBill
+                            order={checkBillOrder}
+                            items={checkBillItems}
+                            totals={calculateBill()}
+                            shop={shopInfo}
+                            date={new Date().toLocaleString('th-TH')}
+                        />
+                    </div>
+                )}
+                {qrTargetOrder && shopInfo && qrCodeUrl && (
+                    <div ref={componentRefQR}>
+                        <PrintableQRCode
+                            order={qrTargetOrder}
+                            shop={shopInfo}
+                            qrUrl={qrCodeUrl}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

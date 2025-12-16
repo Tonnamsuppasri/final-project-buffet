@@ -1,10 +1,45 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
-// 🗑️ ลบ import useAuth ออก
 import './App.css';
+
+// ==========================================
+// 🔥 เพิ่มส่วนนี้: ตั้งค่า Axios ให้ส่ง ID อัตโนมัติ (แก้ปัญหา 401)
+// ==========================================
+axios.interceptors.request.use((config) => {
+  // 1. ลองหา userId ใน localStorage (ที่เราเซฟตอน Login)
+  let userId = localStorage.getItem('userId');
+
+  // 2. ถ้าหาไม่เจอ ลองแกะจาก object 'user' (เผื่อบางเคส)
+  if (!userId) {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userObj = JSON.parse(userStr);
+        userId = userObj.id;
+      } catch (e) {
+        // ignore error
+      }
+    }
+  }
+
+  // 3. ถ้ามี ID ให้แนบไปกับ Header 'x-user-id'
+  if (userId) {
+    config.headers['x-user-id'] = userId;
+  }
+  
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+// ==========================================
+
+interface ShopData {
+  shop_name: string;
+  shop_logo: string | null;
+}
 
 function App() {
   const [username, setUsername] = useState<string>('');
@@ -12,20 +47,58 @@ function App() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
+  const [shopData, setShopData] = useState<ShopData | null>(null);
+
   const navigate = useNavigate();
-  // 🗑️ ลบ const { login } = useAuth() ออก
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  useEffect(() => {
+    const fetchShopData = async () => {
+      try {
+        const res = await axios.get<ShopData>(`${apiUrl}/api/shop`);
+        setShopData(res.data);
+
+        // อัปเดต Favicon และ Title ของ Browser ตามฐานข้อมูล
+        if (res.data) {
+           // 1. เปลี่ยน Title ของ Browser
+           if (res.data.shop_name) {
+             document.title = res.data.shop_name;
+           }
+
+           // 2. เปลี่ยน Favicon (Logo)
+           if (res.data.shop_logo) {
+             const iconPath = `data:image/png;base64,${res.data.shop_logo}`;
+             
+             // หา tag <link rel="icon"> เดิม
+             let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+             if (!link) {
+               // ถ้าหาไม่เจอ ให้สร้างใหม่
+               link = document.createElement('link');
+               link.rel = 'icon';
+               document.getElementsByTagName('head')[0].appendChild(link);
+             }
+             // เปลี่ยนรูป
+             link.href = iconPath;
+           }
+        }
+
+      } catch (error) {
+        console.error("Error fetching shop data:", error);
+      }
+    };
+    fetchShopData();
+  }, [apiUrl]);
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const res = await axios.post(
         `${apiUrl}/api/login`, 
         { username, password },
         {
-          withCredentials: true // ⬅️ ⭐️⭐️ เพิ่มบรรทัดนี้ครับ
+          withCredentials: true 
         }
       );
 
@@ -38,12 +111,16 @@ function App() {
         });
 
         const user = res.data.user;
+        
+        // ✅ บันทึกข้อมูล User ทั้งหมด (รวม Permissions) ลง LocalStorage
         localStorage.setItem('userId', user.id.toString());
-        // ✅ กลับมาใช้วิธีส่งข้อมูลผ่าน navigate state เหมือนเดิม
-        navigate('/welcome', { state: { username: user.username, role: user.role } });
+        localStorage.setItem('user', JSON.stringify(user)); 
+
+        // ✅ ส่งข้อมูล User ทั้งหมดไปหน้า welcome
+        navigate('/welcome', { state: user });
       }
     } catch (err: any) {
-      console.error("Login attempt failed:", err); // เพิ่มบรรทัดนี้เพื่อ Debug
+      console.error("Login attempt failed:", err);
       Swal.fire({
         icon: 'error',
         title: 'เข้าสู่ระบบล้มเหลว',
@@ -64,7 +141,6 @@ function App() {
         backgroundRepeat: 'no-repeat'
       }}
     >
-      {/* ... โค้ด JSX ที่เหลือเหมือนเดิมทั้งหมด ... */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
       
       <div className="absolute inset-0">
@@ -87,17 +163,25 @@ function App() {
                 <div className="mb-8">
                   <div className="w-60 h-60 mx-auto mb-6 rounded-full overflow-hidden shadow-2xl transform hover:scale-105 transition-transform duration-300 border-4 border-white/30">
                     <img 
-                      src="/src/assets/images/logo-magin.jpg" 
-                      alt="Logo" 
+                      src={shopData?.shop_logo 
+                        ? `data:image/png;base64,${shopData.shop_logo}` 
+                        : "/src/assets/images/logo-magin.jpg"} 
+                      alt="Shop Logo" 
                       className="w-full h-full object-cover"
                     />
                   </div>
                 </div>
-                <h2 className="text-3xl lg:text-5xl mb-6 font-black text-yellow-300 drop-shadow-lg transform hover:scale-105 transition-transform duration-300">
-                  <p>มากินปิ้งย่างยากินิกึ </p>
-                  <p>&</p>
-                  <p>ชาบู</p>
+                
+                <h2 className="text-3xl lg:text-5xl mb-6 font-black text-yellow-300 drop-shadow-lg transform hover:scale-105 transition-transform duration-300 whitespace-pre-wrap">
+                  {shopData?.shop_name || (
+                    <>
+                      <p>มากินปิ้งย่างยากินิกึ </p>
+                      <p>&</p>
+                      <p>ชาบู</p>
+                    </>
+                  )}
                 </h2>
+
                 <div className="space-y-3 text-base lg:text-lg font-medium opacity-95">
                   <div className="flex items-center justify-center space-x-3 transform hover:translate-x-2 transition-transform duration-300">
                     <span className="text-2xl">🍲</span>
@@ -214,5 +298,4 @@ function App() {
   )
 }
 
-export default App
-
+export default App;

@@ -1,343 +1,745 @@
-/* --- General Container & Animation --- */
-.payment-history-container,
-.payment-detail-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    animation: fadeIn 0.5s ease-in-out;
+/* Container หลัก */
+.payment-container {
     padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    font-family: 'Sarabun', sans-serif;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+/* --- Header Section --- */
+.payment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
 }
 
-.error-message {
-    color: #ef4444; /* red-500 */
-    background-color: #fee2e2; /* red-100 */
-    padding: 1rem;
-    border-radius: 0.5rem;
-    text-align: center;
-    margin-bottom: 1.5rem;
+.header-title {
+    -webkit-text-fill-color: initial;
 }
 
-/* --- Search Form --- */
-.search-form {
+.header-title h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #000000;
+    -webkit-text-fill-color: initial;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    letter-spacing: -0.5px;
+}
+
+.subtitle {
+    color: #4a5568;
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* --- Summary Cards --- */
+.summary-cards {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.card {
+    background: white;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    min-width: 160px;
+    border-left: 5px solid;
+}
+
+.card.green {
+    border-color: #10b981;
+}
+
+.card.red {
+    border-color: #ef4444;
+}
+
+.card.blue {
+    border-color: #3b82f6;
+}
+
+.card-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+}
+
+.card-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+/* --- Filters Section --- */
+.payment-filters {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
     display: flex;
     gap: 1rem;
     align-items: center;
     flex-wrap: wrap;
+    margin-bottom: 1.5rem;
 }
 
-.search-input {
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-box {
     flex-grow: 1;
-    min-width: 250px;
-    padding: 0.75rem 1.25rem;
-    font-size: 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #d1d5db;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    transition: border-color 0.2s, box-shadow 0.2s;
+    min-width: 200px;
+    background: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
 }
-.search-input:focus {
-    outline: none;
+
+.search-box:focus-within {
     border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.date-input {
-    padding: 0.65rem;
-    border-radius: 0.5rem;
-    border: 1px solid #d1d5db;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.search-button {
-    padding: 0.75rem 1.5rem;
-    background-color: #3b82f6;
-    color: white;
+.search-box input {
     border: none;
-    border-radius: 0.5rem;
+    background-color: #ffffff;
+    width: 100%;
+    outline: none;
+    font-size: 0.95rem;
+    color: #334155;
+    margin-left: 8px;
+}
+
+.date-picker input {
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color: #475569;
+    background-color: #ffffff;
+}
+
+.filter-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-search {
+    background: #3b82f6;
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s;
-}
-.search-button:hover {
-    background-color: #2563eb;
+    border: none;
+    transition: background 0.2s;
 }
 
-/* --- Table Styles --- */
-.table-wrapper {
+.btn-search:hover {
+    background: #2563eb;
+}
+
+.btn-reset {
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-reset:hover {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+/* --- Table Section (Desktop) --- */
+.table-responsive {
+    background: white;
+    border-radius: 12px;
     overflow-x: auto;
-    background-color: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    -webkit-overflow-scrolling: touch;
 }
 
 .payment-table {
     width: 100%;
     border-collapse: collapse;
-    text-align: left;
-    font-size: 0.9rem;
-}
-
-.payment-table th,
-.payment-table td {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.payment-table thead {
-    background-color: #f9fafb;
+    min-width: 800px;
 }
 
 .payment-table th {
-    font-weight: 600;
-    color: #4b5563;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 0.75rem;
+    background: #f8fafc;
+    color: #1e293b;
+    font-weight: 700;
+    text-align: left;
+    padding: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
 }
 
-.clickable-row {
-    cursor: pointer;
-    transition: background-color 0.15s ease-in-out;
-}
-.clickable-row:hover {
-    background-color: #eff6ff;
-}
-
-.price-cell {
-    font-weight: 500;
-    color: #16a34a;
-    text-align: right;
+.payment-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+    white-space: nowrap;
 }
 
-.loading-cell,
-.no-results-cell {
-    text-align: center;
-    padding: 2rem;
-    color: #6b7280;
-    font-size: 1rem;
+.hover-row:hover {
+    background-color: #f8fafc;
 }
 
-/* --- Detail View Styles --- */
-.back-link {
+/* Badges & Buttons */
+.badge-table {
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.85rem;
     display: inline-block;
-    margin-bottom: 1rem;
-    color: #3b82f6;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    font-size: 1rem;
-}
-.back-link:hover {
-    color: #1d4ed8;
 }
 
-.details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.detail-card {
-    background-color: white;
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-    overflow: hidden;
-}
-
-.card-title {
-    background-color: #f9fafb;
-    padding: 0.75rem 1.25rem;
-    font-size: 1.1rem;
+.badge-method {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
     font-weight: 600;
-    border-bottom: 1px solid #e5e7eb;
+    display: inline-block;
 }
 
-.card-content {
-    padding: 1.25rem;
-    font-size: 0.95rem;
+.badge-method.cash {
+    background: #dcfce7;
+    color: #166534;
 }
-.card-content p {
+
+.badge-method.transfer {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.btn-view-details {
+    background-color: white;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-view-details:hover {
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+    color: #1e293b;
+}
+
+/* Price Styles */
+.price-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin-right: 6px;
+}
+
+.final-price {
+    color: #16a34a;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* States */
+.loading-state,
+.error-state,
+.empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: #64748b;
+}
+
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================= */
+/* 💳 CARD VIEW (สำหรับมือถือ) */
+/* ========================================= */
+.payment-card-view {
+    display: none;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.payment-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s;
+}
+
+.payment-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.payment-card-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 0.75rem;
-    color: #374151;
-}
-.card-content p:last-child {
-    margin-bottom: 0;
-}
-.card-content strong {
-    color: #111827;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #f1f5f9;
 }
 
-.total-price {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-.total-price span {
-    color: #16a34a;
+.payment-card-id {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #64748b;
+    font-family: 'Courier New', monospace;
 }
 
-.menu-items-card .card-content {
-    padding: 0;
+.payment-card-time {
+    font-size: 0.8rem;
+    color: #94a3b8;
 }
 
-.menu-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.menu-item {
+.payment-card-body {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid #e5e7eb;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
 }
-.menu-item:last-child {
-    border-bottom: none;
+
+.payment-card-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
-.menu-name {
-    font-weight: 500;
+
+.payment-card-label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
-.menu-qty {
-    color: #6b7280;
+
+.payment-card-value {
+    font-size: 0.95rem;
+    color: #1e293b;
+    font-weight: 600;
 }
-.menu-price {
-    font-weight: 500;
-    text-align: right;
-    min-width: 100px;
+
+.payment-card-price {
+    font-size: 1.25rem;
+    color: #10b981;
+    font-weight: 800;
 }
-/* ============================
-   ✅ Mobile Responsive Fix
-   ============================ */
-@media (max-width: 640px) { /* 👈 ทำงานเมื่อหน้าจอเล็กกว่า 640px */
-    
-    .payment-history-container,
-    .payment-detail-container {
-        padding: 1rem; /* 👈 ลดช่องว่างขอบๆ ลงเล็กน้อย */
+
+.payment-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.payment-card-method {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ========================================= */
+/* 📱 TABLET (768px - 1024px) */
+/* ========================================= */
+@media (max-width: 1024px) {
+    .payment-container {
+        padding: 1.5rem;
     }
 
-    .search-form {
-        /* ไม่ต้องเปลี่ยน flex-direction ก็ได้ 
-           เพราะเราจะบังคับให้ลูกๆ กว้าง 100% */
+    .header-title h1 {
+        font-size: 1.9rem;
     }
 
-    /* บังคับให้ input และ button ทุกตัว
-      กว้าง 100% และมี margin-bottom 
-    */
-    .search-input,
-    .date-input,
-    .search-button {
+    .summary-cards {
         width: 100%;
-        margin-bottom: 0.5rem; /* 👈 เพิ่มช่องว่างระหว่างปุ่ม/input ที่เรียงกัน */
     }
 
-    .search-input {
-        min-width: 0; /* 👈 ล้าง min-width เก่า */
+    .card {
+        flex: 1;
+        min-width: 140px;
     }
 }
-/* ============================
-   Mobile Card View (max-width: 600px)
-   ============================ */
-@media (max-width: 600px) {
-    /* --- ซ่อนหัวตารางบนมือถือ --- */
-    .payment-table thead {
+
+/* ========================================= */
+/* 📱 MOBILE (จอเล็กกว่า 768px) - แสดง CARD VIEW */
+/* ========================================= */
+@media (max-width: 768px) {
+    .payment-container {
+        padding: 1rem;
+    }
+
+    /* --- Header --- */
+    .payment-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .header-title {
+        text-align: center;
+    }
+
+    .header-title h1 {
+        font-size: 1.7rem;
+        justify-content: center;
+    }
+
+    .subtitle {
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    /* --- Summary Cards (3 cards ให้เต็มความกว้าง) --- */
+    .summary-cards {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    .card {
+        padding: 1rem;
+        min-width: auto;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-label {
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+
+    .card-value {
+        font-size: 1.4rem;
+    }
+
+    /* --- Filters (เรียงแนวตั้งเต็มจอ) --- */
+    .payment-filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .filter-group {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.4rem;
+    }
+
+    .filter-group label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .search-box {
+        width: 100%;
+        min-width: auto;
+        padding: 0.75rem 1rem;
+    }
+
+    .search-box input {
+        font-size: 1rem;
+    }
+
+    .date-picker input {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 1rem;
+    }
+
+    .filter-actions {
+        margin-left: 0;
+        width: 100%;
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn-search,
+    .btn-reset {
+        flex: 1;
+        text-align: center;
+        padding: 0.85rem;
+        font-size: 1rem;
+    }
+
+    /* --- 🎯 ซ่อน Table แสดง Card View แทน --- */
+    .table-responsive {
         display: none;
     }
 
-    .payment-table,
-    .payment-table tbody,
-    .payment-table tr,
-    .payment-table td {
-        display: block;
-        width: 100%;
-    }
-    
-    .table-wrapper {
-        border-radius: 0;
-        box-shadow: none;
-        background: transparent;
-        overflow-x: hidden; /* ไม่ต้องเลื่อนแนวนอนแล้ว */
-    }
-
-    .payment-table {
-        border: none;
-    }
-
-    /* --- เปลี่ยนแถว (tr) ให้เป็นการ์ด --- */
-    .payment-table tr.clickable-row {
-        display: block;
-        margin-bottom: 1rem;
-        background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-        padding: 0.5rem 1rem; /* เพิ่ม padding ภายในการ์ด */
-        border: 1px solid #e5e7eb;
-    }
-    
-    .payment-table tr:hover {
-        background-color: #eff6ff; /* คง hover effect ไว้ */
-    }
-
-    /* --- จัดเรียงเซลล์ (td) ใหม่ --- */
-    .payment-table td {
+    .payment-card-view {
         display: flex;
-        justify-content: space-between; /* จัดให้หัวข้ออยู่ซ้าย ข้อมูลอยู่ขวา */
-        align-items: center;
-        text-align: right; /* ข้อมูลชิดขวา */
-        padding: 0.6rem 0.5rem;
-        border-bottom: 1px solid #f0f0f0; /* เส้นคั่นบางๆ ระหว่างข้อมูล */
+    }
+
+    /* --- States --- */
+    .loading-state,
+    .error-state,
+    .empty-state {
+        padding: 2rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* ========================================= */
+/* 📱 SMALL MOBILE (จอเล็กกว่า 480px) */
+/* ========================================= */
+@media (max-width: 480px) {
+    .payment-container {
+        padding: 0.75rem;
+    }
+
+    .header-title h1 {
+        font-size: 1.5rem;
+        gap: 0.3rem;
+    }
+
+    .subtitle {
+        font-size: 0.85rem;
+    }
+
+    .card {
+        padding: 0.85rem;
+    }
+
+    .card-label {
+        font-size: 0.8rem;
+    }
+
+    .card-value {
+        font-size: 1.25rem;
+    }
+
+    .payment-filters {
+        padding: 0.85rem;
+        gap: 0.85rem;
+    }
+
+    .filter-group label {
+        font-size: 0.8rem;
+    }
+
+    .search-box {
+        padding: 0.65rem 0.85rem;
+    }
+
+    .search-box input,
+    .date-picker input {
+        font-size: 0.95rem;
+    }
+
+    .btn-search,
+    .btn-reset {
+        padding: 0.75rem;
+        font-size: 0.95rem;
+    }
+
+    /* Card View ปรับให้เล็กลง */
+    .payment-card {
+        padding: 0.85rem;
+    }
+
+    .payment-card-header {
+        margin-bottom: 0.65rem;
+        padding-bottom: 0.65rem;
+    }
+
+    .payment-card-id {
+        font-size: 0.85rem;
+    }
+
+    .payment-card-time {
+        font-size: 0.75rem;
+    }
+
+    .payment-card-body {
+        gap: 0.65rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .payment-card-label {
+        font-size: 0.7rem;
+    }
+
+    .payment-card-value {
+        font-size: 0.9rem;
+    }
+
+    .payment-card-price {
+        font-size: 1.15rem;
+    }
+
+    .btn-view-details {
+        font-size: 0.85rem;
+        padding: 0.6rem 1rem;
+    }
+}
+
+/* ========================================= */
+/* 🖥️ LARGE DESKTOP (จอใหญ่กว่า 1400px) */
+/* ========================================= */
+@media (min-width: 1400px) {
+    .payment-container {
+        padding: 2.5rem;
+    }
+
+    .header-title h1 {
+        font-size: 2.5rem;
+    }
+
+    .card-value {
+        font-size: 1.75rem;
+    }
+
+    .payment-table th,
+    .payment-table td {
+        padding: 1.25rem;
+    }
+}
+/* --- Pagination --- */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 2rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.page-btn {
+    min-width: 40px;
+    height: 40px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #475569;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.page-btn:hover:not(:disabled) {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+.page-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.page-btn:disabled {
+    background: #f8fafc;
+    color: #cbd5e1;
+    cursor: not-allowed;
+    border-color: #f1f5f9;
+}
+
+.pagination-info {
+    margin-left: 1rem;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+@media (max-width: 480px) {
+    .pagination-container {
+        gap: 0.25rem;
+    }
+    
+    .page-btn {
+        min-width: 35px;
+        height: 35px;
         font-size: 0.9rem;
     }
     
-    .payment-table td:last-child {
-        border-bottom: none; /* เส้นสุดท้ายไม่ต้องมี */
-    }
-
-    /* --- สร้าง "หัวข้อ" โดยใช้ data-label --- */
-    .payment-table td::before {
-        content: attr(data-label); /* ดึงค่าจาก data-label มาแสดง */
-        font-weight: 600;
-        color: #4b5563; /* สีเทาเข้ม */
-        text-align: left; /* หัวข้อชิดซ้าย */
-        margin-right: 1rem;
-        font-size: 0.85rem;
-    }
-
-    /* --- จัดสไตล์ให้สวยงาม --- */
-    .payment-table td[data-label="Order ID"] {
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: #3b82f6; /* สีฟ้า */
-        padding-top: 0.8rem;
-    }
-    
-    .payment-table td.price-cell {
-        font-size: 1rem;
-        font-weight: bold;
-    }
-    
-    .payment-table td[data-label="โต๊ะ"],
-    .payment-table td[data-label="จำนวนลูกค้า"],
-    .payment-table td[data-label="ช่องทาง"] {
-        color: #374151;
-    }
-    
-    .payment-table td[data-label="เวลาที่ชำระ"] {
-        font-size: 0.85rem;
-        color: #6b7280;
-        padding-bottom: 0.8rem;
+    .pagination-info {
+        width: 100%;
+        text-align: center;
+        margin-left: 0;
+        margin-top: 0.5rem;
     }
 }

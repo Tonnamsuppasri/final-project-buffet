@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import './staff.css'; // (ยังคง import ไว้สำหรับตาราง)
+import './staff.css';
 import { PlusCircleIcon } from '@heroicons/react/24/solid';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
+import axios from 'axios'; // 🔥 1. นำเข้า axios
 
 interface StaffType {
   id: number;
@@ -13,30 +14,32 @@ interface StaffType {
   first_name?: string;
   last_name?: string;
   nickname?: string;
-  image?: string; // base64 string
+  image?: string;
 }
 
 const Staff = () => {
   const MySwal = withReactContent(Swal);
-
   const [staffList, setStaffList] = useState<StaffType[]>([]);
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     fetchStaff();
   }, []);
 
-  const fetchStaff = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    fetch(`${apiUrl}/api/staff`)
-      .then(res => res.json())
-      .then(data => setStaffList(data))
-      .catch(err => {
-        console.error('Error fetching staff:', err);
-        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลพนักงานได้', 'error');
-      });
+  // 🔥 2. แก้ function นี้ให้ใช้ axios
+  const fetchStaff = async () => {
+    try {
+      // ใช้ axios แทน fetch (มันจะแนบ Header x-user-id ให้เองจาก App.tsx)
+      const res = await axios.get<StaffType[]>(`${apiUrl}/api/staff`);
+      setStaffList(res.data);
+    } catch (err) {
+      console.error('Error fetching staff:', err);
+      // ใส่ Array ว่างกันจอขาว ถ้าโหลดไม่ผ่าน
+      setStaffList([]); 
+      Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลพนักงานได้', 'error');
+    }
   };
 
-  // ... (ฟังก์ชัน handleImageUpload, addStaff, editStaff, deleteStaff, formatPhone ทั้งหมดเหมือนเดิม) ...
   const handleImageUpload = (event: Event): Promise<string | null> => {
     return new Promise((resolve) => {
       const input = event.target as HTMLInputElement;
@@ -68,59 +71,104 @@ const Staff = () => {
 
   const addStaff = async () => {
     const { value: formValues } = await MySwal.fire({
-      title: 'เพิ่มพนักงานใหม่',
+      title: '<h3 style="font-size: 1.5rem; color: #1e293b;">เพิ่มพนักงานใหม่</h3>',
+      width: '600px',
       html: `
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="display: flex; justify-content: center; margin-bottom: 15px;">
-            <div style="width: 100px; height: 100px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; border-radius: 50%; overflow: hidden; position: relative;">
+        <div class="swal-form-layout">
+          <div class="swal-image-upload-container">
+            <div class="image-preview-circle">
               <img id="preview-image" style="width: 100%; height: 100%; object-fit: cover; display: none;" />
-              <span id="upload-text" style="font-size: 12px; text-align: center; color: #666;">คลิกเพื่อเลือกรูป</span>
-              <input type="file" id="image-upload" accept="image/*" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
+              <div id="upload-placeholder" style="text-align: center;">
+                <span style="font-size: 24px;">📷</span><br/>
+                <span style="font-size: 11px; color: #64748b;">อัปโหลดรูป</span>
+              </div>
+              <input type="file" id="image-upload" accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
             </div>
           </div>
-          <input id="swal-input1" class="swal2-input" placeholder="ชื่อบัญชี*">
-          <input id="swal-input2" class="swal2-input" placeholder="อีเมล*">
-          <input id="swal-input3" class="swal2-input" placeholder="รหัสผ่าน*" type="password">
-          <input id="swal-input4" class="swal2-input" placeholder="เบอร์โทรศัพท์ (ไม่บังคับ)">
-          <input id="swal-input5" class="swal2-input" placeholder="ชื่อจริง (ไม่บังคับ)">
-          <input id="swal-input6" class="swal2-input" placeholder="นามสกุล (ไม่บังคับ)">
-          <input id="swal-input7" class="swal2-input" placeholder="ชื่อเล่น (ไม่บังคับ)">
-          <div style="display: flex; align-items: center; justify-content: center; margin-top: 10px;">
-            <label style="margin-right: 15px; font-weight: bold;">ตำแหน่ง* :</label>
-            <input type="radio" id="role-admin" name="role" value="Admin" class="swal2-radio-custom" style="margin-right: 5px;">
-            <label for="role-admin" style="margin-right: 15px;">Admin</label>
-            <input type="radio" id="role-staff" name="role" value="Staff" class="swal2-radio-custom" style="margin-right: 5px;" checked>
-            <label for="role-staff">Staff</label>
+
+          <div class="swal-form-row">
+            <div class="swal-input-group">
+               <label class="swal-label">ชื่อบัญชี (Username)*</label>
+               <input id="swal-username" class="swal2-input custom-input" placeholder="ระบุชื่อบัญชี">
+            </div>
+            <div class="swal-input-group">
+               <label class="swal-label">รหัสผ่าน (Password)*</label>
+               <input id="swal-password" class="swal2-input custom-input" type="password" placeholder="ระบุรหัสผ่าน">
+            </div>
+          </div>
+
+          <div class="swal-form-row">
+            <div class="swal-input-group">
+               <label class="swal-label">อีเมล (Email)*</label>
+               <input id="swal-email" class="swal2-input custom-input" placeholder="ex: user@email.com">
+            </div>
+             <div class="swal-input-group">
+               <label class="swal-label">เบอร์โทรศัพท์</label>
+               <input id="swal-phone" class="swal2-input custom-input" placeholder="0xx-xxx-xxxx">
+            </div>
+          </div>
+
+          <div class="swal-form-row">
+            <div class="swal-input-group">
+               <label class="swal-label">ชื่อจริง</label>
+               <input id="swal-firstname" class="swal2-input custom-input" placeholder="ชื่อจริง">
+            </div>
+            <div class="swal-input-group">
+               <label class="swal-label">นามสกุล</label>
+               <input id="swal-lastname" class="swal2-input custom-input" placeholder="นามสกุล">
+            </div>
+          </div>
+
+          <div class="swal-form-row">
+             <div class="swal-input-group" style="flex: 0.5;">
+               <label class="swal-label">ชื่อเล่น</label>
+               <input id="swal-nickname" class="swal2-input custom-input" placeholder="ชื่อเล่น">
+            </div>
+             <div class="swal-input-group">
+               <label class="swal-label">ตำแหน่ง*</label>
+               <div class="swal-role-selector">
+                  <div class="role-option">
+                    <input type="radio" id="role-admin" name="role" value="Admin">
+                    <label for="role-admin">Admin</label>
+                  </div>
+                  <div class="role-option">
+                    <input type="radio" id="role-staff" name="role" value="Staff" checked>
+                    <label for="role-staff">Staff</label>
+                  </div>
+               </div>
+            </div>
           </div>
         </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: 'บันทึก',
+      confirmButtonText: 'บันทึกข้อมูล',
       cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#94a3b8',
       didOpen: () => {
         const imageInput = document.getElementById('image-upload') as HTMLInputElement;
         const previewImage = document.getElementById('preview-image') as HTMLImageElement;
-        const uploadText = document.getElementById('upload-text') as HTMLSpanElement;
+        const uploadPlaceholder = document.getElementById('upload-placeholder') as HTMLDivElement;
         
         imageInput?.addEventListener('change', (event) => {
           handleImageUpload(event).then((base64Data) => {
             if (base64Data) {
               previewImage.src = `data:image/jpeg;base64,${base64Data}`;
               previewImage.style.display = 'block';
-              uploadText.style.display = 'none';
+              uploadPlaceholder.style.display = 'none';
             }
           });
         });
       },
       preConfirm: async () => {
-        const username = (document.getElementById('swal-input1') as HTMLInputElement)?.value;
-        const email = (document.getElementById('swal-input2') as HTMLInputElement)?.value;
-        const password = (document.getElementById('swal-input3') as HTMLInputElement)?.value;
-        const phone = (document.getElementById('swal-input4') as HTMLInputElement)?.value;
-        const first_name = (document.getElementById('swal-input5') as HTMLInputElement)?.value;
-        const last_name = (document.getElementById('swal-input6') as HTMLInputElement)?.value;
-        const nickname = (document.getElementById('swal-input7') as HTMLInputElement)?.value;
+        const username = (document.getElementById('swal-username') as HTMLInputElement)?.value;
+        const email = (document.getElementById('swal-email') as HTMLInputElement)?.value;
+        const password = (document.getElementById('swal-password') as HTMLInputElement)?.value;
+        const phone = (document.getElementById('swal-phone') as HTMLInputElement)?.value;
+        const first_name = (document.getElementById('swal-firstname') as HTMLInputElement)?.value;
+        const last_name = (document.getElementById('swal-lastname') as HTMLInputElement)?.value;
+        const nickname = (document.getElementById('swal-nickname') as HTMLInputElement)?.value;
         const selectedRoleElement = document.querySelector('input[name="role"]:checked') as HTMLInputElement;
         const role = selectedRoleElement ? selectedRoleElement.value : '';
         const imageInput = document.getElementById('image-upload') as HTMLInputElement;
@@ -132,16 +180,13 @@ const Staff = () => {
         }
 
         if (!username || !email || !password || !role) {
-          Swal.showValidationMessage('กรุณากรอกข้อมูลที่มีเครื่องหมาย * ให้ครบถ้วน');
+          Swal.showValidationMessage('กรุณากรอกข้อมูล Username, Email, Password และ Role ให้ครบถ้วน');
           return;
         }
 
         return { 
-          username, 
-          email, 
-          password, 
+          username, email, password, role,
           phone: phone || null,
-          role, 
           first_name: first_name || null,
           last_name: last_name || null,
           nickname: nickname || null,
@@ -152,13 +197,8 @@ const Staff = () => {
 
     if (formValues) {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${apiUrl}/api/staff`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formValues),
-        });
-        if (!res.ok) throw new Error('เพิ่มพนักงานล้มเหลว');
+        // 🔥 3. แก้ตรงนี้ให้ใช้ axios.post
+        await axios.post(`${apiUrl}/api/staff`, formValues);
 
         fetchStaff();
         Swal.fire({
@@ -176,59 +216,104 @@ const Staff = () => {
 
   const editStaff = async (staff: StaffType) => {
     const { value: formValues } = await MySwal.fire({
-      title: 'แก้ไขข้อมูลพนักงาน',
+      title: '<h3 style="font-size: 1.5rem; color: #1e293b;">แก้ไขข้อมูลพนักงาน</h3>',
+      width: '600px',
       html: `
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-          <div style="display: flex; justify-content: center; margin-bottom: 15px;">
-            <div style="width: 100px; height: 100px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; border-radius: 50%; overflow: hidden; position: relative;">
+        <div class="swal-form-layout">
+          <div class="swal-image-upload-container">
+            <div class="image-preview-circle">
               <img id="preview-image" style="width: 100%; height: 100%; object-fit: cover; ${staff.image ? 'display: block;' : 'display: none;'}" ${staff.image ? `src="data:image/jpeg;base64,${staff.image}"` : ''} />
-              <span id="upload-text" style="font-size: 12px; text-align: center; color: #666; ${staff.image ? 'display: none;' : 'display: block;'}">คลิกเพื่อเลือกรูป</span>
-              <input type="file" id="image-upload" accept="image/*" style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
+              <div id="upload-placeholder" style="text-align: center; ${staff.image ? 'display: none;' : 'display: block;'}">
+                <span style="font-size: 24px;">📷</span><br/>
+                <span style="font-size: 11px; color: #64748b;">เปลี่ยนรูป</span>
+              </div>
+              <input type="file" id="image-upload" accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" />
             </div>
           </div>
-          <input id="swal-input1" class="swal2-input" placeholder="ชื่อพนักงาน" value="${staff.username}">
-          <input id="swal-input2" class="swal2-input" placeholder="อีเมล" value="${staff.email}">
-          <input id="swal-input3" class="swal2-input" placeholder="เบอร์โทรศัพท์" value="${staff.phone || ''}">
-          <input id="swal-input5" class="swal2-input" placeholder="ชื่อจริง" value="${staff.first_name || ''}">
-          <input id="swal-input6" class="swal2-input" placeholder="นามสกุล" value="${staff.last_name || ''}">
-          <input id="swal-input7" class="swal2-input" placeholder="ชื่อเล่น" value="${staff.nickname || ''}">
-          <div style="display: flex; align-items: center; justify-content: center; margin-top: 10px;">
-            <label style="margin-right: 15px; font-weight: bold;">ตำแหน่ง :</label>
-            <input type="radio" id="role-admin" name="role" value="Admin" class="swal2-radio-custom" style="margin-right: 5px;" ${staff.role === 'Admin' ? 'checked' : ''}>
-            <label for="role-admin" style="margin-right: 15px;">Admin</label>
-            <input type="radio" id="role-staff" name="role" value="Staff" class="swal2-radio-custom" style="margin-right: 5px;" ${staff.role === 'Staff' ? 'checked' : ''}>
-            <label for="role-staff">Staff</label>
+
+          <div class="swal-form-row">
+            <div class="swal-input-group">
+               <label class="swal-label">ชื่อบัญชี (Username)</label>
+               <input id="swal-username" class="swal2-input custom-input" value="${staff.username}">
+            </div>
+             <div class="swal-input-group">
+               <label class="swal-label">อีเมล (Email)</label>
+               <input id="swal-email" class="swal2-input custom-input" value="${staff.email}">
+            </div>
           </div>
-          <input id="swal-input4" class="swal2-input" placeholder="รหัสผ่านใหม่ (ไม่ต้องกรอกหากไม่ต้องการเปลี่ยน)" type="password" style="margin-top: 10px;">
+
+          <div class="swal-form-row">
+            <div class="swal-input-group">
+               <label class="swal-label">รหัสผ่านใหม่ (ว่างไว้ถ้าไม่เปลี่ยน)</label>
+               <input id="swal-password" class="swal2-input custom-input" type="password" placeholder="********">
+            </div>
+             <div class="swal-input-group">
+               <label class="swal-label">เบอร์โทรศัพท์</label>
+               <input id="swal-phone" class="swal2-input custom-input" value="${staff.phone || ''}">
+            </div>
+          </div>
+
+          <div class="swal-form-row">
+            <div class="swal-input-group">
+               <label class="swal-label">ชื่อจริง</label>
+               <input id="swal-firstname" class="swal2-input custom-input" value="${staff.first_name || ''}">
+            </div>
+            <div class="swal-input-group">
+               <label class="swal-label">นามสกุล</label>
+               <input id="swal-lastname" class="swal2-input custom-input" value="${staff.last_name || ''}">
+            </div>
+          </div>
+
+          <div class="swal-form-row">
+             <div class="swal-input-group" style="flex: 0.5;">
+               <label class="swal-label">ชื่อเล่น</label>
+               <input id="swal-nickname" class="swal2-input custom-input" value="${staff.nickname || ''}">
+            </div>
+             <div class="swal-input-group">
+               <label class="swal-label">ตำแหน่ง</label>
+               <div class="swal-role-selector">
+                  <div class="role-option">
+                    <input type="radio" id="role-admin" name="role" value="Admin" ${staff.role === 'Admin' ? 'checked' : ''}>
+                    <label for="role-admin">Admin</label>
+                  </div>
+                  <div class="role-option">
+                    <input type="radio" id="role-staff" name="role" value="Staff" ${staff.role === 'Staff' ? 'checked' : ''}>
+                    <label for="role-staff">Staff</label>
+                  </div>
+               </div>
+            </div>
+          </div>
         </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'บันทึกการแก้ไข',
       cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#94a3b8',
       didOpen: () => {
         const imageInput = document.getElementById('image-upload') as HTMLInputElement;
         const previewImage = document.getElementById('preview-image') as HTMLImageElement;
-        const uploadText = document.getElementById('upload-text') as HTMLSpanElement;
+        const uploadPlaceholder = document.getElementById('upload-placeholder') as HTMLDivElement;
         
         imageInput?.addEventListener('change', (event) => {
           handleImageUpload(event).then((base64Data) => {
             if (base64Data) {
               previewImage.src = `data:image/jpeg;base64,${base64Data}`;
               previewImage.style.display = 'block';
-              uploadText.style.display = 'none';
+              uploadPlaceholder.style.display = 'none';
             }
           });
         });
       },
       preConfirm: async () => {
-        const username = (document.getElementById('swal-input1') as HTMLInputElement)?.value;
-        const email = (document.getElementById('swal-input2') as HTMLInputElement)?.value;
-        const phone = (document.getElementById('swal-input3') as HTMLInputElement)?.value;
-        const first_name = (document.getElementById('swal-input5') as HTMLInputElement)?.value;
-        const last_name = (document.getElementById('swal-input6') as HTMLInputElement)?.value;
-        const nickname = (document.getElementById('swal-input7') as HTMLInputElement)?.value;
-        const newPassword = (document.getElementById('swal-input4') as HTMLInputElement)?.value;
+        const username = (document.getElementById('swal-username') as HTMLInputElement)?.value;
+        const email = (document.getElementById('swal-email') as HTMLInputElement)?.value;
+        const phone = (document.getElementById('swal-phone') as HTMLInputElement)?.value;
+        const first_name = (document.getElementById('swal-firstname') as HTMLInputElement)?.value;
+        const last_name = (document.getElementById('swal-lastname') as HTMLInputElement)?.value;
+        const nickname = (document.getElementById('swal-nickname') as HTMLInputElement)?.value;
+        const newPassword = (document.getElementById('swal-password') as HTMLInputElement)?.value;
         const selectedRoleElement = document.querySelector('input[name="role"]:checked') as HTMLInputElement;
         const role = selectedRoleElement ? selectedRoleElement.value : '';
         const imageInput = document.getElementById('image-upload') as HTMLInputElement;
@@ -240,14 +325,13 @@ const Staff = () => {
         }
 
         if (!username || !email || !role) {
-          Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+          Swal.showValidationMessage('กรุณากรอกข้อมูล Username, Email และ Role ให้ครบถ้วน');
           return;
         }
 
         return { 
-          username, email, 
+          username, email, role,
           phone: phone || null, 
-          role, 
           first_name: first_name || null,
           last_name: last_name || null,
           nickname: nickname || null,
@@ -259,13 +343,8 @@ const Staff = () => {
 
     if (formValues) {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${apiUrl}/api/staff/${staff.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formValues),
-        });
-        if (!res.ok) throw new Error('แก้ไขข้อมูลพนักงานล้มเหลว');
+        // 🔥 4. แก้ตรงนี้ให้ใช้ axios.put
+        await axios.put(`${apiUrl}/api/staff/${staff.id}`, formValues);
 
         fetchStaff();
         Swal.fire({
@@ -288,21 +367,15 @@ const Staff = () => {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
+      cancelButtonColor: '#94a3b8',
       confirmButtonText: 'ใช่, ลบเลย!',
       cancelButtonText: 'ยกเลิก'
     });
 
     if (result.isConfirmed) {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${apiUrl}/api/staff/${id}`, {
-          method: 'DELETE',
-        });
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || 'ลบพนักงานล้มเหลว');
-        }
+        // 🔥 5. แก้ตรงนี้ให้ใช้ axios.delete
+        await axios.delete(`${apiUrl}/api/staff/${id}`);
 
         fetchStaff();
         Swal.fire(
@@ -312,7 +385,7 @@ const Staff = () => {
         );
       } catch (error: any) {
         console.error(error);
-        Swal.fire('เกิดข้อผิดพลาด', error.message || 'ไม่สามารถลบพนักงานได้', 'error');
+        Swal.fire('เกิดข้อผิดพลาด', error.response?.data?.message || 'ไม่สามารถลบพนักงานได้', 'error');
       }
     }
   };
@@ -328,22 +401,15 @@ const Staff = () => {
 
   return (
     <div className="rounded-t-3xl border staff-container">
-      {/* ✅✅✅ FIX: ย้ายสไตล์ทั้งหมดจาก staff.css มาไว้ที่นี่ ✅✅✅
-        - Mobile (Default): flex-col, items-center, p-5 (อ้างอิงจาก @media 600px)
-        - Desktop (md:): md:flex-row, md:justify-between, md:p-8 (อ้างอิงจาก .staff-header)
-        - ลบ 'staff-header' ออกจาก className เพื่อป้องกันการตีกัน
-      */}
       <div className="w-full rounded-t-3xl mx-auto 
                     bg-gradient-to-br from-slate-800 to-slate-900 min-h-[150px] 
                     flex flex-col items-center gap-4 p-5 
                     md:flex-row md:justify-between md:items-center md:p-8">
         
-        {/* Title (ลบ text-center ออก) */}
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white staff-header-title">
           จัดการพนักงาน
         </h1>
         
-        {/* Button (ลบ justify-center ออก) */}
         <button
           onClick={addStaff}
           className="bg-white text-black font-bold py-2 px-4 rounded flex items-center gap-2 transition duration-300 hover:bg-gray-200 hover:scale-105"
@@ -353,7 +419,6 @@ const Staff = () => {
         </button>
       </div>
 
-      {/* (เนื้อหาส่วนที่เหลือของ Component เหมือนเดิม) */}
       <div className="p-4 overflow-x-auto">
         <table className="border border-gray-300 rounded-lg table-staff">
           <thead className="bg-gray-400 text-black text-center">
@@ -367,7 +432,8 @@ const Staff = () => {
             </tr>
           </thead>
           <tbody className="text-center">
-            {staffList.map((staff, index) => (
+            {/* 🔥 6. เช็คให้แน่ใจว่า staffList เป็น Array ก่อน map */}
+            {Array.isArray(staffList) && staffList.map((staff, index) => (
               <tr key={staff.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-200'}>
                 <td className="py-2 px-2 sm:px-4 border font-bold text-base sm:text-lg" data-label="ID">{index + 1}.</td>
                 <td className="py-2 px-2 sm:px-4 border" data-label="รูปภาพ">
@@ -414,7 +480,7 @@ const Staff = () => {
                 </td>
               </tr>
             ))}
-            {Array.from({ length: Math.max(0, 10 - staffList.length) }).map((_, i) => (
+            {Array.isArray(staffList) && Array.from({ length: Math.max(0, 10 - staffList.length) }).map((_, i) => (
               <tr key={`empty-${i}`} className={(staffList.length + i) % 2 === 0 ? 'bg-white' : 'bg-gray-200'}>
                 <td className="py-2 px-2 sm:px-4 border font-bold text-base sm:text-lg" data-label="ID">{staffList.length + i + 1}.</td>
                 <td className="py-2 px-2 sm:px-4 border" data-label="รูปภาพ">&nbsp;</td>
