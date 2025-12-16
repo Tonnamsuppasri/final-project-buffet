@@ -16,6 +16,7 @@ const { Server } = require("socket.io");
 const allowedOrigins = [
   'http://localhost:5173',
   'http://192.168.0.101:5173',
+  'http://10.226.247.45:5173',
   // 'http://[YOUR_HOTSPOT_IP]:5173' 
 ];
 
@@ -41,7 +42,7 @@ app.use(express.json({ limit: '10mb' }));
 const db = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
+  password: process.env.DB_PASSWORD || '12345678',
   database: process.env.DB_NAME || 'myappdb',
   port: process.env.DB_PORT || 3306
 }).promise();
