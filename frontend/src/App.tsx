@@ -6,13 +6,11 @@ import { UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/reac
 import './App.css';
 
 // ==========================================
-// 🔥 เพิ่มส่วนนี้: ตั้งค่า Axios ให้ส่ง ID อัตโนมัติ (แก้ปัญหา 401)
+// ตั้งค่า Axios ให้ส่ง ID อัตโนมัติ
 // ==========================================
 axios.interceptors.request.use((config) => {
-  // 1. ลองหา userId ใน localStorage (ที่เราเซฟตอน Login)
   let userId = localStorage.getItem('userId');
 
-  // 2. ถ้าหาไม่เจอ ลองแกะจาก object 'user' (เผื่อบางเคส)
   if (!userId) {
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -20,12 +18,11 @@ axios.interceptors.request.use((config) => {
         const userObj = JSON.parse(userStr);
         userId = userObj.id;
       } catch (e) {
-        // ignore error
+        
       }
     }
   }
 
-  // 3. ถ้ามี ID ให้แนบไปกับ Header 'x-user-id'
   if (userId) {
     config.headers['x-user-id'] = userId;
   }
@@ -34,7 +31,6 @@ axios.interceptors.request.use((config) => {
 }, (error) => {
   return Promise.reject(error);
 });
-// ==========================================
 
 interface ShopData {
   shop_name: string;
@@ -58,26 +54,20 @@ function App() {
         const res = await axios.get<ShopData>(`${apiUrl}/api/shop`);
         setShopData(res.data);
 
-        // อัปเดต Favicon และ Title ของ Browser ตามฐานข้อมูล
         if (res.data) {
-           // 1. เปลี่ยน Title ของ Browser
            if (res.data.shop_name) {
              document.title = res.data.shop_name;
            }
 
-           // 2. เปลี่ยน Favicon (Logo)
            if (res.data.shop_logo) {
              const iconPath = `data:image/png;base64,${res.data.shop_logo}`;
              
-             // หา tag <link rel="icon"> เดิม
              let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
              if (!link) {
-               // ถ้าหาไม่เจอ ให้สร้างใหม่
                link = document.createElement('link');
                link.rel = 'icon';
                document.getElementsByTagName('head')[0].appendChild(link);
              }
-             // เปลี่ยนรูป
              link.href = iconPath;
            }
         }
@@ -111,12 +101,10 @@ function App() {
         });
 
         const user = res.data.user;
-        
-        // ✅ บันทึกข้อมูล User ทั้งหมด (รวม Permissions) ลง LocalStorage
+
         localStorage.setItem('userId', user.id.toString());
         localStorage.setItem('user', JSON.stringify(user)); 
 
-        // ✅ ส่งข้อมูล User ทั้งหมดไปหน้า welcome
         navigate('/welcome', { state: user });
       }
     } catch (err: any) {

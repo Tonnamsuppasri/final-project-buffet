@@ -983,3 +983,318 @@ body {
         padding: 3.5rem;
     }
 }
+/* ========================================= */
+/* 📱 MOBILE RESPONSIVE (< 768px) */
+/* ========================================= */
+@media (max-width: 768px) {
+    .app-container {
+        padding: 1rem;
+    }
+
+    .app-container h1 {
+        font-size: 1.75rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    /* --- Table Card บนมือถือ --- */
+    .table-card {
+        padding: 1rem;
+        min-height: auto;
+    }
+
+    .table-number-main {
+        font-size: 1.75rem;
+    }
+
+    .table-capacity-status {
+        font-size: 0.8rem;
+    }
+
+    .table-timer {
+        font-size: 0.85rem;
+        padding: 0.2rem 0.5rem;
+    }
+
+    /* Service Type Selector บนมือถือ */
+    .service-type-selector {
+        gap: 0.5rem;
+    }
+
+    .service-type-btn {
+        min-width: 75px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* ปุ่มต่างๆ บนการ์ด */
+    .table-card-actions {
+        gap: 0.5rem;
+    }
+
+    .table-card-actions button {
+        padding: 0.6rem;
+        font-size: 0.85rem;
+    }
+
+    .table-card-call-to-action {
+        font-size: 1.25rem;
+        padding-top: 0.75rem;
+    }
+
+    /* --- Open Table Form บนมือถือ --- */
+    .open-table-form-container {
+        margin: 1rem auto;
+        padding: 1.5rem;
+        border-radius: 1rem;
+    }
+
+    .open-table-form-container h2 {
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-size: 0.85rem;
+    }
+
+    .form-input {
+        padding: 0.75rem;
+        font-size: 0.95rem;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.95rem;
+    }
+
+    /* --- QR Modal บนมือถือ --- */
+    .modal-qr-details {
+        max-width: 90vw !important;
+    }
+
+    .modal-qr-details h2 {
+        font-size: 1.5rem;
+    }
+
+    .modal-qr-details img {
+        width: 200px !important;
+        height: 200px !important;
+    }
+
+    .modal-qr-details button {
+        padding: 0.75rem;
+        font-size: 0.95rem;
+    }
+
+    /* --- Check Bill Modal บนมือถือ --- */
+    /* ✅ แก้ให้ Modal แสดงผลได้ดีบนหน้าจอเล็ก */
+    
+    /* Modal Container - ให้เลื่อนได้และจัดกึ่งกลาง */
+    body:has(.fixed.inset-0.bg-gray-900\/80) {
+        overflow: hidden !important;
+    }
+    
+    .fixed.inset-0.bg-gray-900\/80 {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 1rem 0.5rem !important;
+        display: flex !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+    }
+
+    /* Modal Content Wrapper */
+    .fixed.inset-0 > .bg-white.rounded-xl {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        margin: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* แยกแสดงเนื้อหา 2 คอลัมน์เป็นแนวตั้ง */
+    .fixed.inset-0 > .bg-white.rounded-xl > .p-6 {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-right: none !important;
+        border-bottom: 2px solid #e5e7eb;
+        overflow-y: visible !important;
+    }
+
+    /* คอลัมน์ขวา (ส่วนคำนวณราคา) */
+    .fixed.inset-0 > .bg-white.rounded-xl > .p-6.md\:w-2\/5 {
+        border-bottom: none;
+        border-top: 2px solid #e5e7eb;
+    }
+
+    /* ลดขนาดข้อความและปุ่มต่างๆ */
+    .fixed.inset-0 h2 {
+        font-size: 1.25rem !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .fixed.inset-0 .text-sm {
+        font-size: 0.8rem !important;
+    }
+
+    .fixed.inset-0 .text-xl {
+        font-size: 1.25rem !important;
+    }
+
+    .fixed.inset-0 .text-4xl {
+        font-size: 2rem !important;
+    }
+
+    /* Payment Method Grid */
+    .fixed.inset-0 .grid.grid-cols-3 {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+    }
+
+    .fixed.inset-0 .grid.grid-cols-3 button {
+        padding: 0.75rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* QR Code ในส่วนชำระเงิน */
+    .fixed.inset-0 img[alt="QR PromptPay"] {
+        width: 120px !important;
+        height: 120px !important;
+    }
+
+    /* Promotion Selector */
+    .fixed.inset-0 select {
+        padding: 0.75rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Action Buttons */
+    .fixed.inset-0 button[class*="bg-gradient"] {
+        padding: 1rem !important;
+        font-size: 1rem !important;
+    }
+
+    .fixed.inset-0 button[class*="bg-gray"] {
+        padding: 0.75rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    /* Close Button */
+    .fixed.inset-0 .absolute.top-4.right-4 {
+        top: 0.75rem !important;
+        right: 0.75rem !important;
+    }
+
+    /* รายการอาหาร */
+    .fixed.inset-0 .space-y-1 > div {
+        padding: 0.5rem 0 !important;
+    }
+
+    /* Price Display Box */
+    .fixed.inset-0 .space-y-3.p-5 {
+        padding: 1rem !important;
+    }
+
+    .modal-subtitle {
+        font-size: 1.15rem;
+    }
+
+    .billing-modal-details p {
+        font-size: 0.95rem;
+    }
+
+    .total-price {
+        font-size: 1.5rem;
+    }
+
+    /* ตัวเลือกการชำระเงินบนมือถือ */
+    .checkbox-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        background-color: #f9fafb;
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+
+    .checkbox-label {
+        width: 100%;
+        font-size: 0.95rem;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 1.1em;
+        height: 1.1em;
+    }
+}
+.modal-container, 
+.fixed.inset-0.z-\[9999\] {
+    z-index: 9999 !important;
+    backdrop-filter: blur(4px); /* เพิ่มการเบลอหลัง Modal เพื่อความสวยงาม */
+}
+
+/* ป้องกันการคลิกทะลุไปโดนเมนูข้างหลังขณะเปิด Modal */
+body:has(.z-\[9999\]) {
+    overflow: hidden !important;
+}
+
+/* ปรับแต่ง Check Bill Modal ให้เลื่อนได้เฉพาะภายในตัวเองถ้าจอมือถือเล็กเกินไป */
+@media (max-width: 768px) {
+    .fixed.inset-0.z-\[9999\] {
+        align-items: flex-start !important; /* ให้เริ่มจากด้านบนเพื่อให้ Scroll ได้ง่าย */
+        overflow-y: auto !important;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+}
+
+/* 2. ปรับปรุง Responsive สำหรับ Desktop ขนาดกลาง (เช่น จอ Tablet แนวนอน หรือ Laptop จอเล็ก) */
+@media (min-width: 769px) and (max-width: 1280px) {
+    /* ปรับขนาด Modal ให้เล็กลงเพื่อไม่ให้ชนขอบ */
+    .modal-container > div {
+        max-width: 90% !important;
+        transform: scale(0.95);
+    }
+
+    /* ปรับสัดส่วน Check Bill Modal ใหม่ */
+    .billing-modal-content {
+        gap: 1.5rem !important;
+        padding: 1.5rem !important;
+    }
+
+    /* ลดขนาดตัวหนังสือในบิล */
+    .check-bill-order-details {
+        font-size: 0.9rem;
+    }
+
+    .total-price {
+        font-size: 2.5rem !important;
+    }
+}
+
+/* 3. ป้องกันเนื้อหาไหลทะลุออกนอก Modal */
+.billing-modal-content {
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+/* 4. ปรับ Layout บิลในหน้าจอที่เริ่มแคบ */
+@media (max-width: 1160px) {
+    /* เมื่อเมนูข้างซ้ายหดตัว ให้ขยายพื้นที่ Grid */
+    .app-container .grid {
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    }
+}
+
+/* เพิ่มเติม: ตกแต่ง scrollbar ใน Modal */
+.billing-modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+.billing-modal-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}

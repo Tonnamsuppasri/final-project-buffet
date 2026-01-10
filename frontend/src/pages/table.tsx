@@ -673,7 +673,7 @@ const Table = () => {
 
             {/* QR Modal */}
             {showQrModal && qrTargetOrder && (
-                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-[9999] p-4">
                     <div className="bg-white p-8 rounded-xl shadow-2xl relative w-full max-w-sm flex flex-col items-center">
                         <button className="absolute top-3 right-3 text-gray-500 hover:text-red-500 text-2xl" onClick={() => setShowQrModal(false)}>&times;</button>
                         <h2 className="text-2xl font-bold mb-4">โต๊ะ {qrTargetOrder.table_number}</h2>
@@ -688,7 +688,7 @@ const Table = () => {
 
             {/* Check Bill Modal */}
             {showCheckBillModal && checkBillOrder && (
-                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-50 p-4 animate-fade-in">
+                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-[9999] p-4 animate-fade-in">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
 
                         {/* Left Column: Details */}
