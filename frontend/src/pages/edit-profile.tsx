@@ -56,7 +56,6 @@ function EditProfile() {
   const username = location.state?.username
   const role = location.state?.role
   
-  // ✅ 1. กำหนด API URL จาก .env (แก้ปัญหาโหลดข้อมูลไม่ได้)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
@@ -71,15 +70,12 @@ function EditProfile() {
       })
       return
     }
-    
     fetchUserProfile()
   }, [username, role])
 
   const fetchUserProfile = async () => {
     try {
       setIsLoadingProfile(true)
-      
-      // ✅ 2. ใช้ apiUrl และเพิ่ม withCredentials
       const staffRes = await axios.get(`${apiUrl}/api/staff`, { withCredentials: true })
       const user = staffRes.data.find((u: any) => u.username === username)
       
@@ -155,7 +151,6 @@ function EditProfile() {
         updateData.image = profile.image || null
       }
 
-      // ✅ 3. ใช้ apiUrl และเพิ่ม withCredentials
       const res = await axios.put(`${apiUrl}/api/staff/${profile.id}`, updateData, {
         headers: {
           'Content-Type': 'application/json',
@@ -290,12 +285,10 @@ function EditProfile() {
   }
 
   return (
-    // ✅ Responsive: p-0 บนมือถือ (เต็มจอ), p-4 บนจอใหญ่
     <div className="min-h-screen p-0 md:p-4 bg-gray-50">
       <div className="max-w-6xl mx-auto">
         
         {/* Header Section */}
-        {/* ✅ Responsive: rounded-none บนมือถือ (เต็มขอบ), rounded-t-3xl บนจอใหญ่ */}
         <div className="md:rounded-t-3xl border-b-0 md:border bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-700 p-6 mb-0 shadow-md md:shadow-none">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-4 w-full md:w-auto">
@@ -306,7 +299,6 @@ function EditProfile() {
                 <ArrowLeftIcon className="h-6 w-6 text-white" />
               </button>
               <div className="text-left">
-                {/* ✅ Responsive Text Size */}
                 <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white">
                   แก้ไขข้อมูลส่วนตัว
                 </h1>
@@ -314,7 +306,6 @@ function EditProfile() {
               </div>
             </div>
             
-            {/* Role Badge */}
             <div className="flex items-center space-x-2 px-4 py-2 bg-white/20 rounded-xl backdrop-blur-sm self-end md:self-auto">
               <UserCircleIcon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               <span className="text-white font-bold text-sm sm:text-base">{role}</span>
@@ -323,7 +314,6 @@ function EditProfile() {
         </div>
 
         {/* Main Content */}
-        {/* ✅ Responsive: rounded-none บนมือถือ, rounded-b-3xl บนจอใหญ่ */}
         <div className="bg-white md:rounded-b-3xl md:border-l md:border-r md:border-b p-4 md:p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
             
@@ -385,7 +375,6 @@ function EditProfile() {
               </h2>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Inputs - ปรับขนาด Font และ Padding ให้เหมาะกับนิ้วมือ */}
                 <div className="space-y-2">
                   <label className="flex items-center text-gray-700 font-semibold text-sm sm:text-base">
                     <UserIcon className="h-4 w-4 mr-2" />
@@ -502,13 +491,14 @@ function EditProfile() {
                     />
                     <button
                       type="button"
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-gray-100 rounded-r-lg transition-colors"
+                      // ✅ แก้ไขตรงนี้: ใช้ absolute center
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
-                        <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                        <EyeSlashIcon className="h-5 w-5" />
                       ) : (
-                        <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                        <EyeIcon className="h-5 w-5" />
                       )}
                     </button>
                   </div>
@@ -528,13 +518,14 @@ function EditProfile() {
                     />
                     <button
                       type="button"
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center hover:bg-gray-100 rounded-r-lg transition-colors"
+                      // ✅ แก้ไขตรงนี้: ใช้ absolute center
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
                       {showConfirmPassword ? (
-                        <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                        <EyeSlashIcon className="h-5 w-5" />
                       ) : (
-                        <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                        <EyeIcon className="h-5 w-5" />
                       )}
                     </button>
                   </div>
@@ -543,7 +534,7 @@ function EditProfile() {
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-6 pb-8"> {/* เพิ่ม padding bottom สำหรับมือถือ */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-6 pb-8"> 
               <button
                 type="submit"
                 disabled={isLoading}

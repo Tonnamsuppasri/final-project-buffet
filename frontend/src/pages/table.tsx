@@ -4,6 +4,8 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import QRCode from 'qrcode';
 import { useReactToPrint } from 'react-to-print';
+import { format } from 'date-fns'; 
+import { th } from 'date-fns/locale'; 
 import './table.css';
 import { socket } from '../components/menu';
 
@@ -40,7 +42,6 @@ interface ShopInfo {
     payment_qr_code: string;
 }
 
-// ✅ แก้ไข Interface ให้รองรับ type 'special' เหมือนใน setting.tsx
 interface PromotionData {
     promotion_id: number;
     name: string;
@@ -110,12 +111,22 @@ class PrintableBill extends React.Component<any> {
     render() {
         const { order, items, totals, shop, date } = this.props;
         if (!order || !shop) return null;
+
+        // ✅ จัดรูปแบบเวลาเริ่มโต๊ะ
+        let formattedStartTime = '-';
+        if (order.start_time) {
+            const startDate = new Date(order.start_time.replace(' ', 'T'));
+            if (!isNaN(startDate.getTime())) {
+                formattedStartTime = format(startDate, 'dd/MM/yyyy HH:mm', { locale: th });
+            }
+        }
+
         return (
             <div className="p-8 bg-white text-black font-mono w-[80mm] mx-auto print:w-full print:p-0">
                 <div className="text-center mb-4">
                     <h3 className="text-xl font-bold">{shop.shop_name}</h3>
                     <p className="text-xs text-gray-600">ใบเสร็จรับเงิน / Receipt</p>
-                    <p className="text-xs text-gray-500">{date}</p>
+                    <p className="text-[10px] text-gray-500 mt-1">พิมพ์เมื่อ: {date}</p>
                 </div>
                 <div className="border-b-2 border-dashed border-gray-300 my-2"></div>
 
@@ -123,6 +134,11 @@ class PrintableBill extends React.Component<any> {
                     <div className="flex justify-between">
                         <span>Table:</span>
                         <span className="font-bold">T{order.table_number}</span>
+                    </div>
+                    {/* ✅ เพิ่มเวลาเริ่มโต๊ะตรงนี้ */}
+                    <div className="flex justify-between">
+                        <span>Start Time:</span>
+                        <span>{formattedStartTime}</span>
                     </div>
                     <div className="flex justify-between">
                         <span>Customers:</span>
@@ -256,7 +272,7 @@ class PrintableQRCode extends React.Component<any> {
                     </div>
                 </div>
 
-                <div className="border-4 border-gray-800 p-6 rounded-2xl mb-6 bg-white">
+                <div className="border-4 border-gray-800 p-6 rounded-2xl mb-6 bg-white flex justify-center">
                     <img
                         src={qrUrl}
                         alt="Table QR"
@@ -375,7 +391,7 @@ const Table = () => {
         }
     }, [customerQuantity, selectedPlanId, plans, view]);
 
-    // ✅ Calculation Logic (Updated for Special Promotion)
+    // ✅ Calculation Logic
     const calculateBill = () => {
         if (!checkBillOrder) return { total: 0, discount: 0, netTotal: 0, buffetTotal: 0, alaCarteTotal: 0 };
 
@@ -400,17 +416,10 @@ const Table = () => {
                     discount = promoValue;
                 } else if (type === 'special') {
                     // ✅ แบบพิเศษ: มา X จ่าย Y
-                    // promoValue คือจำนวนที่ต้อง "จ่าย" (เช่น 3)
-                    // ดังนั้นขนาดกลุ่มที่ได้สิทธิ์คือ promoValue + 1 (เช่น 4) -> มา 4 จ่าย 3
                     const groupSize = promoValue + 1;
                     
                     if (groupSize > 1) {
-                        // จำนวนหัวที่ลดราคา = จำนวนลูกค้า / ขนาดกลุ่ม (ปัดเศษลง)
-                        // เช่น มา 4 คน / กลุ่มละ 4 = ได้ลด 1 คน
-                        // มา 8 คน / กลุ่มละ 4 = ได้ลด 2 คน
                         const freeHeads = Math.floor(checkBillOrder.customer_quantity / groupSize);
-                        
-                        // มูลค่าส่วนลด = จำนวนหัวที่ฟรี * ราคาบุฟเฟต์ต่อหัว
                         discount = freeHeads * checkBillOrder.price_per_person;
                     }
                 }
@@ -575,7 +584,7 @@ const Table = () => {
                     <div className="flex justify-between items-center mb-6">
                         <h1 className="text-4xl font-bold">สถานะโต๊ะทั้งหมด</h1>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                         {tables.map((table) => {
                             const order = table.status === 'ไม่ว่าง' ? activeOrders.find(o => o.table_id === table.table_id) : null;
                             return (
@@ -671,52 +680,56 @@ const Table = () => {
                 </div>
             )}
 
-            {/* QR Modal */}
+            {/* 🔥 QR Modal */}
             {showQrModal && qrTargetOrder && (
-                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-[9999] p-4">
-                    <div className="bg-white p-8 rounded-xl shadow-2xl relative w-full max-w-sm flex flex-col items-center">
+                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-[15] p-4 qr-overlay">
+                    <div className="qr-modal-container bg-white p-6 md:p-8 rounded-xl shadow-2xl relative w-full max-w-xs md:max-w-sm flex flex-col items-center">
                         <button className="absolute top-3 right-3 text-gray-500 hover:text-red-500 text-2xl" onClick={() => setShowQrModal(false)}>&times;</button>
-                        <h2 className="text-2xl font-bold mb-4">โต๊ะ {qrTargetOrder.table_number}</h2>
-                        <img src={qrCodeUrl} alt="Table QR" className="w-64 h-64 border p-2 rounded mb-4" />
-                        <p className="text-gray-600 mb-4">{qrTargetOrder.plan_name}</p>
-                        <button onClick={handlePrintQR} className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2">
+                        <h2 className="text-xl md:text-2xl font-bold mb-4">โต๊ะ {qrTargetOrder.table_number}</h2>
+                        <img 
+                            src={qrCodeUrl} 
+                            alt="Table QR" 
+                            className="w-48 h-48 md:w-64 md:h-64 border p-2 rounded mb-4 object-contain" 
+                        />
+                        <p className="text-gray-600 mb-4 text-sm md:text-base">{qrTargetOrder.plan_name}</p>
+                        <button onClick={handlePrintQR} className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center gap-2 text-sm md:text-base">
                             🖨️ พิมพ์ QR Code
                         </button>
                     </div>
                 </div>
             )}
 
-            {/* Check Bill Modal */}
+            {/* 🔥 Check Bill Modal */}
             {showCheckBillModal && checkBillOrder && (
-                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-[9999] p-4 animate-fade-in">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
+                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-[15] p-4 animate-fade-in billing-overlay">
+                    <div className="billing-modal-container bg-white rounded-xl shadow-2xl w-full md:max-w-3xl lg:max-w-4xl xl:max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
 
                         {/* Left Column: Details */}
-                        <div className="p-6 md:w-3/5 border-r overflow-y-auto bg-gray-50">
+                        <div className="billing-left-col p-4 md:p-5 lg:p-6 md:w-3/5 border-r overflow-y-auto bg-gray-50">
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
                                     <span>🧾 บิลโต๊ะ {checkBillOrder.table_number}</span>
                                 </h2>
-                                <span className="text-sm bg-blue-100 text-blue-800 py-1 px-3 rounded-full">{checkBillOrder.service_type}</span>
+                                <span className="text-xs md:text-sm bg-blue-100 text-blue-800 py-1 px-3 rounded-full">{checkBillOrder.service_type}</span>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                            <div className="space-y-3 md:space-y-4">
+                                <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100">
                                     <div className="flex justify-between items-center mb-1">
-                                        <span className="font-semibold text-gray-700">Buffet ({checkBillOrder.plan_name})</span>
-                                        <span className="font-bold text-gray-900">{(checkBillOrder.customer_quantity * checkBillOrder.price_per_person).toLocaleString()}</span>
+                                        <span className="font-semibold text-gray-700 text-sm md:text-base">Buffet ({checkBillOrder.plan_name})</span>
+                                        <span className="font-bold text-gray-900 text-sm md:text-base">{(checkBillOrder.customer_quantity * checkBillOrder.price_per_person).toLocaleString()}</span>
                                     </div>
-                                    <div className="text-sm text-gray-500">
+                                    <div className="text-xs md:text-sm text-gray-500">
                                         {checkBillOrder.customer_quantity} ท่าน x {checkBillOrder.price_per_person.toLocaleString()} บาท
                                     </div>
                                 </div>
 
                                 {checkBillItems.length > 0 ? (
-                                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                                        <h4 className="text-sm font-semibold text-gray-500 mb-3 border-b pb-2">รายการสั่งเพิ่ม</h4>
+                                    <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border border-gray-100">
+                                        <h4 className="text-xs md:text-sm font-semibold text-gray-500 mb-2 border-b pb-2">รายการสั่งเพิ่ม</h4>
                                         <div className="space-y-2">
                                             {checkBillItems.map((item, idx) => (
-                                                <div key={idx} className="flex justify-between text-sm">
+                                                <div key={idx} className="flex justify-between text-xs md:text-sm">
                                                     <span>{item.name} <span className="text-gray-400">x{item.quantity}</span></span>
                                                     <span>{item.total.toLocaleString()}</span>
                                                 </div>
@@ -724,18 +737,18 @@ const Table = () => {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="text-center text-gray-400 py-4 text-sm">ไม่มีรายการสั่งเพิ่ม</div>
+                                    <div className="text-center text-gray-400 py-4 text-xs md:text-sm">ไม่มีรายการสั่งเพิ่ม</div>
                                 )}
                             </div>
 
-                            <div className="mt-6">
-                                <label className="block text-sm font-semibold text-gray-700 mb-3">ช่องทางชำระเงิน</label>
-                                <div className="grid grid-cols-3 gap-3">
+                            <div className="mt-4 md:mt-6">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">ช่องทางชำระเงิน</label>
+                                <div className="payment-method-grid grid grid-cols-3 gap-2 md:gap-3">
                                     {['เงินสด', 'โอนจ่าย', 'บัตรเครดิต'].map(method => (
                                         <button
                                             key={method}
                                             onClick={() => setPaymentMethod(method)}
-                                            className={`py-3 px-2 rounded-lg border text-sm font-medium transition-all ${paymentMethod === method
+                                            className={`py-2 md:py-3 px-2 rounded-lg border text-xs md:text-sm font-medium transition-all ${paymentMethod === method
                                                 ? 'bg-blue-600 text-white border-blue-600 shadow-md transform scale-105'
                                                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                                                 }`}
@@ -747,7 +760,7 @@ const Table = () => {
                                 {paymentMethod === 'โอนจ่าย' && shopInfo?.payment_qr_code && (
                                     <div className="mt-4 flex flex-col items-center p-4 bg-white rounded-lg border">
                                         <p className="text-sm font-medium mb-2">สแกนเพื่อชำระเงิน</p>
-                                        <img src={`data:image/png;base64,${shopInfo.payment_qr_code}`} alt="QR PromptPay" className="w-32 h-32 object-contain" />
+                                        <img src={`data:image/png;base64,${shopInfo.payment_qr_code}`} alt="QR PromptPay" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
                                         <p className="text-xs text-gray-500 mt-2">{shopInfo.shop_name}</p>
                                     </div>
                                 )}
@@ -755,18 +768,18 @@ const Table = () => {
                         </div>
 
                         {/* Right Column: Calculation & Actions */}
-                        <div className="p-6 md:w-2/5 flex flex-col bg-white h-full relative">
+                        <div className="billing-right-col p-4 md:p-5 lg:p-6 md:w-2/5 flex flex-col bg-white h-full relative">
                             <button
                                 onClick={() => setShowCheckBillModal(false)}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                                className="absolute top-2 right-2 md:top-4 md:right-4 text-gray-400 hover:text-gray-600"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
 
-                            <div className="mt-8 flex-grow">
+                            <div className="mt-6 md:mt-8 flex-grow">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">โปรโมชั่น / ส่วนลด</label>
                                 <select
-                                    className="w-full p-3 border border-gray-300 rounded-lg mb-6 bg-white focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                    className="w-full p-2 md:p-3 border border-gray-300 rounded-lg mb-4 md:mb-6 bg-white focus:ring-2 focus:ring-blue-500 outline-none transition text-sm md:text-base"
                                     value={selectedPromotionId || ''}
                                     onChange={(e) => setSelectedPromotionId(Number(e.target.value) || null)}
                                 >
@@ -787,10 +800,10 @@ const Table = () => {
                                     const { total, discount, netTotal } = calculateBill();
                                     const selectedPromoName = promotions.find(p => p.promotion_id === selectedPromotionId)?.name;
                                     return (
-                                        <div className="space-y-3 p-5 rounded-xl bg-gray-50 border border-gray-100">
+                                        <div className="space-y-3 p-4 md:p-5 rounded-xl bg-gray-50 border border-gray-100">
                                             {discount > 0 && (
                                                 <div className="flex justify-end">
-                                                    <span className="text-gray-400 line-through text-lg font-medium decoration-red-400 decoration-2">
+                                                    <span className="text-gray-400 line-through text-base md:text-lg font-medium decoration-red-400 decoration-2">
                                                         {total.toLocaleString()}
                                                     </span>
                                                 </div>
@@ -798,9 +811,9 @@ const Table = () => {
 
                                             <div className="border-t border-gray-200 pt-3 mt-2">
                                                 <div className="flex justify-between items-end">
-                                                    <span className="font-bold text-gray-800 text-lg">ยอดสุทธิ</span>
+                                                    <span className="font-bold text-gray-800 text-base md:text-lg">ยอดสุทธิ</span>
                                                     <div className="text-right flex flex-col items-end">
-                                                        <span className={`text-4xl font-extrabold leading-none ${discount > 0 ? 'text-green-600' : 'text-blue-600'}`}>
+                                                        <span className={`total-price-display text-3xl md:text-3xl lg:text-4xl font-extrabold leading-none ${discount > 0 ? 'text-green-600' : 'text-blue-600'}`}>
                                                             {netTotal.toLocaleString()}
                                                         </span>
                                                         <span className="text-xs text-gray-500 mt-1">บาท</span>
@@ -809,7 +822,7 @@ const Table = () => {
                                             </div>
 
                                             {discount > 0 && (
-                                                <div className="flex justify-between text-red-500 animate-pulse text-sm">
+                                                <div className="flex justify-between text-red-500 animate-pulse text-xs md:text-sm">
                                                     <span>ส่วนลด ({selectedPromoName})</span>
                                                     <span>-{discount.toLocaleString()}</span>
                                                 </div>
@@ -820,17 +833,17 @@ const Table = () => {
                             </div>
 
                             {/* Actions */}
-                            <div className="mt-6 space-y-3">
+                            <div className="mt-4 md:mt-6 space-y-2 md:space-y-3">
                                 <button
                                     onClick={handlePrintBill}
-                                    className="w-full flex items-center justify-center gap-2 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition"
+                                    className="w-full flex items-center justify-center gap-2 py-2 md:py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition text-sm md:text-base"
                                 >
                                     🖨️ พิมพ์ใบเสร็จ
                                 </button>
 
                                 <button
                                     onClick={confirmPayment}
-                                    className="w-full py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-bold text-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                                    className="w-full py-3 md:py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-bold text-lg md:text-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
                                 >
                                     ยืนยันรับเงิน
                                 </button>
@@ -848,7 +861,8 @@ const Table = () => {
                             items={checkBillItems}
                             totals={calculateBill()}
                             shop={shopInfo}
-                            date={new Date().toLocaleString('th-TH')}
+                            // ✅ ใช้ date-fns format ให้มีทั้งวันและเวลา (dd/MM/yyyy HH:mm น.)
+                            date={format(new Date(), 'dd/MM/yyyy HH:mm น.', { locale: th })}
                         />
                     </div>
                 )}

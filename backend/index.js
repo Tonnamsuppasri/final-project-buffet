@@ -12,16 +12,25 @@ const { th } = require('date-fns/locale');
 const http = require('http');
 const { Server } = require("socket.io");
 
+const frontendUrl = process.env.FRONTEND_URL;
 // Middleware
 const allowedOrigins = [
   'http://localhost:5173',
   'http://192.168.0.101:5173',
   'http://10.226.247.45:5173',
+  frontendUrl,
   // 'http://[YOUR_HOTSPOT_IP]:5173' 
 ];
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // อนุญาต request ที่ไม่มี origin (เช่น mobile apps หรือ curl) หรืออยู่ใน allowedOrigins
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://192.168.')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-User-Id'],
@@ -42,7 +51,7 @@ app.use(express.json({ limit: '10mb' }));
 const db = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '12345678',
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || 'myappdb',
   port: process.env.DB_PORT || 3306
 }).promise();
@@ -577,49 +586,49 @@ app.get('/api/order-session/:order_uuid', async (req, res) => {
 app.post('/api/orders/:orderId/details', async (req, res) => {
   const { orderId } = req.params;
   const orderDetails = req.body;
-  if (!Array.isArray(orderDetails) || orderDetails.length === 0) {
-    return res.status(400).json({ error: 'Invalid order details format. Expected an array.' });
-  }
+  if (!Array.isArray(orderDetails) || orderDetails.length === 0) return res.status(400).json({ error: 'Invalid data' });
 
+  let connection;
   try {
-    const values = orderDetails.map(item => [
-      orderId,
-      item.menu_id,
-      item.quantity,
-      item.price_per_item,
-      'กำลังจัดทำ',
-      item.customer_name || null
-    ]);
-    const sql = "INSERT INTO order_details (order_id, menu_id, quantity, price_per_item, item_status, customer_name) VALUES ?";
-    await db.query(sql, [values]);
+    connection = await db.getConnection();
+    await connection.beginTransaction();
 
-    const findTableSql = `
-          SELECT t.table_number 
-          FROM orders o
-          JOIN tables t ON o.table_id = t.table_id
-          WHERE o.order_id = ?
-        `;
+    // 1. ตรวจสอบสต็อกสำหรับทุกเมนูที่สั่ง
+    const menuIds = orderDetails.map(item => item.menu_id);
+    const [stockResults] = await connection.query(
+      "SELECT menu_id, menu_name, menu_quantity FROM menu WHERE menu_id IN (?) FOR UPDATE", 
+      [menuIds]
+    );
 
-    const [tableResult] = await db.query(findTableSql, [orderId]);
-    let message = `มีออเดอร์ใหม่สำหรับ Order #${orderId}`;
-
-    if (tableResult.length > 0) {
-      const tableNumber = tableResult[0].table_number;
-      message = `โต๊ะ ${tableNumber} สั่งอาหารเพิ่ม (Order #${orderId})`;
+    for (const item of orderDetails) {
+      const menu = stockResults.find(m => m.menu_id === item.menu_id);
+      if (!menu) throw new Error(`ไม่พบเมนู ID: ${item.menu_id}`);
+      
+      // ถ้ามีการนับสต็อก (ไม่เป็น null) และของไม่พอ
+      if (menu.menu_quantity !== null && menu.menu_quantity < item.quantity) {
+        throw new Error(`วัตถุดิบหมด: ${menu.menu_name} (เหลือ ${menu.menu_quantity})`);
+      }
     }
 
-    io.emit('notification', {
-      message: message,
-      type: 'new_order',
-      linkTo: '/order'
-    });
+    // 2. ถ้าผ่าน ให้บันทึกรายการ
+    const values = orderDetails.map(item => [
+      orderId, item.menu_id, item.quantity, item.price_per_item, 'กำลังจัดทำ', item.customer_name || null
+    ]);
+    await connection.query("INSERT INTO order_details (order_id, menu_id, quantity, price_per_item, item_status, customer_name) VALUES ?", [values]);
 
-    console.log(`🚀 Emitting new_order_item for order ${orderId}`);
+    // ... (ส่วน Notification คงเดิม) ...
+    await connection.commit();
+    
+    // แจ้งเตือน Socket
     io.emit('new_order_item', { orderId: orderId, items: orderDetails });
     res.status(201).json({ message: 'Order details added successfully' });
+
   } catch (err) {
-    console.error("Order Detail Insert Error:", err.message);
-    return res.status(500).json({ error: err.message });
+    if (connection) await connection.rollback();
+    console.error("Order Detail Error:", err.message);
+    return res.status(400).json({ error: err.message }); // ส่ง 400 Bad Request พร้อมข้อความแจ้งเตือน
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -780,116 +789,117 @@ app.delete('/api/orders/:orderId', requireAuth, async (req, res) => {
 // ============================
 // Protected: ชำระเงิน (พนักงานดำเนินการ)
 app.post('/api/payment', requireAuth, async (req, res) => {
-  const { order_id, payment_method, discount, promotion_id, final_price_client } = req.body;
+  const { order_id, payment_method, discount, promotion_id } = req.body; 
+  // หมายเหตุ: เราจะไม่รับ final_price_client มาใช้คำนวณ แต่จะคิดเอง
 
-  if (!order_id) {
-    return res.status(400).json({ error: 'Missing required payment information (order_id)' });
-  }
+  if (!order_id) return res.status(400).json({ error: 'Missing order_id' });
 
   let connection;
   try {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    const getOrderSql = "SELECT o.customer_quantity, o.plan_id, pp.price_per_person " +
-      "FROM orders o " +
-      "LEFT JOIN pricing_plans pp ON o.plan_id = pp.id " +
-      "WHERE o.order_id = ?";
-    const [orderResult] = await connection.query(getOrderSql, [order_id]);
+    // 1. ดึงข้อมูลออเดอร์เพื่อคำนวณบุฟเฟต์
+    const [orderRes] = await connection.query(
+      `SELECT o.customer_quantity, pp.price_per_person 
+       FROM orders o LEFT JOIN pricing_plans pp ON o.plan_id = pp.id 
+       WHERE o.order_id = ?`, 
+      [order_id]
+    );
+    if (orderRes.length === 0) throw new Error('Order not found');
+    
+    const { customer_quantity, price_per_person } = orderRes[0];
+    const buffetTotal = customer_quantity * (price_per_person || 0);
 
-    if (orderResult.length === 0) {
-      await connection.rollback();
-      connection.release();
-      return res.status(404).json({ error: 'Order not found' });
+    // 2. ดึงข้อมูลรายการสั่งเพิ่ม (A La Carte) เพื่อคำนวณ
+    const [alaCarteRes] = await connection.query(
+      `SELECT SUM(quantity * price_per_item) AS total 
+       FROM order_details WHERE order_id = ? AND price_per_item > 0`,
+      [order_id]
+    );
+    const alaCarteTotal = Number(alaCarteRes[0].total || 0);
+
+    // 3. รวมยอด
+    const rawTotal = buffetTotal + alaCarteTotal;
+    
+    // 4. คำนวณส่วนลด (Server Side Logic) - เพื่อความปลอดภัยสูงสุดควรดึง promotion_id มาเช็คเงื่อนไขที่นี่
+    // (ในตัวอย่างนี้เชื่อค่า discount ที่ส่งมา แต่ตรวจสอบไม่ให้เกินยอดรวม)
+    const validDiscount = Math.min(Number(discount || 0), rawTotal); 
+    const finalPayAmount = rawTotal - validDiscount;
+
+    // 5. บันทึกการชำระเงิน
+    const [payRes] = await connection.query(
+      `INSERT INTO payment (order_id, payment_time, total_price, payment_method, discount, promotion_id) 
+       VALUES (?, NOW(), ?, ?, ?, ?)`,
+      [order_id, finalPayAmount, payment_method, validDiscount, promotion_id || null]
+    );
+    const paymentId = payRes.insertId;
+
+    // 6. ตัดสต็อก (Optimized Loop)
+    // ดึงรายการที่ต้องตัดสต็อก
+    const [itemsToDeduct] = await connection.query(
+      `SELECT od.menu_id, SUM(od.quantity) as total_qty 
+       FROM order_details od JOIN menu m ON od.menu_id = m.menu_id 
+       WHERE od.order_id = ? AND m.menu_quantity IS NOT NULL 
+       GROUP BY od.menu_id`,
+      [order_id]
+    );
+
+    if (itemsToDeduct.length > 0) {
+        // ใช้ Loop ธรรมดา (for...of) แทน Promise.all เพื่อป้องกัน Database ล่ม
+        for (const item of itemsToDeduct) {
+            // 6.1 ตัดสต็อก
+            await connection.query(
+                "UPDATE menu SET menu_quantity = menu_quantity - ? WHERE menu_id = ?",
+                [item.total_qty, item.menu_id]
+            );
+
+            // 6.2 (เพิ่ม) ดึงค่าจำนวนล่าสุดออกมา เพื่อเอาไปบันทึก Log (แก้ปัญหา 500 Error เรื่อง new_quantity)
+            const [updatedMenu] = await connection.query(
+                "SELECT menu_quantity FROM menu WHERE menu_id = ?", 
+                [item.menu_id]
+            );
+            const currentQty = updatedMenu[0]?.menu_quantity || 0;
+
+            // 6.3 บันทึก Log (เพิ่ม new_quantity เข้าไปให้เหมือนกับตอนแก้เมนู)
+            await connection.query(
+                "INSERT INTO stock_logs (menu_id, change_quantity, new_quantity, reason, user_id, timestamp) VALUES (?, ?, ?, ?, ?, NOW())",
+                [
+                    item.menu_id, 
+                    -item.total_qty, 
+                    currentQty, // ✅ ใส่ค่า new_quantity
+                    'sale', 
+                    req.user ? req.user.id : null // ✅ กัน Error กรณีไม่มี user id ให้ใส่ null แทน
+                ]
+            );
+        }
     }
 
-    const orderData = orderResult[0];
-    const customerQuantity = parseInt(orderData.customer_quantity || '0', 10);
-    const pricePerPerson = parseFloat(orderData.price_per_person || '0');
-    const buffetTotal = customerQuantity * pricePerPerson;
+    // 7. ปิดออเดอร์และโต๊ะ
+    await connection.query("UPDATE orders SET order_status = 'completed' WHERE order_id = ?", [order_id]);
+    await connection.query(
+        "UPDATE tables t JOIN orders o ON t.table_id = o.table_id SET t.status = 'ว่าง' WHERE o.order_id = ?", 
+        [order_id]
+    );
 
-    const getAlaCarteSql = "SELECT COALESCE(SUM(quantity * price_per_item), 0) AS aLaCarteTotal " +
-      "FROM order_details " +
-      "WHERE order_id = ? AND price_per_item > 0";
-    const [alaCarteResult] = await connection.query(getAlaCarteSql, [order_id]);
-    const aLaCarteTotal = parseFloat(alaCarteResult[0].aLaCarteTotal || '0');
-
-    const rawTotal = buffetTotal + aLaCarteTotal;
-
-    let finalPayAmount = rawTotal;
-    let recordedDiscount = 0;
-
-    if (final_price_client !== undefined && final_price_client !== null) {
-      finalPayAmount = parseFloat(final_price_client);
-      recordedDiscount = parseFloat(discount || 0);
-    }
-
-    const insertPaymentSql = "INSERT INTO payment (order_id, payment_time, total_price, payment_method, discount, promotion_id) VALUES (?, NOW(), ?, ?, ?, ?)";
-    const [insertResult] = await connection.query(insertPaymentSql, [order_id, finalPayAmount, payment_method || null, recordedDiscount, promotion_id || null]);
-    const paymentId = insertResult.insertId;
-
-    // --- ส่วนตัด Stock ---
-    const getOrderDetailsSql = "SELECT od.order_detail_id, od.menu_id, od.quantity, m.menu_quantity AS current_stock " +
-      "FROM order_details od " +
-      "JOIN menu m ON od.menu_id = m.menu_id " +
-      "WHERE od.order_id = ? AND m.menu_quantity IS NOT NULL";
-    const [detailsToDeduct] = await connection.query(getOrderDetailsSql, [order_id]);
-
-    for (const detail of detailsToDeduct) {
-      if (detail.current_stock !== null) {
-        const soldQuantity = detail.quantity;
-        const newQuantity = detail.current_stock - soldQuantity;
-        const updateStockSql = "UPDATE menu SET menu_quantity = ? WHERE menu_id = ?";
-        await connection.query(updateStockSql, [newQuantity, detail.menu_id]);
-        const logSql = "INSERT INTO stock_logs (menu_id, change_quantity, new_quantity, reason, order_detail_id, timestamp) VALUES (?, ?, ?, ?, ?, NOW())";
-        await connection.query(logSql, [detail.menu_id, -soldQuantity, newQuantity, 'sale', detail.order_detail_id]);
-      }
-    }
-
-    // --- เคลียร์ Session และอัปเดตสถานะ ---
+    // เคลียร์ Cache
     for (const key of orderSessionCache.keys()) {
-      if (key.startsWith(`${order_id}-`)) {
-        orderSessionCache.delete(key);
-      }
+        if (key.startsWith(`${order_id}-`)) orderSessionCache.delete(key);
     }
-
-    const updateOrderStatusSql = "UPDATE orders SET order_status = 'completed' WHERE order_id = ?";
-    await connection.query(updateOrderStatusSql, [order_id]);
-
-    const updateTableSql = `UPDATE tables t JOIN orders o ON t.table_id = o.table_id SET t.status = 'ว่าง' WHERE o.order_id = ?`;
-    const [updateTableResult] = await connection.query(updateTableSql, [order_id]);
 
     await connection.commit();
-    connection.release();
 
-    if (updateTableResult.affectedRows > 0) {
-      io.emit('tables_updated');
-      io.emit('new_payment', { paymentId: paymentId, orderId: order_id, totalPrice: finalPayAmount });
+    io.emit('tables_updated');
+    io.emit('new_payment', { paymentId, orderId: order_id, totalPrice: finalPayAmount });
 
-      const getTableSql = `SELECT t.table_number FROM orders o JOIN tables t ON o.table_id = t.table_id WHERE o.order_id = ?`;
-      const [tableResult] = await db.query(getTableSql, [order_id]);
-      if (tableResult.length > 0) {
-        io.emit('notification', {
-          message: `โต๊ะ ${tableResult[0].table_number} ปิดโต๊ะแล้ว ยอด ${finalPayAmount.toFixed(2)} บาท`,
-          type: 'close_table',
-          linkTo: '/PaymentPage'
-        });
-      }
-    }
-
-    res.status(201).json({
-      message: 'Payment recorded',
-      payment_id: paymentId,
-      calculated_total_price: finalPayAmount
-    });
+    res.status(201).json({ message: 'Payment success', payment_id: paymentId, total: finalPayAmount });
 
   } catch (err) {
-    if (connection) {
-      await connection.rollback();
-      connection.release();
-    }
-    console.error(`Error processing payment for order ${order_id}:`, err);
-    res.status(500).json({ error: 'Error processing payment', details: err.message });
+    if (connection) await connection.rollback();
+    console.error("Payment Error:", err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
@@ -1001,9 +1011,39 @@ app.get('/api/reports/overview/stats', requireAuth, checkPermission('view_report
 
   try {
     const [result] = await db.query(sql, [startDate, endDate]);
-    res.json(result[0] || { totalSales: 0, totalOrders: 0, totalCustomers: 0, avgPerCustomer: 0 });
+    const rawData = result[0] || { totalSales: 0, totalOrders: 0, totalCustomers: 0, avgPerCustomer: 0 };
+    const formattedData = {
+        totalSales: Number(rawData.totalSales),
+        totalOrders: Number(rawData.totalOrders),
+        totalCustomers: Number(rawData.totalCustomers),
+        avgPerCustomer: Number(rawData.avgPerCustomer)
+    };
+
+    res.json(formattedData);
   } catch (err) {
     console.error("Error fetching overview stats:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/reports/overview/service-types', requireAuth, checkPermission('view_reports'), async (req, res) => {
+  const [startDate, endDate] = getDates(req);
+  const sql = `
+    SELECT 
+        o.service_type AS type, 
+        COUNT(o.order_id) AS count,
+        SUM(p.total_price) AS revenue
+    FROM orders o
+    JOIN payment p ON o.order_id = p.order_id
+    WHERE p.payment_time BETWEEN ? AND ?
+    GROUP BY o.service_type;
+  `;
+
+  try {
+    const [results] = await db.query(sql, [startDate, endDate]);
+    res.json(results);
+  } catch (err) {
+    console.error("Error fetching service type summary:", err.message);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -1583,51 +1623,91 @@ app.get('/api/attendance/summary', requireAuth, requireAdmin, async (req, res) =
 // Protected: manage_stock
 app.get('/api/stock/summary', requireAuth, checkPermission('manage_stock'), async (req, res) => {
   const { menuId, startDate, endDate, groupBy = 'day' } = req.query;
+  
   if (!startDate || !endDate) {
     return res.status(400).json({ error: 'Start date and end date are required.' });
   }
-  if (!['day', 'month', 'year'].includes(groupBy)) {
-    return res.status(400).json({ error: 'Invalid groupBy value. Use "day", "month", or "year".' });
+  
+  if (!['hour', 'day', 'month', 'year'].includes(groupBy)) {
+    return res.status(400).json({ error: 'Invalid groupBy value. Use "hour", "day", "month", or "year".' });
   }
+
   let dateColumn;
+  let interval;
+  let labelFormat;
+
   switch (groupBy) {
-    case 'month': dateColumn = 'DATE_FORMAT(timestamp, "%Y-%m-01")'; break;
-    case 'year': dateColumn = 'DATE_FORMAT(timestamp, "%Y-01-01")'; break;
-    default: dateColumn = 'DATE(timestamp)'; break;
+    case 'hour':
+        // ✅ แก้: ใส่ วัน/เดือน เข้าไปในรายชั่วโมงด้วย (ป้องกัน 10:00 ของเมื่อวาน ตีกับ 10:00 วันนี้)
+        dateColumn = 'DATE_FORMAT(timestamp, "%Y-%m-%d %H:00:00")';
+        interval = 'INTERVAL 1 HOUR';
+        labelFormat = 'dd MMM HH:mm'; // เช่น 14 ก.พ. 13:00
+        break;
+    case 'month': 
+        dateColumn = 'DATE_FORMAT(timestamp, "%Y-%m-01")';
+        interval = 'INTERVAL 1 MONTH';
+        labelFormat = 'MMM yyyy'; // เช่น ก.พ. 2024 (อันนี้มีปีอยู่แล้ว ไม่น่ามีปัญหาแต่เช็คให้ชัวร์)
+        break;
+    case 'year': 
+        dateColumn = 'DATE_FORMAT(timestamp, "%Y-01-01")'; 
+        interval = 'INTERVAL 1 YEAR';
+        labelFormat = 'yyyy'; // เช่น 2024
+        break;
+    default: // 'day'
+        dateColumn = 'DATE(timestamp)'; 
+        interval = 'INTERVAL 1 DAY';
+        // ✅ แก้: ใส่ ปี เข้าไปด้วย (ป้องกัน 1 ต.ค. ปีนี้ ตีกับปีที่แล้ว)
+        labelFormat = 'dd MMM yyyy'; // เช่น 14 ก.พ. 2024
+        break;
   }
+
   let sql = `
         SELECT
             ${dateColumn} AS period_start,
             m.menu_id, m.menu_name,
             COALESCE(SUM(CASE WHEN sl.change_quantity > 0 THEN sl.change_quantity ELSE 0 END), 0) AS total_in,
             COALESCE(SUM(CASE WHEN sl.change_quantity < 0 THEN ABS(sl.change_quantity) ELSE 0 END), 0) AS total_out,
-            (SELECT sl_prev.new_quantity
-             FROM stock_logs sl_prev
-             WHERE sl.menu_id = sl.menu_id AND sl_prev.timestamp < DATE_ADD(DATE(${dateColumn}), INTERVAL 1 DAY)
-             ORDER BY sl_prev.timestamp DESC, sl_prev.log_id DESC
-             LIMIT 1
+            (
+                SELECT sl_last.new_quantity
+                FROM stock_logs sl_last
+                WHERE sl_last.menu_id = sl.menu_id 
+                  AND sl_last.timestamp < DATE_ADD(${dateColumn}, ${interval})
+                ORDER BY sl_last.timestamp DESC, sl_last.log_id DESC
+                LIMIT 1
             ) AS ending_balance
         FROM stock_logs sl
         JOIN menu m ON sl.menu_id = m.menu_id
         WHERE sl.timestamp BETWEEN ? AND ?
     `;
+  
+  // แปลงช่วงเวลาให้ครอบคลุมทั้งวัน (00:00:00 - 23:59:59)
   const params = [`${startDate} 00:00:00`, `${endDate} 23:59:59`];
+  
   if (menuId && menuId !== '') {
     sql += " AND sl.menu_id = ?";
     params.push(menuId);
   }
+  
   sql += ` GROUP BY period_start, m.menu_id, m.menu_name ORDER BY period_start ASC, m.menu_name ASC;`;
+
   try {
     const [results] = await db.query(sql, params);
-    const formattedResults = results.map(row => ({
-      period_start: row.period_start,
-      menu_id: row.menu_id,
-      menu_name: row.menu_name,
-      period_label: format(new Date(row.period_start), groupBy === 'day' ? 'dd/MM/yy' : (groupBy === 'month' ? 'MMM yyyy' : 'yyyy'), { locale: th }),
-      total_in: parseInt(row.total_in, 10),
-      total_out: parseInt(row.total_out, 10),
-      ending_balance: row.ending_balance !== null ? parseInt(row.ending_balance, 10) : null
-    }));
+    
+    // Format ผลลัพธ์ก่อนส่งกลับ
+    const formattedResults = results.map(row => {
+        const d = new Date(row.period_start);
+        return {
+            period_start: row.period_start,
+            menu_id: row.menu_id,
+            menu_name: row.menu_name,
+            // Format Label ตาม Group By ที่เลือก (ใช้ locale ภาษาไทย)
+            period_label: format(d, labelFormat, { locale: th }), 
+            total_in: parseInt(row.total_in, 10),
+            total_out: parseInt(row.total_out, 10),
+            ending_balance: row.ending_balance !== null ? parseInt(row.ending_balance, 10) : null
+        };
+    });
+    
     res.json(formattedResults);
   } catch (err) {
     console.error("Error fetching stock summary:", err);

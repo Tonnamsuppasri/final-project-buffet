@@ -75,13 +75,15 @@
 
 /* ---------- Action buttons ---------- */
 .staff-actions-header {
-  width: 160px;
+  width: 240px;
+  min-width: 240px;
 }
 
 .staff-actions-buttons {
   display: flex;
   gap: 10px;
   justify-content: center;
+  flex-wrap: nowrap;
 }
 
 .staff-actions-buttons button {
@@ -189,6 +191,13 @@
   .table-staff td {
     font-size: 0.85rem;
     padding: 0.6rem;
+  }
+
+}
+@media (max-width: 638px) {
+  .staff-actions-header {
+    width: 100px;
+    min-width: 100px;
   }
 }
 
@@ -328,17 +337,25 @@
     }
     
     .table-staff td[data-label="Actions"] .staff-actions-buttons {
-      gap: 0.8rem;
+      gap: 12px;           /* เพิ่มระยะห่างระหว่างปุ่ม */
+      flex: 1;             /* ✅ สั่งให้ขยายกินพื้นที่แนวนอนทั้งหมด */
+      width: 100%;         /* เสริมความมั่นใจว่ากว้างเต็ม */
     }
     
     .table-staff td[data-label="Actions"] .staff-actions-buttons button {
-      padding: 0.6rem 1rem;
-      font-size: 0.9rem;
-      border-radius: 0.6rem;
-      font-weight: 600;
-      flex: 1;
+      padding: 12px 0;      /* ✅ เพิ่มความสูงปุ่ม (บน-ล่าง) ให้นิ้วกดง่าย */
+      font-size: 1rem;      /* ✅ ขยายตัวหนังสือให้ชัดเจน */
+      border-radius: 8px;   /* มุมโค้งมน */
+      font-weight: 700;     /* ตัวหนา */
+      flex: 1;              /* ให้ปุ่ม แก้ไข กับ ลบ แบ่งครึ่งพื้นที่กัน */
       justify-content: center;
+      align-items: center;
+      white-space: nowrap;  /* ✅ สำคัญมาก: ห้ามตัดคำ (แก้ปัญหา "แ ก้ ไ ข") */
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      min-width: 80px;      /* กำหนดความกว้างขั้นต่ำกันเหนียว */
+    }
+    .table-staff td[data-label="Actions"] .staff-actions-buttons button:active {
+      transform: scale(0.96);
     }
     
     .table-staff td[data-label="Actions"] .staff-actions-buttons button:hover {

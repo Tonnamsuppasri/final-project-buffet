@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import './CustomerOrder.css'; //
+import './CustomerOrder.css'; 
 import { 
     FaShoppingCart, 
     FaPlus, 
@@ -14,18 +14,17 @@ import {
     FaUser,
     FaArrowLeft,
     FaListUl,
-    FaChevronDown,
-    FaLock
+    FaChevronDown
 } from 'react-icons/fa';
 import QRCode from 'qrcode'; 
-import { v4 as uuidv4 } from 'uuid'; // Import uuidv4
+import { v4 as uuidv4 } from 'uuid'; 
 
 // --- Interfaces ---
 interface MenuItem {
     menu_id: number;
     menu_name: string;
     menu_description?: string;
-    menu_category: string | null; // ✅ FIX 1: แก้ไขให้รองรับ null
+    menu_category: string | null;
     price: number;
     menu_image?: string; 
 }
@@ -34,7 +33,7 @@ interface ActiveOrder {
     order_id: number;
     table_id: number; 
     table_number: number;
-    table_uuid: string; // UUID ของโต๊ะ
+    table_uuid: string; 
     service_type: string;
     customer_quantity: number;
     plan_name: string;
@@ -51,7 +50,7 @@ interface CartItem extends MenuItem {
     quantity: number;
 }
 
-// --- Custom Hook: useSheetDrag (สำหรับลากปิด) ---
+// --- Custom Hook: useSheetDrag (สำหรับการลากปิด Bottom Sheet) ---
 const useSheetDrag = (onClose: () => void, isOpen: boolean) => {
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
@@ -73,21 +72,14 @@ const useSheetDrag = (onClose: () => void, isOpen: boolean) => {
         if (touchStartY.current === null) return;
         const currentY = e.targetTouches[0].clientY;
         const deltaY = currentY - touchStartY.current;
-
-        if (deltaY > 0) {
-            setDragOffset(deltaY);
-        }
+        if (deltaY > 0) setDragOffset(deltaY);
     };
 
     const onTouchEnd = () => {
         setIsDragging(false);
         touchStartY.current = null;
-
-        if (dragOffset > 150) {
-            onClose();
-        } else {
-            setDragOffset(0);
-        }
+        if (dragOffset > 150) onClose();
+        else setDragOffset(0);
     };
 
     const style: React.CSSProperties = {
@@ -95,15 +87,8 @@ const useSheetDrag = (onClose: () => void, isOpen: boolean) => {
         transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)',
     };
 
-    const handlers = {
-        onTouchStart,
-        onTouchMove,
-        onTouchEnd
-    };
-
-    return { style, handlers };
+    return { style, handlers: { onTouchStart, onTouchMove, onTouchEnd } };
 };
-
 
 // --- Timer Component ---
 const Timer = ({ startTime }: { startTime: string }) => {
@@ -134,502 +119,309 @@ const Timer = ({ startTime }: { startTime: string }) => {
         const timerInterval = setInterval(updateTimer, 60000); 
         return () => clearInterval(timerInterval);
     }, [startTime]);
-    
     return <span>{elapsedTime}</span>;
 };
-
 
 // ============================
 //   Customer Order Page Component
 // ============================
 const CustomerOrderPage = () => {
+    const { order_uuid } = useParams<{ order_uuid: string }>(); 
+    const navigate = useNavigate();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const customerOrderUrlBase = (import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173');
+
+    // ✅ Refs สำหรับจัดการ Logic การยิง API และ Animation
+    const joinStarted = useRef(false); 
+    const cartButtonRef = useRef<HTMLButtonElement>(null);
+
     // --- State Management ---
-    const { order_uuid } = useParams<{ order_uuid: string }>(); // (ใช้ order_uuid)
-    
     const [orderInfo, setOrderInfo] = useState<ActiveOrder | null>(null);
     const [shopInfo, setShopInfo] = useState<ShopInfo | null>(null); 
     const [menu, setMenu] = useState<MenuItem[]>([]);
     const [categories, setCategories] = useState<string[]>(['All']);
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const [cart, setCart] = useState<CartItem[]>([]);
-    const [isCartOpen, setIsCartOpen] = useState(false);
     const [sessionCustomerName, setSessionCustomerName] = useState<string | null>(null);
+    const [isCartOpen, setIsCartOpen] = useState(false);
     const [isInfoSheetOpen, setIsInfoSheetOpen] = useState(false);
     const [infoSheetView, setInfoSheetView] = useState<'details' | 'qr'>('details');
     const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
     const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
-    
-    // (ส่วนนี้ไม่จำเป็นสำหรับ Dynamic QR)
-    // const [showPinModal, setShowPinModal] = useState(true); 
-    
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const cartButtonRef = useRef<HTMLButtonElement>(null);
-    
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    const customerOrderUrlBase = (import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173');
 
-    const navigate = useNavigate();
-
-    // (useSheetDrag Hooks)
-    const cartDrag = useSheetDrag(() => setIsCartOpen(false), isCartOpen);
-    const infoDrag = useSheetDrag(() => setIsInfoSheetOpen(false), isInfoSheetOpen);
-    const categoryDrag = useSheetDrag(() => setIsCategorySheetOpen(false), isCategorySheetOpen);
-
-    // Body Scroll Lock
-    useEffect(() => {
-        if (isCartOpen || isInfoSheetOpen || isCategorySheetOpen) { 
-            document.body.style.overflow = 'hidden'; 
-        } else {
-            document.body.style.overflow = 'unset'; 
+    // ✅ แก้ไข: โหลดตะกร้าจาก LocalStorage ทันทีที่เปิดหน้า (Lazy Initializer)
+    const [cart, setCart] = useState<CartItem[]>(() => {
+        if (!order_uuid) return [];
+        const savedCart = localStorage.getItem(`cart-${order_uuid}`);
+        try {
+            return savedCart ? JSON.parse(savedCart) : [];
+        } catch (e) {
+            return [];
         }
+    });
+
+    // ✅ แก้ไข: บันทึกตะกร้าลง LocalStorage ทุกครั้งที่มีการเปลี่ยนแปลง
+    useEffect(() => {
+        if (order_uuid) {
+            localStorage.setItem(`cart-${order_uuid}`, JSON.stringify(cart));
+        }
+    }, [cart, order_uuid]);
+
+    // Body Scroll Lock เมื่อเปิด Sheet
+    useEffect(() => {
+        document.body.style.overflow = (isCartOpen || isInfoSheetOpen || isCategorySheetOpen) ? 'hidden' : 'unset';
         return () => { document.body.style.overflow = 'unset'; };
     }, [isCartOpen, isInfoSheetOpen, isCategorySheetOpen]);
 
-
-    // แยก Logic การ Join โต๊ะ (รับชื่อ)
+    // ✅ แก้ไข: ระบบ Join Table ที่ป้องกันการรันลำดับชื่อซ้ำซ้อน
     const joinTable = async (orderId: number, tableUuid: string) => {
         const storedNameKey = `customerName-${tableUuid}`; 
         const storedNameData = localStorage.getItem(storedNameKey);
-        let sessionName: string | null = null;
 
+        // 1. ถ้ามีชื่อเดิมที่ถูกต้องอยู่แล้ว ให้ใช้ชื่อเดิมทันที
         if (storedNameData) {
             try {
                 const data = JSON.parse(storedNameData);
                 if (data.orderId === orderId) {
-                    sessionName = data.name;
-                } else {
-                    localStorage.removeItem(storedNameKey);
+                    setSessionCustomerName(data.name);
+                    return; 
                 }
-            } catch (e) {
-                localStorage.removeItem(storedNameKey);
-            }
+            } catch (e) { localStorage.removeItem(storedNameKey); }
         }
 
-        if (!sessionName) {
-            let sessionId = sessionStorage.getItem(`my-session-${tableUuid}`);
-            if (!sessionId) {
-                sessionId = uuidv4(); 
-                sessionStorage.setItem(`my-session-${tableUuid}`, sessionId);
-            }
-            
+        // 2. ป้องกัน Race Condition จาก StrictMode หรือการกดรีเฟรชรัวๆ
+        if (joinStarted.current || sessionCustomerName) return;
+        joinStarted.current = true;
+
+        let sessionId = sessionStorage.getItem(`my-session-${tableUuid}`);
+        if (!sessionId) {
+            sessionId = uuidv4(); 
+            sessionStorage.setItem(`my-session-${tableUuid}`, sessionId);
+        }
+        
+        try {
             const joinRes = await axios.post<{ customerName: string }>(
                 `${apiUrl}/api/orders/${orderId}/join`,
                 { sessionId },
                 { withCredentials: true } 
             );
-            
             const newName = joinRes.data.customerName; 
             localStorage.setItem(storedNameKey, JSON.stringify({ name: newName, orderId: orderId }));
             setSessionCustomerName(newName);
-        } else {
-            setSessionCustomerName(sessionName); 
+        } catch (err) {
+            joinStarted.current = false; // ปลดล็อคหากพลาด เพื่อให้ลองใหม่ได้
+            console.error(err);
         }
     };
 
-
-    // แก้ไข Data Fetching (ใช้ API ใหม่)
+    // โหลดข้อมูลออเดอร์และเมนู
     useEffect(() => {
         const fetchOrderSession = async () => {
             if (!order_uuid) {
-                setError("ไม่พบรหัสออเดอร์ (Order UUID)");
+                setError("ไม่พบรหัสออเดอร์");
                 setLoading(false);
                 return;
             }
             try {
-                const response = await axios.get(
-                    `${apiUrl}/api/order-session/${order_uuid}`, 
-                    { withCredentials: true }
-                );
-                
+                const response = await axios.get(`${apiUrl}/api/order-session/${order_uuid}`, { withCredentials: true });
                 const { orderInfo, menu, shopInfo } = response.data;
-
                 setOrderInfo(orderInfo);
                 setMenu(menu);
                 setShopInfo(shopInfo);
-
-                // ✅ FIX 2: จัดการกับ `null` โดยเปลี่ยนเป็น 'อื่น ๆ'
-                const uniqueCategories = ['All', ...Array.from(new Set(menu.map((item: MenuItem) => item.menu_category || 'อื่น ๆ')))] as string[];
-                setCategories(uniqueCategories);
-
+                setCategories(['All', ...Array.from(new Set(menu.map((i: any) => i.menu_category || 'อื่น ๆ')))] as string[]);
                 await joinTable(orderInfo.order_id, orderInfo.table_uuid);
-                
             } catch (err: any) {
-                setError(err.response?.data?.error || "ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง");
-                console.error(err);
+                setError(err.response?.data?.error || "ไม่สามารถโหลดข้อมูลได้");
             } finally {
                 setLoading(false);
             }
         };
         fetchOrderSession();
-    }, [order_uuid, apiUrl]); 
+    }, [order_uuid]);
 
-    // --- Memoized Calculations ---
-    const filteredMenu = useMemo(() => {
-        if (selectedCategory === 'All') return [];
-        // ✅ FIX 3: ใช้ 'อื่น ๆ' ในการ filter ด้วย
-        return menu.filter(item => (item.menu_category || 'อื่น ๆ') === selectedCategory);
-    }, [menu, selectedCategory]);
-    
+    // การคำนวณต่างๆ
+    const filteredMenu = useMemo(() => selectedCategory === 'All' ? [] : menu.filter(item => (item.menu_category || 'อื่น ๆ') === selectedCategory), [menu, selectedCategory]);
     const groupedMenu = useMemo(() => {
         const groups: Record<string, MenuItem[]> = menu.reduce((acc, item) => {
-            // ✅ FIX 4: ใช้ 'อื่น ๆ' ในการ group
             const category = item.menu_category || 'อื่น ๆ';
-            if (!acc[category]) {
-                acc[category] = [];
-            }
+            if (!acc[category]) acc[category] = [];
             acc[category].push(item);
             return acc;
         }, {} as Record<string, MenuItem[]>);
-    
-        return categories
-            .filter(cat => cat !== 'All')
-            .map(category => ({
-                category: category,
-                items: groups[category] || []
-            }))
-            .filter(group => group.items.length > 0);
-            
+        return categories.filter(cat => cat !== 'All').map(cat => ({ category: cat, items: groups[cat] || [] })).filter(g => g.items.length > 0);
     }, [menu, categories]);
 
-    const totalCartItems = useMemo(() => {
-        return cart.reduce((sum, item) => sum + item.quantity, 0);
-    }, [cart]);
-    
-    const totalCartPrice = useMemo(() => {
-        return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    }, [cart]);
+    const totalCartItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
+    const totalCartPrice = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
 
-    // ... (Cart Handlers - คงเดิม) ...
     const handleAddToCart = (item: MenuItem, event: React.MouseEvent<HTMLButtonElement>) => {
-        setCart(prevCart => {
-            const existingItem = prevCart.find(cartItem => cartItem.menu_id === item.menu_id);
-            if (existingItem) {
-                return prevCart.map(cartItem =>
-                    cartItem.menu_id === item.menu_id
-                        ? { ...cartItem, quantity: cartItem.quantity + 1 }
-                        : cartItem
-                );
-            }
-            return [...prevCart, { ...item, quantity: 1 }];
+        setCart(prev => {
+            const existing = prev.find(i => i.menu_id === item.menu_id);
+            return existing ? prev.map(i => i.menu_id === item.menu_id ? { ...i, quantity: i.quantity + 1 } : i) : [...prev, { ...item, quantity: 1 }];
         });
 
-        // Animation
+        // 🛒 การแสดงผลรูปภาพลอยไปที่ตะกร้า
         const cartRect = cartButtonRef.current?.getBoundingClientRect();
         const buttonRect = event.currentTarget.getBoundingClientRect(); 
         if (cartRect && buttonRect) {
-            const flyerImage = document.createElement('img');
-            flyerImage.src = item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png';
-            flyerImage.className = 'item-flyer-image'; 
-            flyerImage.style.left = `${buttonRect.left + buttonRect.width / 2}px`;
-            flyerImage.style.top = `${buttonRect.top + buttonRect.height / 2}px`;
-            document.body.appendChild(flyerImage);
-            flyerImage.addEventListener('transitionend', () => {
-                flyerImage.remove();
-            });
+            const flyer = document.createElement('img');
+            flyer.src = item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png';
+            flyer.className = 'item-flyer-image'; 
+            flyer.style.left = `${buttonRect.left + buttonRect.width / 2}px`;
+            flyer.style.top = `${buttonRect.top + buttonRect.height / 2}px`;
+            document.body.appendChild(flyer);
             setTimeout(() => {
-                flyerImage.style.left = `${cartRect.left + cartRect.width / 2}px`;
-                flyerImage.style.top = `${cartRect.top + cartRect.height / 2}px`;
-                flyerImage.style.transform = 'translate(-50%, -50%) scale(0.1)';
-                flyerImage.style.opacity = '0';
+                flyer.style.left = `${cartRect.left + cartRect.width / 2}px`;
+                flyer.style.top = `${cartRect.top + cartRect.height / 2}px`;
+                flyer.style.transform = 'translate(-50%, -50%) scale(0.1)';
+                flyer.style.opacity = '0';
             }, 10); 
+            flyer.addEventListener('transitionend', () => flyer.remove());
         }
         cartButtonRef.current?.classList.add('animating');
-        setTimeout(() => {
-            cartButtonRef.current?.classList.remove('animating');
-        }, 500);
-    };
-    
-    const handleUpdateQuantity = (menuId: number, change: number) => {
-        setCart(prevCart => {
-            const updatedCart = prevCart.map(item => {
-                if (item.menu_id === menuId) {
-                    return { ...item, quantity: Math.max(0, item.quantity + change) };
-                }
-                return item;
-            });
-            return updatedCart.filter(item => item.quantity > 0);
-        });
+        setTimeout(() => cartButtonRef.current?.classList.remove('animating'), 500);
     };
 
-    // --- Order Submission (คงเดิม) ---
-    const handleSubmitOrder = async () => {
-        if (cart.length === 0 || !orderInfo || !sessionCustomerName) {
-            Swal.fire('ผิดพลาด', 'ยังไม่มีชื่อลูกค้า (กรุณารอ) หรือไม่พบข้อมูลออเดอร์', 'warning');
-            return;
-        }
-        
-        const orderDetails = cart.map(item => ({
-            menu_id: item.menu_id,
-            quantity: item.quantity,
-            price_per_item: item.price,
-            customer_name: sessionCustomerName
-        }));
-        
-        try {
-            await axios.post(
-                `${apiUrl}/api/orders/${orderInfo.order_id}/details`, 
-                orderDetails,
-                { withCredentials: true }
-            );
-            Swal.fire({
-                icon: 'success',
-                title: 'ส่งออเดอร์สำเร็จ!',
-                text: 'รายการอาหารของคุณถูกส่งไปที่ครัวแล้ว',
-                timer: 2000,
-                showConfirmButton: false,
-            });
-            setCart([]);
-            setIsCartOpen(false);
-        } catch (err) {
-            Swal.fire('ผิดพลาด!', 'ไม่สามารถส่งออเดอร์ได้', 'error');
-            console.error(err);
-        }
+    const handleUpdateQuantity = (menuId: number, change: number) => {
+        setCart(prev => prev.map(i => i.menu_id === menuId ? { ...i, quantity: Math.max(0, i.quantity + change) } : i).filter(i => i.quantity > 0));
     };
-    
-    // ... (Info/Category Sheet Handlers, Swipe Handlers - คงเดิม) ...
-    const handleOpenInfoSheet = () => { setInfoSheetView('details'); setIsInfoSheetOpen(true); };
-    const handleCloseInfoSheet = () => { setIsInfoSheetOpen(false); };
+
+    const handleSubmitOrder = async () => {
+        if (cart.length === 0 || !orderInfo || !sessionCustomerName) return;
+        const details = cart.map(i => ({ menu_id: i.menu_id, quantity: i.quantity, price_per_item: i.price, customer_name: sessionCustomerName }));
+        try {
+            await axios.post(`${apiUrl}/api/orders/${orderInfo.order_id}/details`, details, { withCredentials: true });
+            Swal.fire({ icon: 'success', title: 'ส่งออเดอร์สำเร็จ!', timer: 2000, showConfirmButton: false });
+            setCart([]); // เคลียร์ State -> useEffect จะล้าง LocalStorage ให้เอง
+            setIsCartOpen(false);
+        } catch { Swal.fire('ผิดพลาด!', 'ไม่สามารถส่งออเดอร์ได้', 'error'); }
+    };
+
     const handleShowQRCode = async () => {
-        if (!orderInfo) return;
         if (!qrCodeDataUrl) {
-            try {
-                // (QR Code นี้ควรจะเป็นลิงก์ของ "โต๊ะ" (table_uuid))
-                const url = `${customerOrderUrlBase}/${order_uuid}`;
-                const qrUrl = await QRCode.toDataURL(url, { width: 250, margin: 2 });
-                setQrCodeDataUrl(qrUrl);
-            } catch (err) {
-                console.error("Failed to generate QR Code:", err);
-                Swal.fire('ผิดพลาด', 'ไม่สามารถสร้าง QR Code ได้', 'error');
-                return;
-            }
+            const qrUrl = await QRCode.toDataURL(`${customerOrderUrlBase}/order/${order_uuid}`, { width: 250, margin: 2 });
+            setQrCodeDataUrl(qrUrl);
         }
         setInfoSheetView('qr');
     };
-    const handleCategorySelect = (category: string) => { setSelectedCategory(category); setIsCategorySheetOpen(false); };
-    const onTouchStart = (e: React.TouchEvent) => { cartDrag.handlers.onTouchStart(e); };
-    const onTouchMove = (e: React.TouchEvent) => { cartDrag.handlers.onTouchMove(e); };
-    // (on-touch handlers ถูกเรียกใน JSX)
 
+    const cartDrag = useSheetDrag(() => setIsCartOpen(false), isCartOpen);
+    const infoDrag = useSheetDrag(() => setIsInfoSheetOpen(false), isInfoSheetOpen);
+    const categoryDrag = useSheetDrag(() => setIsCategorySheetOpen(false), isCategorySheetOpen);
 
-    // --- Render Logic ---
     if (loading) return <div className="loading-container">กำลังโหลด...</div>;
-    
-    if (error || !orderInfo || !sessionCustomerName) {
-        return (
-            <div className="error-container">
-                {error || 'กำลังลงทะเบียนลูกค้า...'}
-            </div>
-        );
-    }
-    
-    // (MenuItemCard Helper - คงเดิม)
+    if (error || !orderInfo || !sessionCustomerName) return <div className="error-container">{error || 'กำลังลงทะเบียน...'}</div>;
+
     const MenuItemCard = ({ item }: { item: MenuItem }) => (
         <div key={item.menu_id} className="menu-item-list">
-            <img 
-                src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png'} 
-                alt={item.menu_name} 
-                className="menu-item-image"
-            />
+            <img src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png'} alt={item.menu_name} className="menu-item-image" />
             <div className="menu-item-details">
                 <h3 className="menu-item-name">{item.menu_name}</h3>
                 <p className="menu-item-desc">{item.menu_description}</p>
             </div>
             <div className="menu-item-actions">
                 <span className="menu-item-price">฿{item.price}</span>
-                <button className="add-to-cart-btn" onClick={(e) => handleAddToCart(item, e)}>
-                    <FaShoppingCart/>
-                </button>
+                <button className="add-to-cart-btn" onClick={(e) => handleAddToCart(item, e)}><FaShoppingCart/></button>
             </div>
         </div>
     );
 
     return (
         <div className="customer-order-container">
-            
-            {/* (ไม่ต้องใช้ PIN Modal) */}
-            
-            {/* Page Header */}
             <header className="order-header" style={{ backgroundImage: `url('/src/assets/images/background.jpg')`}}>
                  <div className="header-overlay">
                     <div className="logo-container">
-                         {shopInfo?.shop_logo ? (
-                            <img 
-                                src={`data:image/png;base64,${shopInfo.shop_logo}`} 
-                                alt="Shop Logo" 
-                                className="logo"
-                            />
-                         ) : (
-                            <div className="logo-placeholder">Logo</div>
-                         )}
+                         {shopInfo?.shop_logo ? <img src={`data:image/png;base64,${shopInfo.shop_logo}`} className="logo" alt="logo"/> : <div className="logo-placeholder">Logo</div>}
                     </div>
                     <div className="header-right-stack">
                         <div className="table-info"> 
                             <span>โต๊ะที่ {orderInfo.table_number} ({sessionCustomerName})</span>
-                            <button className="info-icon-button" onClick={handleOpenInfoSheet} title="ดูข้อมูลโต๊ะ">
-                                <FaInfoCircle />
-                            </button>
+                            <button className="info-icon-button" onClick={() => { setInfoSheetView('details'); setIsInfoSheetOpen(true); }}><FaInfoCircle /></button>
                         </div>
                         <div className="header-actions">
-                            <button 
-                                className="icon-button" 
-                                onClick={() => navigate(`/order/${order_uuid}/bill`)} // (ใช้ order_uuid)
-                                title="ดูรายการทั้งหมด (เช็คบิล)"
-                            >
-                                 <FaReceipt />
-                            </button>
-                            <button 
-                                ref={cartButtonRef}
-                                className="cart-button icon-button"
-                                onClick={() => setIsCartOpen(true)}
-                                title="ตะกร้า (สั่งเพิ่ม)"
-                            >
-                                <FaShoppingCart />
-                                {totalCartItems > 0 && <span className="cart-badge">{totalCartItems}</span>}
+                            <button className="icon-button" onClick={() => navigate(`/order/${order_uuid}/bill`)}><FaReceipt /></button>
+                            <button ref={cartButtonRef} className="cart-button icon-button" onClick={() => setIsCartOpen(true)}>
+                                <FaShoppingCart /> {totalCartItems > 0 && <span className="cart-badge">{totalCartItems}</span>}
                             </button>
                         </div>
                     </div>
                  </div>
             </header>
-            
-            {/* Category Tabs */}
+
+            {/* หมวดหมู่แบบแถบเลื่อน (Horizontal Tabs) และแบบปุ่มกดเปิด Sheet */}
             <div className="category-container">
-                <button className="category-list-btn" onClick={() => setIsCategorySheetOpen(true)} title="แสดงประเภทอาหาร">
-                    <FaListUl />
-                </button>
+                <button className="category-list-btn" onClick={() => setIsCategorySheetOpen(true)} title="เปิดเมนูหมวดหมู่"><FaListUl /></button>
                 <nav className="category-tabs">
-                    {categories.map(category => (
-                        <button 
-                            key={category}
-                            className={`tab-item ${selectedCategory === category ? 'active' : ''}`}
-                            onClick={() => setSelectedCategory(category)}
-                        >
-                            {category || 'อื่น ๆ'}
-                        </button>
+                    {categories.map(cat => (
+                        <button key={cat} className={`tab-item ${selectedCategory === cat ? 'active' : ''}`} onClick={() => setSelectedCategory(cat)}>{cat || 'อื่น ๆ'}</button>
                     ))}
                 </nav>
             </div>
 
-            {/* Main Menu List */}
             <main className="menu-list-container">
-                {selectedCategory === 'All' ? (
-                    groupedMenu.map(group => (
-                        <section key={group.category} className="menu-group-section">
-                            <h2 className="menu-group-header">{group.category}</h2>
-                            {group.items.map(item => (
-                                <MenuItemCard key={item.menu_id} item={item} />
-                            ))}
-                        </section>
-                    ))
-                ) : (
-                    filteredMenu.map(item => (
-                        <MenuItemCard key={item.menu_id} item={item} />
-                    ))
-                )}
+                {selectedCategory === 'All' ? groupedMenu.map(group => (
+                    <section key={group.category} className="menu-group-section">
+                        <h2 className="menu-group-header">{group.category}</h2>
+                        {group.items.map(item => <MenuItemCard key={item.menu_id} item={item} />)}
+                    </section>
+                )) : filteredMenu.map(item => <MenuItemCard key={item.menu_id} item={item} />)}
             </main>
 
-            {/* Cart Modal */}
+            {/* Cart Modal / Bottom Sheet */}
             {isCartOpen && (
-                <div className="cart-modal-overlay">
-                    <div className="cart-modal" style={cartDrag.style}>
+                <div className="cart-modal-overlay" onClick={() => setIsCartOpen(false)}>
+                    <div className="cart-modal" style={cartDrag.style} onClick={e => e.stopPropagation()}>
                         <div className="cart-header" {...cartDrag.handlers}>
-                            <div style={{position:'absolute', top:'8px', left:'50%', transform:'translateX(-50%)', width:'40px', height:'4px', backgroundColor:'#e0e0e0', borderRadius:'2px'}}></div>
-                            <h2>รายการสั่ง (ใหม่)</h2>
+                            <div className="drag-handle" style={{ width: '40px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', margin: '8px auto' }}></div>
+                            <h2>รายการสั่งใหม่</h2>
                             <button className="close-cart-btn" onClick={() => setIsCartOpen(false)}><FaTimes /></button>
                         </div>
                         <div className="cart-body">
-                            {cart.length === 0 ? (
-                                <p className="empty-cart-message">ยังไม่มีรายการในตะกร้า</p>
-                            ) : (
-                                cart.map(item => (
-                                    <div key={item.menu_id} className="cart-item">
-                                        <img src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png'} alt={item.menu_name} className="cart-item-image" />
-                                        <div className="cart-item-info">
-                                            <p>{item.menu_name}</p>
-                                            <p className="cart-item-price">฿{item.price}</p>
-                                        </div>
-                                        <div className="cart-item-quantity">
-                                            <button onClick={() => handleUpdateQuantity(item.menu_id, -1)}><FaMinus /></button>
-                                            <span>{item.quantity}</span>
-                                            <button onClick={() => handleUpdateQuantity(item.menu_id, 1)}><FaPlus /></button>
-                                        </div>
+                            {cart.length === 0 ? <p className="empty-cart-message">ยังไม่มีรายการในตะกร้า</p> : cart.map(item => (
+                                <div key={item.menu_id} className="cart-item">
+                                    <img src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png'} className="cart-item-image" alt="item"/>
+                                    <div className="cart-item-info"><p>{item.menu_name}</p><p className="cart-item-price">฿{item.price}</p></div>
+                                    <div className="cart-item-quantity">
+                                        <button onClick={() => handleUpdateQuantity(item.menu_id, -1)}><FaMinus /></button>
+                                        <span>{item.quantity}</span>
+                                        <button onClick={() => handleUpdateQuantity(item.menu_id, 1)}><FaPlus /></button>
                                     </div>
-                                ))
-                            )}
+                                </div>
+                            ))}
                         </div>
                         <div className="cart-footer">
-                            <div className="cart-total">
-                                <span>ราคารวม (ใหม่):</span>
-                                <span>฿{totalCartPrice.toLocaleString()}</span>
-                            </div>
-                            <button 
-                                className="confirm-order-btn" 
-                                onClick={handleSubmitOrder}
-                                disabled={cart.length === 0 || !sessionCustomerName} 
-                            >
-                                ยืนยันการสั่ง
-                            </button>
+                            <div className="cart-total"><span>ราคารวม:</span><span>฿{totalCartPrice.toLocaleString()}</span></div>
+                            <button className="confirm-order-btn" onClick={handleSubmitOrder} disabled={cart.length === 0}>ยืนยันการสั่ง</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Info Sheet */}
+            {/* Info & QR Share Sheet */}
             {isInfoSheetOpen && (
-                <div className="info-sheet-overlay" onClick={handleCloseInfoSheet}>
-                    <div className="info-sheet-content" style={infoDrag.style} onClick={(e) => e.stopPropagation()}>
+                <div className="info-sheet-overlay" onClick={() => setIsInfoSheetOpen(false)}>
+                    <div className="info-sheet-content" style={infoDrag.style} onClick={e => e.stopPropagation()}>
                         <div className="info-sheet-header" {...infoDrag.handlers}>
-                            <div style={{position:'absolute', top:'8px', left:'50%', transform:'translateX(-50%)', width:'40px', height:'4px', backgroundColor:'#e0e0e0', borderRadius:'2px'}}></div>
-                            {infoSheetView === 'qr' && (
-                                <button className="back-sheet-btn" onClick={() => setInfoSheetView('details')}>
-                                    <FaArrowLeft />
-                                </button>
-                            )}
-                            <span className="sheet-header-title">
-                                {infoSheetView === 'details' ? 'รายละเอียดโต๊ะ' : 'Share QR Code'}
-                            </span>
-                            <button className="close-sheet-btn" onClick={handleCloseInfoSheet}>
-                                <FaChevronDown />
-                            </button>
+                            <div className="drag-handle" style={{ width: '40px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', margin: '8px auto' }}></div>
+                            {infoSheetView === 'qr' && <button className="back-sheet-btn" onClick={() => setInfoSheetView('details')}><FaArrowLeft /></button>}
+                            <span className="sheet-header-title">{infoSheetView === 'details' ? 'รายละเอียดโต๊ะ' : 'Share QR Code'}</span>
+                            <button className="close-sheet-btn" onClick={() => setIsInfoSheetOpen(false)}><FaChevronDown /></button>
                         </div>
                         <div className="info-sheet-body">
-                            <div className="shop-info-header">
-                                {shopInfo?.shop_logo && (
-                                    <img 
-                                        src={`data:image/png;base64,${shopInfo.shop_logo}`} 
-                                        alt="Shop Logo" 
-                                        className="shop-logo-sheet"
-                                    />
-                                )}
-                                <h2>{shopInfo?.shop_name || 'ข้อมูลร้าน'}</h2>
-                            </div>
                             {infoSheetView === 'details' ? (
                                 <>
                                     <div className="info-sheet-block">
-                                        <div className="info-sheet-row">
-                                            <h3>{orderInfo.plan_name}</h3>
-                                            <span>{new Date(orderInfo.start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</span>
-                                        </div>
-                                        <div className="info-sheet-row">
-                                            <span><FaUser /> {orderInfo.customer_quantity} persons</span>
-                                            <span><Timer startTime={orderInfo.start_time} /></span>
-                                        </div>
+                                        <div className="info-sheet-row"><h3>{orderInfo.plan_name}</h3><span>{new Date(orderInfo.start_time).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</span></div>
+                                        <div className="info-sheet-row"><span><FaUser /> {orderInfo.customer_quantity} ท่าน</span><span><Timer startTime={orderInfo.start_time} /></span></div>
                                     </div>
-                                    <h3 className="terms-title">Terms of Service</h3>
-                                    <p className="terms-text">....................................</p>
-                                    <button className="share-qr-btn" onClick={handleShowQRCode}>
-                                        <FaQrcode /> Share QR Code with Friends
-                                    </button>
+                                    <button className="share-qr-btn" onClick={handleShowQRCode}><FaQrcode /> Share QR Code with Friends</button>
                                 </>
                             ) : (
                                 <div className="qr-code-container">
                                     <h3>โต๊ะ {orderInfo.table_number}</h3>
-                                    <p>สแกน QR Code นี้เพื่อสั่งอาหาร</p>
-                                    {qrCodeDataUrl ? (
-                                        <img src={qrCodeDataUrl} alt="Table QR Code" />
-                                    ) : (
-                                        <p>กำลังสร้าง QR Code...</p>
-                                    )}
+                                    <p>สแกน QR Code นี้เพื่อร่วมสั่งอาหาร</p>
+                                    {qrCodeDataUrl ? <img src={qrCodeDataUrl} alt="QR" /> : <p>กำลังสร้าง...</p>}
                                 </div>
                             )}
                         </div>
@@ -637,25 +429,20 @@ const CustomerOrderPage = () => {
                 </div>
             )}
 
-            {/* Category Sheet */}
+            {/* Category Grid Sheet */}
             {isCategorySheetOpen && (
                 <div className="category-sheet-overlay" onClick={() => setIsCategorySheetOpen(false)}>
-                    <div className="category-sheet-content" style={categoryDrag.style} onClick={(e) => e.stopPropagation()}>
+                    <div className="category-sheet-content" style={categoryDrag.style} onClick={e => e.stopPropagation()}>
                         <div className="category-sheet-header" {...categoryDrag.handlers}>
-                            <div style={{position:'absolute', top:'8px', left:'50%', transform:'translateX(-50%)', width:'40px', height:'4px', backgroundColor:'#e0e0e0', borderRadius:'2px'}}></div>
-                            <h3>ประเภทอาหาร</h3>
-                            <button className="close-sheet-btn" onClick={() => setIsCategorySheetOpen(false)}>
-                                <FaChevronDown />
-                            </button>
+                             <div className="drag-handle" style={{ width: '40px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', margin: '8px auto' }}></div>
+                             <h3>ประเภทอาหาร</h3>
+                             <button className="close-sheet-btn" onClick={() => setIsCategorySheetOpen(false)}><FaChevronDown /></button>
                         </div>
                         <ul className="category-sheet-list">
-                            {categories.map(category => (
-                                <li key={category}>
-                                    <button 
-                                        className={`category-sheet-item ${selectedCategory === category ? 'active' : ''}`}
-                                        onClick={() => handleCategorySelect(category)}
-                                    >
-                                        {category || 'อื่น ๆ'}
+                            {categories.map(cat => (
+                                <li key={cat}>
+                                    <button className={`category-sheet-item ${selectedCategory === cat ? 'active' : ''}`} onClick={() => { setSelectedCategory(cat); setIsCategorySheetOpen(false); }}>
+                                        {cat || 'อื่น ๆ'}
                                     </button>
                                 </li>
                             ))}

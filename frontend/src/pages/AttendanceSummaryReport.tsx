@@ -2,29 +2,18 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { format } from 'date-fns';
-import { th } from 'date-fns/locale'; // Import locale ภาษาไทย
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js'; // Import Chart.js components
-import { Bar } from 'react-chartjs-2'; // Import Bar component
-import { UserCircleIcon, CalendarDaysIcon, ClockIcon } from '@heroicons/react/24/outline'; // Icons
+import { 
+    format, startOfMonth, endOfMonth, startOfDay, endOfDay, subMonths, subDays 
+} from 'date-fns';
+import { th } from 'date-fns/locale'; 
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js'; 
+import { Bar } from 'react-chartjs-2'; 
+import { CalendarDaysIcon, ClockIcon } from '@heroicons/react/24/outline'; 
 
-// ลงทะเบียน Chart.js components ที่จำเป็น
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// URL ของ Backend API
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-// --- Interfaces ---
-// Interface สำหรับข้อมูล User (จาก /api/staff)
-interface User {
-    id: number;
-    username: string;
-    first_name?: string;
-    last_name?: string;
-    nickname?: string;
-}
-
-// Interface สำหรับข้อมูลสรุปที่ได้รับจาก API /api/attendance/summary
 interface AttendanceSummary {
     user_id: number;
     username: string;
@@ -32,258 +21,271 @@ interface AttendanceSummary {
     last_name: string | null;
     nickname: string | null;
     days_worked: number;
-    total_minutes_worked: number; // นาทีรวม (ดิบ)
-    total_time_worked_formatted: string; // รูปแบบ "X ชม. Y นาที"
+    total_minutes_worked: number;
+    total_time_worked_formatted: string;
 }
 
-// --- Component หลัก ---
 const AttendanceSummaryReport = () => {
     // --- States ---
-    const [summaryData, setSummaryData] = useState<AttendanceSummary[]>([]); // ข้อมูลสรุป
-    const [staffList, setStaffList] = useState<User[]>([]); // รายชื่อพนักงาน
-    const [loading, setLoading] = useState(false); // สถานะ Loading
-    const [error, setError] = useState<string | null>(null); // ข้อความ Error
+    const [startDate, setStartDate] = useState(startOfMonth(new Date()));
+    const [endDate, setEndDate] = useState(endOfMonth(new Date()));
+    const [filterMode, setFilterMode] = useState<'today' | 'yesterday' | 'thisMonth' | 'lastMonth' | 'custom'>('thisMonth');
 
-    // --- Filters States ---
-    const [selectedUserId, setSelectedUserId] = useState<string>(''); // ID พนักงานที่เลือก
-    // Default วันที่เริ่มเป็นวันแรกของเดือนปัจจุบัน
-    const [startDate, setStartDate] = useState(() => {
+    const [summaryData, setSummaryData] = useState<AttendanceSummary[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // --- Smart Filter Logic ---
+    const handleSmartFilter = (mode: 'today' | 'yesterday' | 'thisMonth' | 'lastMonth') => {
         const now = new Date();
-        return new Date(now.getFullYear(), now.getMonth(), 1);
-    });
-    const [endDate, setEndDate] = useState(new Date()); // Default วันที่สิ้นสุดเป็นวันนี้
+        let start = new Date();
+        let end = new Date();
 
-    // --- 1. Fetch รายชื่อพนักงาน (สำหรับ Filter Dropdown) ---
-    useEffect(() => {
-        const fetchStaff = async () => {
-            try {
-                // *** สำคัญ: ต้องใส่ Header Authentication ที่ตรงกับ Backend ***
-                const adminUserId = localStorage.getItem('userId');
-                if (!adminUserId) {
-                    console.warn("AttendanceSummaryReport: Admin User ID not found for fetching staff list.");
-                    return;
-                }
-                const response = await axios.get<User[]>(`${apiUrl}/api/staff`, {
-                    headers: { 'x-user-id': adminUserId } // <<< ตัวอย่าง Header
-                    // headers: { 'Authorization': `Bearer ${yourAdminToken}` } // <<< ตัวอย่าง Token
-                });
-                setStaffList(response.data);
-            } catch (err) {
-                console.error("Error fetching staff list for summary:", err);
-            }
-        };
-        fetchStaff();
-    }, []); // ทำงานครั้งเดียว
-
-    // --- 2. Fetch ข้อมูลสรุปตาม Filter ---
-    useEffect(() => {
-        const fetchSummaryData = async () => {
-            if (!startDate || !endDate) {
-                setError("กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด");
-                return;
-            }
-            setLoading(true);
-            setError(null);
-            try {
-                const params: { [key: string]: string } = {
-                    startDate: format(startDate, 'yyyy-MM-dd'),
-                    endDate: format(endDate, 'yyyy-MM-dd'),
-                };
-                if (selectedUserId) params.userId = selectedUserId;
-
-                const adminUserId = localStorage.getItem('userId');
-                if (!adminUserId) {
-                    setError("ไม่พบข้อมูล Admin User ID ใน localStorage");
-                    setLoading(false);
-                    return;
-                }
-
-                // เรียก API /api/attendance/summary
-                const response = await axios.get<AttendanceSummary[]>(`${apiUrl}/api/attendance/summary`, {
-                    params,
-                    headers: { 'x-user-id': adminUserId } // <<< ตัวอย่าง Header
-                    // headers: { 'Authorization': `Bearer ${yourAdminToken}` } // <<< ตัวอย่าง Token
-                });
-                setSummaryData(response.data);
-
-            } catch (err: any) {
-                console.error("Error fetching attendance summary:", err);
-                setError(err.response?.data?.error || "ไม่สามารถดึงข้อมูลสรุปการลงเวลาได้");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSummaryData();
-    }, [selectedUserId, startDate, endDate]); // ทำงานใหม่เมื่อ Filter เปลี่ยน
-
-    // --- 3. Helper แสดงชื่อพนักงาน ---
-    const getDisplayName = (user: AttendanceSummary | User): string => {
-        return user.nickname || user.first_name || user.username || `User ID: ${'user_id' in user ? user.user_id : user.id}`;
+        switch (mode) {
+            case 'today':
+                start = startOfDay(now);
+                end = endOfDay(now);
+                break;
+            case 'yesterday':
+                const yesterday = subDays(now, 1);
+                start = startOfDay(yesterday);
+                end = endOfDay(yesterday);
+                break;
+            case 'thisMonth':
+                start = startOfMonth(now);
+                end = endOfMonth(now);
+                break;
+            case 'lastMonth':
+                const lastMonth = subMonths(now, 1);
+                start = startOfMonth(lastMonth);
+                end = endOfMonth(lastMonth);
+                break;
+        }
+        setStartDate(start);
+        setEndDate(end);
+        setFilterMode(mode);
     };
 
-    // --- 4. ✨ เตรียมข้อมูลสำหรับกราฟ ✨ ---
-    const chartData = useMemo(() => {
-        // เรียงข้อมูลตามชั่วโมงทำงาน (มากไปน้อย) สำหรับกราฟ
-        const sortedSummary = [...summaryData].sort((a, b) => b.total_minutes_worked - a.total_minutes_worked);
+    const handleDateChange = (dates: [Date | null, Date | null]) => {
+        const [start, end] = dates;
+        setStartDate(start || new Date());
+        setEndDate(end || new Date());
+        setFilterMode('custom');
+    };
 
+    // --- Fetch Data ---
+    const fetchSummary = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const formattedStart = format(startDate, 'yyyy-MM-dd HH:mm:ss');
+            const formattedEnd = format(endDate || startDate, 'yyyy-MM-dd HH:mm:ss');
+            
+            const response = await axios.get(`${apiUrl}/api/attendance/summary`, {
+                params: { startDate: formattedStart, endDate: formattedEnd }
+            });
+            setSummaryData(response.data);
+        } catch (err) {
+            console.error("Error fetching summary:", err);
+            setError("ไม่สามารถโหลดข้อมูลสรุปได้");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (startDate && endDate) {
+            fetchSummary();
+        }
+    }, [startDate, endDate]);
+
+    // --- Helper for Display Name ---
+    const getDisplayName = (user: AttendanceSummary) => {
+        if (user.nickname) return `${user.first_name || user.username} (${user.nickname})`;
+        if (user.first_name) return `${user.first_name} ${user.last_name || ''}`;
+        return user.username;
+    };
+
+    // --- Chart Data ---
+    const chartData = useMemo(() => {
         return {
-            labels: sortedSummary.map(getDisplayName), // ชื่อพนักงาน
+            labels: summaryData.map(item => item.nickname || item.username),
             datasets: [
                 {
-                    label: 'รวมเวลาทำงาน (นาที)', // ชื่อ dataset
-                    data: sortedSummary.map(item => item.total_minutes_worked), // ใช้ข้อมูลนาทีดิบ
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)', // สีแท่งกราฟ (เขียวอมฟ้า)
-                    borderColor: 'rgba(75, 192, 192, 1)',
+                    label: 'วันทำงาน (วัน)',
+                    data: summaryData.map(item => item.days_worked),
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)', // Blue
+                    borderColor: 'rgb(59, 130, 246)',
                     borderWidth: 1,
+                    yAxisID: 'y',
+                },
+                {
+                    label: 'ชั่วโมงทำงานรวม (ชม.)',
+                    data: summaryData.map(item => Number((item.total_minutes_worked / 60).toFixed(1))),
+                    backgroundColor: 'rgba(16, 185, 129, 0.6)', // Green
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 1,
+                    yAxisID: 'y1',
                 },
             ],
         };
-    }, [summaryData]); // คำนวณใหม่เมื่อ summaryData เปลี่ยน
+    }, [summaryData]);
 
-    // --- 5. ✨ ตั้งค่า Options สำหรับกราฟ ✨ ---
     const chartOptions = {
-        indexAxis: 'y' as const, // ทำให้เป็นกราฟแท่งแนวนอน
         responsive: true,
-        maintainAspectRatio: false, // สำคัญ: เพื่อให้กำหนดความสูงของกราฟได้
+        maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: false, // ซ่อน legend ถ้ามีแค่ dataset เดียว
-            },
-            title: {
-                display: true,
-                text: 'สรุปชั่วโมงทำงาน (เรียงตามนาทีรวม)', // หัวข้อกราฟ
-                font: { size: 16 } // ขนาด Font หัวข้อ (ปรับได้)
-            },
-            tooltip: { // ปรับแต่งข้อความตอน Hover
-                callbacks: {
-                    label: function(context: any) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.x !== null) {
-                            // แปลงนาทีกลับเป็น "X ชม. Y นาที" สำหรับ Tooltip
-                            const totalMinutes = context.parsed.x;
-                            const hours = Math.floor(totalMinutes / 60);
-                            const minutes = totalMinutes % 60;
-                            label += `${hours} ชม. ${minutes} นาที`;
-                        }
-                        return label;
-                    }
-                }
-            }
+            legend: { position: 'top' as const },
+            title: { display: false },
         },
-        scales: { // ตั้งค่าแกน
-            x: { // แกน X (แนวนอน - นาที)
-                beginAtZero: true, // เริ่มที่ 0
-                title: {
-                    display: true,
-                    text: 'นาทีรวม', // ชื่อแกน X
-                },
+        scales: {
+            y: {
+                type: 'linear' as const,
+                display: true,
+                position: 'left' as const,
+                title: { display: true, text: 'วัน' },
+                beginAtZero: true,
             },
-            y: { // แกน Y (แนวตั้ง - ชื่อพนักงาน)
-                 ticks: {
-                    autoSkip: false // พยายามแสดงชื่อทุกคน (อาจต้องเลื่อนถ้าเยอะมาก)
-                }
-            }
+            y1: {
+                type: 'linear' as const,
+                display: true,
+                position: 'right' as const,
+                title: { display: true, text: 'ชั่วโมง' },
+                grid: { drawOnChartArea: false },
+                beginAtZero: true,
+            },
         },
     };
 
-
-    // --- 6. Render Component ---
     return (
-        <div className="p-4 sm:p-6 space-y-6 bg-gray-50 min-h-screen">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">สรุปรายงานการลงเวลาทำงาน</h1>
+        <div className="p-4 sm:p-8 bg-gray-50 min-h-screen font-sans">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                📊 สรุปเวลาทำงานพนักงาน
+            </h1>
 
-            {/* --- Filter Section --- */}
-            <div className="p-4 bg-white rounded-lg shadow-md flex flex-col sm:flex-row flex-wrap items-end gap-4">
-                 {/* Staff Filter */}
-                 <div className="w-full sm:w-auto flex-grow sm:flex-grow-0">
-                    <label htmlFor="userFilter" className="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
-                    <select id="userFilter" value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value)} className="input-field w-full sm:min-w-[200px]">
-                        <option value="">-- พนักงานทั้งหมด --</option>
-                        {staffList.map(staff => (<option key={staff.id} value={staff.id}>{getDisplayName(staff)}</option>))}
-                    </select>
-                </div>
-                 {/* Date Filters */}
-                 <div className="w-full sm:w-auto">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ตั้งแต่วันที่</label>
-                    <DatePicker selected={startDate} onChange={(date: Date | null) => setStartDate(date || new Date())} selectsStart startDate={startDate} endDate={endDate} dateFormat="dd/MM/yyyy" className="input-field w-full" required/>
-                </div>
-                <div className="w-full sm:w-auto">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ถึงวันที่</label>
-                    <DatePicker selected={endDate} onChange={(date: Date | null) => setEndDate(date || startDate)} selectsEnd startDate={startDate} endDate={endDate} minDate={startDate} dateFormat="dd/MM/yyyy" className="input-field w-full" required/>
+            {/* --- Smart Filter Bar --- */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
+                <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                    
+                    {/* ปุ่มเลือกช่วงเวลาด่วน */}
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { label: 'วันนี้', value: 'today' },
+                            { label: 'เมื่อวาน', value: 'yesterday' },
+                            { label: 'เดือนนี้', value: 'thisMonth' },
+                            { label: 'เดือนที่แล้ว', value: 'lastMonth' }
+                        ].map((btn) => (
+                            <button
+                                key={btn.value}
+                                onClick={() => handleSmartFilter(btn.value as any)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
+                                    filterMode === btn.value
+                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                }`}
+                            >
+                                {btn.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* เลือกวันที่แบบกำหนดเอง */}
+                    <div className="relative w-full lg:w-auto">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <CalendarDaysIcon className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <DatePicker
+                            selectsRange={true}
+                            startDate={startDate}
+                            endDate={endDate}
+                            onChange={handleDateChange}
+                            dateFormat="dd/MM/yyyy"
+                            locale={th}
+                            className={`pl-10 w-full lg:w-64 p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none ${
+                                filterMode === 'custom' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300'
+                            }`}
+                            placeholderText="เลือกช่วงวันที่"
+                        />
+                    </div>
                 </div>
             </div>
 
-            {/* --- Loading / Error --- */}
-            {loading && <div className="text-center p-6 text-blue-600">กำลังโหลดข้อมูลสรุป...</div>}
-            {error && <div className="text-center p-6 text-red-600 bg-red-100 border border-red-400 rounded">{error}</div>}
-
-            {/* --- ✨ Chart Section ✨ --- */}
-            {!loading && !error && summaryData.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-4 h-[400px] md:h-[500px] lg:h-[600px]"> {/* กำหนดความสูงของ Chart Container */}
-                    {/* <h2 className="text-xl font-semibold mb-4 text-center text-gray-700">กราฟสรุปเวลาทำงาน</h2> */} {/* หัวข้ออยู่ใน Chart Options แล้ว */}
-                    <Bar options={chartOptions} data={chartData} />
+            {/* --- Content --- */}
+            {loading ? (
+                <div className="text-center py-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">กำลังประมวลผลข้อมูล...</p>
                 </div>
-            )}
-             {/* --- End Chart Section --- */}
+            ) : error ? (
+                <div className="p-6 bg-red-50 text-red-600 rounded-lg text-center border border-red-200">
+                    {error}
+                </div>
+            ) : (
+                <div className="space-y-6 animate-fade-in-up">
+                    
+                    {/* กราฟ */}
+                    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h2 className="text-lg font-bold text-gray-700 mb-4">กราฟเปรียบเทียบการทำงาน</h2>
+                        <div className="h-64 sm:h-80 w-full">
+                            {summaryData.length > 0 ? (
+                                <Bar data={chartData} options={chartOptions} />
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-lg">
+                                    ไม่มีข้อมูลแสดงกราฟ
+                                </div>
+                            )}
+                        </div>
+                    </div>
 
-            {/* --- Summary Table --- */}
-            {!loading && !error && (
-                <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                    <h2 className="text-xl font-semibold p-4 border-b text-gray-700">ตารางสรุปผล</h2> {/* เพิ่มหัวข้อตาราง */}
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                        <UserCircleIcon className="w-4 h-4 inline-block mr-1 text-gray-400"/>
-                                        ชื่อพนักงาน
-                                    </th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                        <CalendarDaysIcon className="w-4 h-4 inline-block mr-1 text-gray-400"/>
-                                        จำนวนวันทำงาน
-                                    </th>
-                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                        <ClockIcon className="w-4 h-4 inline-block mr-1 text-gray-400"/>
-                                        เวลารวมโดยประมาณ
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {summaryData.length === 0 ? (
+                    {/* ตารางข้อมูล */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                            <h2 className="text-lg font-bold text-gray-800">รายละเอียดรายบุคคล</h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
                                     <tr>
-                                        <td colSpan={3} className="px-6 py-6 text-center text-gray-500 italic">
-                                            ไม่พบข้อมูลสรุปในช่วงวันที่และเงื่อนไขที่เลือก
-                                        </td>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">พนักงาน</th>
+                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                            <div className="flex items-center justify-center gap-1"><CalendarDaysIcon className="w-4 h-4"/> วันทำงาน</div>
+                                        </th>
+                                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                            <div className="flex items-center justify-center gap-1"><ClockIcon className="w-4 h-4"/> เวลารวม</div>
+                                        </th>
                                     </tr>
-                                ) : (
-                                    summaryData.map(summary => (
-                                        <tr key={summary.user_id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {getDisplayName(summary)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700">
-                                                {summary.days_worked} วัน
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-800 font-semibold">
-                                                {summary.total_time_worked_formatted}
-                                                {/* (Optional) แสดงนาทีรวมในวงเล็บ */}
-                                                {/* <span className="text-xs text-gray-500 ml-1">({summary.total_minutes_worked} นาที)</span> */}
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {summaryData.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={3} className="px-6 py-10 text-center text-gray-400">
+                                                ไม่พบข้อมูลในช่วงเวลานี้
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        summaryData.map((summary) => (
+                                            <tr key={summary.user_id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                                                        {summary.username.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    {getDisplayName(summary)}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700">
+                                                    <span className="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs font-bold">
+                                                        {summary.days_worked} วัน
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-800 font-semibold">
+                                                    {summary.total_time_worked_formatted}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                     {/* Footer ตาราง (Optional) */}
-                     {summaryData.length > 0 && (
-                        <div className="px-6 py-3 bg-gray-50 text-right text-sm font-semibold text-gray-700 border-t">
-                            รวม {summaryData.length} รายการ
-                         </div>
-                    )}
                 </div>
             )}
         </div>

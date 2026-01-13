@@ -2,8 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { format, parseISO, differenceInMinutes } from 'date-fns';
+import { 
+    format, parseISO, differenceInMinutes, 
+    startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths 
+} from 'date-fns';
 import { th } from 'date-fns/locale';
+import { FunnelIcon, CalendarIcon } from '@heroicons/react/24/outline'; // เพิ่ม Icon
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -18,11 +22,10 @@ interface User {
 interface AttendanceRecord {
     attendance_id: number;
     user_id: number;
-    clock_in_time: string; // ISO String
-    clock_out_time: string | null; // ISO String or null
-    date: string; // YYYY-MM-DD
+    clock_in_time: string;
+    clock_out_time: string | null;
+    date: string;
     notes: string | null;
-    // Fields from JOIN with users
     username: string;
     first_name?: string;
     last_name?: string;
@@ -30,218 +33,280 @@ interface AttendanceRecord {
 }
 
 const AttendanceReport = () => {
+    // --- States ---
+    // เริ่มต้นที่ "วันนี้"
+    const [startDate, setStartDate] = useState(startOfDay(new Date()));
+    const [endDate, setEndDate] = useState(endOfDay(new Date()));
+    const [filterMode, setFilterMode] = useState<'today' | 'yesterday' | 'thisMonth' | 'lastMonth' | 'custom'>('today');
+
     const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
     const [staffList, setStaffList] = useState<User[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    // Filters
     const [selectedUserId, setSelectedUserId] = useState<string>(''); 
-    const [startDate, setStartDate] = useState(new Date());
-    const [endDate, setEndDate] = useState(new Date());
 
-    // --- Fetch Staff List for Filter Dropdown ---
+    // --- Smart Filter Logic ---
+    const handleSmartFilter = (mode: 'today' | 'yesterday' | 'thisMonth' | 'lastMonth') => {
+        const now = new Date();
+        let start = new Date();
+        let end = new Date();
+
+        switch (mode) {
+            case 'today':
+                start = startOfDay(now);
+                end = endOfDay(now);
+                break;
+            case 'yesterday':
+                const yesterday = subDays(now, 1);
+                start = startOfDay(yesterday);
+                end = endOfDay(yesterday);
+                break;
+            case 'thisMonth':
+                start = startOfMonth(now);
+                end = endOfMonth(now);
+                break;
+            case 'lastMonth':
+                const lastMonth = subMonths(now, 1);
+                start = startOfMonth(lastMonth);
+                end = endOfMonth(lastMonth);
+                break;
+        }
+        setStartDate(start);
+        setEndDate(end);
+        setFilterMode(mode);
+    };
+
+    const handleDateChange = (dates: [Date | null, Date | null]) => {
+        const [start, end] = dates;
+        setStartDate(start || new Date());
+        setEndDate(end || new Date());
+        setFilterMode('custom'); // เปลี่ยนเป็นโหมดกำหนดเองเมื่อมีการเลือกวันที่
+    };
+
+    // --- Fetch Data ---
+    const fetchData = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const formattedStart = format(startDate, 'yyyy-MM-dd HH:mm:ss');
+            // ถ้า endDate ยังไม่เลือก ให้ใช้ startDate ไปก่อน
+            const formattedEnd = format(endDate || startDate, 'yyyy-MM-dd HH:mm:ss');
+
+            let url = `${apiUrl}/api/attendance?startDate=${formattedStart}&endDate=${formattedEnd}`;
+            if (selectedUserId) {
+                url += `&userId=${selectedUserId}`;
+            }
+
+            const response = await axios.get(url);
+            setAttendanceData(response.data);
+        } catch (err) {
+            console.error("Error fetching attendance:", err);
+            setError("ไม่สามารถโหลดข้อมูลได้");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // โหลดรายชื่อพนักงานครั้งแรก
     useEffect(() => {
         const fetchStaff = async () => {
             try {
-                const adminUserId = localStorage.getItem('userId');
-                const response = await axios.get<User[]>(`${apiUrl}/api/staff`, { 
-                    headers: { 'x-user-id': adminUserId || '' }
-                });
-                setStaffList(response.data);
+                const res = await axios.get(`${apiUrl}/api/staff`);
+                setStaffList(res.data);
             } catch (err) {
-                console.error("Error fetching staff list:", err);
+                console.error("Error fetching staff:", err);
             }
         };
         fetchStaff();
     }, []);
 
-    // --- Fetch Attendance Data based on Filters ---
+    // โหลดข้อมูลเมื่อ Filter เปลี่ยน
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const params: { [key: string]: string } = {};
-                if (selectedUserId) params.userId = selectedUserId;
-                if (startDate) params.startDate = format(startDate, 'yyyy-MM-dd');
-                if (endDate) params.endDate = format(endDate, 'yyyy-MM-dd');
-
-                const adminUserId = localStorage.getItem('userId');
-                if (!adminUserId) {
-                    setError("ไม่พบข้อมูล Admin User ID ใน localStorage");
-                    setLoading(false);
-                    return; 
-                }
-
-                const response = await axios.get<AttendanceRecord[]>(`${apiUrl}/api/attendance`, {
-                    params,
-                    headers: {
-                        'x-user-id': adminUserId 
-                    }
-                });
-                setAttendanceData(response.data);
-            } catch (err: any) { 
-                console.error("Error fetching attendance report:", err);
-                setError(err.response?.data?.error || "ไม่สามารถดึงข้อมูลรายงานการลงเวลาได้");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, [selectedUserId, startDate, endDate]); 
-
-    // --- Calculate Work Duration ---
-    const calculateDuration = (start: string, end: string | null): string => {
-        if (!end) return '-';
-        try {
-            const startTime = parseISO(start);
-            const endTime = parseISO(end);
-            const minutes = differenceInMinutes(endTime, startTime);
-            if (minutes < 0) return 'N/A'; 
-            const hours = Math.floor(minutes / 60);
-            const remainingMinutes = minutes % 60;
-            return `${hours} ชม. ${remainingMinutes} นาที`;
-        } catch {
-            return 'N/A';
+        if (startDate && endDate) {
+            fetchData();
         }
+    }, [startDate, endDate, selectedUserId]);
+
+    // --- Helper Functions ---
+    const calculateDuration = (start: string, end: string | null) => {
+        if (!end) return 'ยังไม่เลิกงาน';
+        const minutes = differenceInMinutes(parseISO(end), parseISO(start));
+        const hrs = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hrs} ชม. ${mins} นาที`;
     };
 
-     // --- Group data by date for better display ---
-     const groupedData = useMemo(() => {
-        return attendanceData.reduce((acc, record) => {
-            const dateStr = format(parseISO(record.date), 'yyyy-MM-dd'); //
-            if (!acc[dateStr]) {
-                acc[dateStr] = [];
-            }
-            acc[dateStr].push(record);
-            return acc;
-        }, {} as { [key: string]: AttendanceRecord[] });
-     }, [attendanceData]);
-
-     const sortedDates = useMemo(() => Object.keys(groupedData).sort().reverse(), [groupedData]);
-
+    // จัดกลุ่มข้อมูลตามวันที่
+    const groupedData = useMemo(() => {
+        const groups: { [key: string]: AttendanceRecord[] } = {};
+        attendanceData.forEach(record => {
+            const dateKey = record.date;
+            if (!groups[dateKey]) groups[dateKey] = [];
+            groups[dateKey].push(record);
+        });
+        // Sort วันที่ล่าสุดขึ้นก่อน
+        return Object.entries(groups).sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
+    }, [attendanceData]);
 
     return (
-        <div className="p-4 sm:p-6 space-y-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">รายงานการลงเวลาทำงาน</h1>
+        <div className="p-4 sm:p-8 bg-gray-50 min-h-screen font-sans">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2">
+                    🕒 รายงานการเข้างาน
+                </h1>
+            </div>
 
-            {/* Filters (คงเดิม) */}
-            <div className="p-4 bg-white rounded-lg shadow-md flex flex-col sm:flex-row flex-wrap items-center gap-4">
-                 <div className="w-full sm:w-auto">
-                    <label htmlFor="userFilter" className="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
-                    <select
-                        id="userFilter"
-                        value={selectedUserId}
-                        onChange={(e) => setSelectedUserId(e.target.value)}
-                        className="input-field w-full sm:w-48" 
-                    >
-                        <option value="">-- ทั้งหมด --</option>
-                        {staffList.map(staff => (
-                            <option key={staff.id} value={staff.id}>
-                                {staff.nickname || staff.first_name || staff.username}
-                            </option>
+            {/* --- Smart Filter Bar --- */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
+                <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                    
+                    {/* ปุ่มเลือกช่วงเวลาด่วน */}
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { label: 'วันนี้', value: 'today' },
+                            { label: 'เมื่อวาน', value: 'yesterday' },
+                            { label: 'เดือนนี้', value: 'thisMonth' },
+                            { label: 'เดือนที่แล้ว', value: 'lastMonth' }
+                        ].map((btn) => (
+                            <button
+                                key={btn.value}
+                                onClick={() => handleSmartFilter(btn.value as any)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border ${
+                                    filterMode === btn.value
+                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                }`}
+                            >
+                                {btn.label}
+                            </button>
                         ))}
-                    </select>
-                </div>
-                 <div className="w-full sm:w-auto">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ตั้งแต่</label>
-                    <DatePicker
-                        selected={startDate}
-                        onChange={(date: Date | null) => setStartDate(date || new Date())}
-                        selectsStart
-                        startDate={startDate}
-                        endDate={endDate}
-                        dateFormat="dd/MM/yyyy"
-                        className="input-field w-full"
-                    />
-                </div>
-                <div className="w-full sm:w-auto">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ถึง</label>
-                    <DatePicker
-                        selected={endDate}
-                        onChange={(date: Date | null) => setEndDate(date || startDate)}
-                        selectsEnd
-                        startDate={startDate}
-                        endDate={endDate}
-                        minDate={startDate}
-                        dateFormat="dd/MM/yyyy"
-                        className="input-field w-full"
-                    />
+                    </div>
+
+                    {/* ส่วนเลือกวันที่และพนักงาน */}
+                    <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                        {/* เลือกวันที่แบบกำหนดเอง */}
+                        <div className="relative w-full sm:w-auto">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <CalendarIcon className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <DatePicker
+                                selectsRange={true}
+                                startDate={startDate}
+                                endDate={endDate}
+                                onChange={handleDateChange}
+                                dateFormat="dd/MM/yyyy"
+                                locale={th}
+                                className={`pl-10 w-full sm:w-64 p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none ${
+                                    filterMode === 'custom' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300'
+                                }`}
+                                placeholderText="เลือกช่วงวันที่"
+                            />
+                        </div>
+
+                        {/* Dropdown เลือกพนักงาน */}
+                        <div className="relative w-full sm:w-auto">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FunnelIcon className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <select
+                                value={selectedUserId}
+                                onChange={(e) => setSelectedUserId(e.target.value)}
+                                className="pl-10 w-full sm:w-48 p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                            >
+                                <option value="">พนักงานทั้งหมด</option>
+                                {staffList.map(staff => (
+                                    <option key={staff.id} value={staff.id}>
+                                        {staff.nickname || staff.username}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Loading/Error State (คงเดิม) */}
-            {loading && <div className="text-center p-6">กำลังโหลดข้อมูล...</div>}
-            {error && <div className="text-center p-6 text-red-500 bg-red-100 border border-red-400 rounded">{error}</div>}
-
-            {/* Attendance Table - Grouped by Date */}
-            {!loading && !error && (
+            {/* --- Content --- */}
+            {loading ? (
+                <div className="text-center py-20">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">กำลังโหลดข้อมูล...</p>
+                </div>
+            ) : error ? (
+                <div className="text-center py-20 text-red-500 bg-white rounded-lg shadow p-8">
+                    <p className="text-lg font-semibold">⚠️ {error}</p>
+                    <button onClick={fetchData} className="mt-4 px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200">ลองใหม่</button>
+                </div>
+            ) : attendanceData.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-lg shadow border border-gray-200">
+                    <p className="text-gray-400 text-lg">ไม่พบข้อมูลการเข้างานในช่วงเวลานี้</p>
+                </div>
+            ) : (
                  <div className="space-y-6">
-                    {sortedDates.length === 0 && <p className="text-center text-gray-500 py-6">ไม่พบข้อมูลการลงเวลาในช่วงที่เลือก</p>}
-                    {sortedDates.map(date => (
-                        // ลบ overflow-hidden ออก (ตามที่คุยกันครั้งก่อน)
-                        <div key={date} className="bg-white rounded-lg shadow-md">
-                             <h2 className="p-3 bg-gray-100 text-lg font-semibold text-gray-700 border-b">
-                                {format(parseISO(date), 'EEEE dd MMMM yyyy', { locale: th })}
-                             </h2>
-                             {/* overflow-x-auto ยังจำเป็นเผื่อจอเล็กมากๆ หรือชื่อพนักงานยาวมาก */}
-                             <div className="overflow-x-auto">
+                     {groupedData.map(([date, records]) => (
+                        <div key={date} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex justify-between items-center">
+                                <h3 className="font-bold text-gray-700 flex items-center gap-2">
+                                    📅 {format(parseISO(date), 'd MMMM yyyy', { locale: th })}
+                                </h3>
+                                <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                    {records.length} รายการ
+                                </span>
+                            </div>
+                            <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            {/* ✅ 1. หัวตาราง: ซ่อน 4 อันหลังบนมือถือ */}
                                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">พนักงาน</th>
                                             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">เวลาเข้า</th>
                                             <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">เวลาออก</th>
-                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">รวมเวลาทำงาน</th>
+                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">ระยะเวลา</th>
                                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">หมายเหตุ</th>
+                                            {/* Mobile View Header */}
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider md:hidden">รายละเอียด</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {groupedData[date].map(record => (
-                                            <tr key={record.attendance_id}>
-                                                
-                                                {/* ✅ 2. เซลล์พนักงาน: แสดงข้อมูลทั้งหมดในนี้ */}
-                                                <td className="px-4 py-3 whitespace-normal text-sm">
-                                                    {/* ชื่อ (แสดงตลอด) */}
-                                                    <div className="font-medium text-gray-900">
-                                                        {record.nickname || record.first_name || record.username}
-                                                    </div>
-                                                    
-                                                    {/* (ใหม่) ข้อมูลที่เหลือ (แสดงเฉพาะบนมือถือ) */}
-                                                    <div className="md:hidden mt-2 text-gray-700 space-y-1 text-xs">
-                                                        <div className="flex justify-between">
-                                                            <span className="font-medium text-gray-500">เวลาเข้า:</span>
-                                                            <span>{format(parseISO(record.clock_in_time), 'HH:mm:ss น.')}</span>
+                                        {records.map((record) => (
+                                            <tr key={record.attendance_id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm mr-3">
+                                                            {(record.nickname || record.username).charAt(0).toUpperCase()}
                                                         </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="font-medium text-gray-500">เวลาออก:</span>
-                                                            <span>{record.clock_out_time ? format(parseISO(record.clock_out_time), 'HH:mm:ss น.') : '-'}</span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="font-medium text-gray-500">รวมเวลา:</span>
-                                                            <span className="font-bold">{calculateDuration(record.clock_in_time, record.clock_out_time)}</span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="font-medium text-gray-500">หมายเหตุ:</span>
-                                                            <span className="truncate">{record.notes || '-'}</span>
+                                                        <div>
+                                                            <div className="text-sm font-medium text-gray-900">
+                                                                {record.first_name ? `${record.first_name} ${record.last_name || ''}` : record.username}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">
+                                                                {record.nickname ? `(${record.nickname})` : ''}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                
-                                                {/* ✅ 3. เซลล์ที่เหลือ: ซ่อนบนมือถือ */}
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-700 hidden md:table-cell">
-                                                    {format(parseISO(record.clock_in_time), 'HH:mm:ss น.')}
+                                                {/* Desktop View Columns */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-green-600 font-medium hidden md:table-cell">
+                                                    {format(parseISO(record.clock_in_time), 'HH:mm')} น.
                                                 </td>
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-700 hidden md:table-cell">
-                                                    {record.clock_out_time ? format(parseISO(record.clock_out_time), 'HH:mm:ss น.') : '-'}
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-red-500 font-medium hidden md:table-cell">
+                                                    {record.clock_out_time ? format(parseISO(record.clock_out_time), 'HH:mm') + ' น.' : '-'}
                                                 </td>
                                                 <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-gray-800 font-medium hidden md:table-cell">
                                                     {calculateDuration(record.clock_in_time, record.clock_out_time)}
                                                 </td>
-                                                <td className="px-4 py-3 whitespace-normal text-sm text-gray-500 hidden md:table-cell">
+                                                <td className="px-4 py-3 whitespace-normal text-sm text-gray-500 hidden md:table-cell max-w-xs">
                                                     {record.notes || '-'}
+                                                </td>
+
+                                                {/* Mobile View Column (Combine info) */}
+                                                <td className="px-4 py-3 whitespace-nowrap text-right md:hidden">
+                                                    <div className="text-sm text-gray-900">
+                                                        <span className="text-green-600">{format(parseISO(record.clock_in_time), 'HH:mm')}</span> 
+                                                        {' - '}
+                                                        <span className="text-red-500">{record.clock_out_time ? format(parseISO(record.clock_out_time), 'HH:mm') : '...'}</span>
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {calculateDuration(record.clock_in_time, record.clock_out_time)}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

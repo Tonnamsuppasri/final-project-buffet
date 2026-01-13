@@ -16,7 +16,7 @@ body {
     letter-spacing: -0.5px;
 }
 
-/* --- Table Card (ดีไซน์ใหม่ทั้งหมด) --- */
+/* --- Table Card --- */
 .table-card {
     border-radius: 1rem;
     padding: 1.25rem;
@@ -35,7 +35,6 @@ body {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
 }
 
-/* --- ส่วนหัวของการ์ด --- */
 .table-card-header {
     width: 100%;
     display: flex;
@@ -60,7 +59,6 @@ body {
     color: rgba(255, 255, 255, 0.85);
 }
 
-/* Timer (ปรับสไตล์ใหม่) */
 .table-timer {
     background-color: rgba(0, 0, 0, 0.2);
     font-family: 'Courier New', Courier, monospace;
@@ -71,7 +69,6 @@ body {
     letter-spacing: 1px;
 }
 
-/* --- ส่วนท้ายของการ์ด --- */
 .table-card-footer {
     width: 100%;
     display: flex;
@@ -79,7 +76,6 @@ body {
     gap: 0.75rem;
 }
 
-/* --- Service Type Selector (สไตล์ใหม่) --- */
 .service-type-selector {
     display: flex;
     gap: 0.6rem;
@@ -98,7 +94,6 @@ body {
     transition: all 0.2s ease;
 }
 
-/* สไตล์ตอนที่ Active (ถูกเลือก) */
 .service-type-btn.active {
     background-color: white;
     color: #333;
@@ -106,27 +101,25 @@ body {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* แก้สีตัวหนังสือตามสีพื้นหลังของการ์ด */
-.bg-red-500 .service-type-btn.active {
-    color: #ef4444;
-}
+.bg-red-500 .service-type-btn.active { color: #ef4444; }
+.bg-green-500 .service-type-btn.active { color: #10b981; }
 
-.bg-green-500 .service-type-btn.active {
-    color: #10b981;
-}
-
-/* สไตล์ตอนที่ไม่ถูกเลือก (Inactive) */
 .service-type-btn.inactive {
     background-color: transparent;
     color: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-/* Check Bill Button (เปลี่ยนชื่อและปรับสไตล์) */
-.check-bill-button {
+.table-card-actions {
+    display: flex;
+    gap: 0.75rem;
     width: 100%;
-    background-color: #2dd4bf;
-    color: white;
+}
+
+.check-bill-button,
+.cancel-order-button {
+    flex: 1;
+    width: 100%;
     padding: 0.75rem;
     border-radius: 0.5rem;
     font-weight: 600;
@@ -138,22 +131,45 @@ body {
     transition: all 0.2s ease;
 }
 
+.check-bill-button {
+    background-color: #2dd4bf;
+    color: white;
+}
+
 .check-bill-button:hover {
     background-color: #14b8a6;
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-/* --- สีพื้นหลังของการ์ด --- */
-.bg-green-500 {
-    background-color: #10b981;
+.cancel-order-button {
+    background-color: #4b5563;
+    color: white;
 }
 
-.bg-red-500 {
-    background-color: #ef4444;
+.cancel-order-button:hover {
+    background-color: #374151;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-/* --- Open Table Form View --- */
+.table-card-call-to-action {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    padding-top: 1rem;
+    animation: pulse 2.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.98); }
+}
+
+.bg-green-500 { background-color: #10b981; }
+.bg-red-500 { background-color: #ef4444; }
+
 .open-table-form-container {
     max-width: 36rem;
     margin: 3rem auto;
@@ -193,7 +209,6 @@ body {
     transform: translateY(-1px);
 }
 
-/* --- General Button Styles --- */
 .btn-primary {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
@@ -213,10 +228,6 @@ body {
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4), 0 4px 8px rgba(59, 130, 246, 0.3);
 }
 
-.btn-primary:active {
-    transform: translateY(0);
-}
-
 .btn-secondary {
     background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
     color: white;
@@ -230,1071 +241,190 @@ body {
     box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3), 0 2px 4px rgba(107, 114, 128, 0.2);
 }
 
+.qr-overlay {
+    display: flex !important;
+    align-items: center !important;     /* กึ่งกลางแนวตั้ง */
+    justify-content: center !important; /* กึ่งกลางแนวนอน */
+    padding: 0 !important;
+}
+
+/* 2. บังคับขนาดกล่อง QR ไม่ให้ยืดเต็มจอ */
+.qr-modal-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    
+    /* สำคัญ: กำหนดความกว้างให้พอดี ไม่ให้ยืด */
+    width: auto !important; 
+    min-width: 320px !important;
+    max-width: 400px !important; /* ล็อคความกว้างสูงสุดไว้แค่นี้ พอดีคำ */
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* ปรับขนาดรูป QR ในจอคอมให้ใหญ่ชัดเจน */
+.qr-modal-container img {
+    width: 220px !important;
+    height: 220px !important;
+    object-fit: contain;
+}
+
 .btn-secondary:hover {
     background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(107, 114, 128, 0.4), 0 4px 8px rgba(107, 114, 128, 0.3);
 }
 
-.btn-secondary:active {
-    transform: translateY(0);
-}
-
-/* --- Animation for the form --- */
 @keyframes slide-up {
-    from {
-        opacity: 0;
-        transform: translateY(30px) scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* --- Styles for QR Code / Order Details Modal --- */
-.modal-qr-details {
-    animation: modal-appear 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }
 
-@keyframes modal-appear {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* --- Styles for Billing Modal with QR Code --- */
-.custom-swal-container {
-    padding: 0 !important;
-}
-
-.billing-modal-content {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: stretch;
-    gap: 2.5rem;
-    padding: 2rem;
-    text-align: left;
-}
-
-.billing-modal-details,
-.billing-modal-qr {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-}
-
-.billing-modal-qr {
-    align-items: center;
-    border-left: 2px solid #e5e7eb;
-    padding-left: 2.5rem;
-}
-
-.modal-subtitle {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #374151;
-    margin-bottom: 1.25rem;
-    border-bottom: 2px solid #e5e7eb;
-    padding-bottom: 0.75rem;
-    width: 100%;
-    text-align: center;
-}
-
-.billing-modal-details p {
-    margin-bottom: 0.875rem;
-    font-size: 1.05rem;
-    color: #1f2937;
-    line-height: 1.6;
-}
-
-.total-price {
-    font-size: 1.75rem;
-    font-weight: 800;
-    color: #16a34a;
-    margin-top: auto;
-    padding-top: 1.25rem;
-    border-top: 2px solid #e5e7eb;
-}
-
-.billing-modal-qr img {
-    max-width: 240px;
-    height: auto;
-    border: 2px solid #e5e7eb;
-    border-radius: 1rem;
-    padding: 0.75rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* --- Print & Receipt Styles --- */
+/* Print Styles */
 @media print {
-
-    /* ซ่อนทุกอย่างยกเว้นส่วนที่ต้องการพิมพ์ */
-    body * {
-        visibility: hidden !important;
-    }
-
-    /* แสดงเฉพาะส่วนที่ต้องการพิมพ์ */
-    .p-8.bg-white.text-black,
-    .p-8.bg-white.text-black *,
-    .flex.flex-col.items-center.justify-center,
-    .flex.flex-col.items-center.justify-center * {
+    body * { visibility: hidden !important; }
+    .p-8.bg-white.text-black, .p-8.bg-white.text-black *,
+    .flex.flex-col.items-center.justify-center, .flex.flex-col.items-center.justify-center * {
         visibility: visible !important;
     }
-
-    /* จัดตำแหน่งเนื้อหาให้อยู่มุมซ้ายบน */
-    .p-8.bg-white.text-black,
-    .flex.flex-col.items-center.justify-center {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 10mm !important;
+    .p-8.bg-white.text-black, .flex.flex-col.items-center.justify-center {
+        position: absolute !important; left: 0 !important; top: 0 !important;
+        width: 100% !important; margin: 0 !important; padding: 10mm !important;
     }
-
-    /* ตั้งค่าหน้ากระดาษ */
-    @page {
-        size: 80mm auto;
-        margin: 5mm;
-    }
-
-    /* ซ่อน element ที่ไม่ต้องการ */
-    button,
-    .fixed,
-    .bg-gray-900,
-    nav,
-    header {
-        display: none !important;
-    }
-
-    /* ให้ QR Code แสดงผล */
-    img {
-        display: block !important;
-        page-break-inside: avoid !important;
-    }
-}
-
-#printable-bill {
-    display: none;
-}
-
-.receipt-header,
-.receipt-body,
-.receipt-qr,
-.receipt-footer {
-    padding: 10px;
-    text-align: center;
-    color: black;
-    font-family: 'Courier New', Courier, monospace;
-}
-
-.receipt-header h2 {
-    margin: 0;
-    font-size: 16px;
-}
-
-.receipt-body {
-    text-align: left;
-}
-
-.receipt-body hr {
-    border: none;
-    border-top: 1px dashed black;
-    margin: 5px 0;
-}
-
-.receipt-item,
-.receipt-total {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-}
-
-.receipt-total {
-    font-weight: bold;
-    font-size: 14px;
-    margin-top: 5px;
-}
-
-.receipt-qr {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 15px 0;
-}
-
-.receipt-qr p {
-    font-size: 12px;
-    margin-bottom: 10px;
-}
-
-.receipt-qr img {
-    max-width: 150px;
-}
-
-.receipt-footer {
-    font-size: 12px;
-    padding-top: 10px;
-    border-top: 1px solid black;
-}
-
-.receipt-header,
-.receipt-body,
-.receipt-qr,
-.receipt-footer {
-    padding: 10px;
-    text-align: center;
-    color: black;
-    font-family: 'Courier New', Courier, monospace;
-}
-
-.receipt-header h2 {
-    margin: 0;
-    font-size: 16px;
-}
-
-.receipt-body {
-    text-align: left;
-}
-
-.receipt-body hr {
-    border: none;
-    border-top: 1px dashed black;
-    margin: 5px 0;
-}
-
-.receipt-item,
-.receipt-total {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-}
-
-.receipt-total {
-    font-weight: bold;
-    font-size: 14px;
-    margin-top: 5px;
-}
-
-.receipt-qr {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 15px 0;
-}
-
-.receipt-qr p {
-    font-size: 12px;
-    margin-bottom: 10px;
-}
-
-.receipt-qr img {
-    max-width: 150px;
-}
-
-.receipt-footer {
-    font-size: 12px;
-    padding-top: 10px;
-    border-top: 1px solid black;
-}
-
-@media print {
-    body * {
-        visibility: hidden;
-    }
-
-    #printable-bill,
-    #printable-bill * {
-        visibility: visible;
-    }
-
-    #printable-bill {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-    }
-
-    @page {
-        size: 80mm auto;
-        margin: 2mm;
-    }
-}
-
-.table-card-actions {
-    display: flex;
-    gap: 0.75rem;
-    width: 100%;
-}
-
-.check-bill-button,
-.cancel-order-button {
-    flex: 1;
-    width: 100%;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-align: center;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
-}
-
-.cancel-order-button {
-    background-color: #4b5563;
-    color: white;
-}
-
-.cancel-order-button:hover {
-    background-color: #374151;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-}
-
-.table-card-call-to-action {
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
-    padding-top: 1rem;
-    animation: pulse 2.5s infinite ease-in-out;
-}
-
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 0.7;
-        transform: scale(0.98);
-    }
-}
-
-/* --- Payment Method Selector --- */
-.payment-method-selector {
-    margin-top: 1.5rem;
-    margin-bottom: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 2px solid #e5e7eb;
-}
-
-.modal-subtitle-small {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 1rem;
-    text-align: center;
-}
-
-.checkbox-group {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1.05rem;
-    color: #1f2937;
-    cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: 1.15em;
-    height: 1.15em;
-    accent-color: #3b82f6;
+    @page { size: 80mm auto; margin: 5mm; }
+    button, .fixed, .bg-gray-900, nav, header { display: none !important; }
+    img { display: block !important; page-break-inside: avoid !important; }
 }
 
 /* ========================================= */
-/* 📱 TABLET RESPONSIVE (768px - 1024px) */
+/* 💻 NOTEBOOK & SMALL DESKTOP (1024px - 1440px) */
+/* ✅ แก้ไขสำหรับหน้าจอ 1366x768 โดยเฉพาะ */
 /* ========================================= */
-@media (max-width: 1024px) {
-    .app-container {
-        padding: 1.5rem;
+@media (min-width: 1024px) and (max-width: 1440px) {
+    .app-container { padding: 1rem; }
+    
+    /* 1. จัดกึ่งกลางจอเป๊ะๆ (Center Overlays) */
+    .qr-overlay, .billing-overlay {
+        display: flex !important;
+        align-items: center !important; /* จัดกึ่งกลางแนวตั้ง */
+        justify-content: center !important; /* จัดกึ่งกลางแนวนอน */
+        padding: 0 !important; /* ลบ Padding ที่เคยดันลงมา */
     }
 
-    .app-container h1 {
-        font-size: 2rem;
-    }
-
-    .table-card {
-        min-height: 160px;
-    }
-
-    .open-table-form-container {
-        margin: 2rem auto;
+    /* 2. QR Modal: ปรับให้ลอยกลางจอ */
+    .qr-modal-container {
+        background: white;
         padding: 2rem;
-    }
-}
-
-/* ========================================= */
-/* 📱 MOBILE RESPONSIVE (< 768px) */
-/* ========================================= */
-@media (max-width: 768px) {
-    .app-container {
-        padding: 1rem;
-    }
-
-    .app-container h1 {
-        font-size: 1.75rem;
-        text-align: center;
-        margin-bottom: 1.5rem;
-    }
-
-    /* --- Table Card บนมือถือ --- */
-    .table-card {
-        padding: 1rem;
-        min-height: auto;
-    }
-
-    .table-number-main {
-        font-size: 1.75rem;
-    }
-
-    .table-capacity-status {
-        font-size: 0.8rem;
-    }
-
-    .table-timer {
-        font-size: 0.85rem;
-        padding: 0.2rem 0.5rem;
-    }
-
-    /* Service Type Selector บนมือถือ */
-    .service-type-selector {
-        gap: 0.5rem;
-    }
-
-    .service-type-btn {
-        min-width: 75px;
-        padding: 0.25rem 0.75rem;
-        font-size: 0.8rem;
-    }
-
-    /* ปุ่มต่างๆ บนการ์ด */
-    .table-card-actions {
-        gap: 0.5rem;
-    }
-
-    .table-card-actions button {
-        padding: 0.6rem;
-        font-size: 0.85rem;
-    }
-
-    .table-card-call-to-action {
-        font-size: 1.25rem;
-        padding-top: 0.75rem;
-    }
-
-    /* --- Open Table Form บนมือถือ --- */
-    .open-table-form-container {
-        margin: 1rem auto;
-        padding: 1.5rem;
         border-radius: 1rem;
-    }
-
-    .open-table-form-container h2 {
-        font-size: 1.75rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .form-label {
-        font-size: 0.85rem;
-    }
-
-    .form-input {
-        padding: 0.75rem;
-        font-size: 0.95rem;
-    }
-
-    .btn-primary,
-    .btn-secondary {
-        padding: 0.75rem 1.5rem;
-        font-size: 0.95rem;
-    }
-
-    /* --- QR Modal บนมือถือ --- */
-    .modal-qr-details {
-        max-width: 90vw !important;
-    }
-
-    .modal-qr-details h2 {
-        font-size: 1.5rem;
-    }
-
-    .modal-qr-details img {
-        width: 200px !important;
-        height: 200px !important;
-    }
-
-    .modal-qr-details button {
-        padding: 0.75rem;
-        font-size: 0.95rem;
-    }
-
-    /* --- Check Bill Modal บนมือถือ --- */
-    /* ✅ แก้ปัญหา Modal ยาวเกิน - ทำให้เลื่อนได้ */
-    .fixed.inset-0.bg-gray-900\/80 {
-        overflow-y: auto !important;
-        padding: 0.5rem !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-
-    .billing-modal-content {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        
+        /* แก้ไขขนาด: ให้กว้างพอดีเนื้อหา ไม่ยืดเต็ม */
+        width: auto; 
+        min-width: 320px;
+        max-width: 450px;
+        
+        display: flex;
         flex-direction: column;
-        gap: 1rem;
-        padding: 0.75rem;
-        max-height: none !important;
-        overflow-y: visible !important;
+        align-items: center;
+        position: relative;
+        
+        /* Animation เล็กน้อย */
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    .qr-modal-container img {
+        width: 180px !important;
+        height: 180px !important;
     }
 
-    /* ให้ Modal เต็มความสูงได้ แต่เลื่อนได้ */
-    .fixed .bg-white.rounded-xl {
-        max-height: none !important;
-        margin: 0.5rem auto !important;
-        max-width: 95vw !important;
-    }
-
-    .billing-modal-details,
-    .billing-modal-qr {
-        width: 100%;
-    }
-
-    /* ✅ ลดขนาดเนื้อหาในส่วน Details */
-    .billing-modal-details .bg-white {
-        padding: 0.75rem !important;
-    }
-
-    .billing-modal-details h4 {
-        font-size: 0.85rem !important;
-        margin-bottom: 0.5rem !important;
-    }
-
-    .billing-modal-details .text-sm {
-        font-size: 0.8rem !important;
-    }
-
-    .billing-modal-details .space-y-2 {
-        gap: 0.5rem !important;
-    }
-
-    .billing-modal-qr {
-        border-left: none;
-        border-top: 2px solid #e5e7eb;
-        padding-left: 0;
-        padding-top: 1rem;
-        margin-top: 0;
-    }
-
-    .billing-modal-qr img {
-        max-width: 150px;
-    }
-
-    /* ลดขนาด Header ของ Modal */
-    .billing-modal-content~div h2,
-    .bg-white.rounded-xl h2 {
-        font-size: 1.1rem !important;
-    }
-
-    /* ลดขนาดปุ่ม */
-    .billing-modal-content button,
-    .bg-white.rounded-xl button {
-        padding: 0.6rem !important;
-        font-size: 0.85rem !important;
-    }
-
-    /* ลดขนาด Promotion Selector */
-    .billing-modal-content select {
-        padding: 0.6rem !important;
-        font-size: 0.85rem !important;
-    }
-
-    /* ลดขนาด Payment Method Buttons */
-    .billing-modal-content .grid button {
-        padding: 0.6rem 0.4rem !important;
-        font-size: 0.75rem !important;
-    }
-
-    .modal-subtitle {
-        font-size: 1.15rem;
-    }
-
-    .billing-modal-details p {
-        font-size: 0.95rem;
-    }
-
-    .total-price {
-        font-size: 1.5rem;
-    }
-
-    /* ตัวเลือกการชำระเงินบนมือถือ */
-    .checkbox-group {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-        background-color: #f9fafb;
-        padding: 1rem;
-        border-radius: 0.5rem;
-    }
-
-    .checkbox-label {
-        width: 100%;
-        font-size: 0.95rem;
-    }
-
-    .checkbox-label input[type="checkbox"] {
-        width: 1.1em;
-        height: 1.1em;
-    }
-}
-
-/* ========================================= */
-/* 📱 SMALL MOBILE (< 480px) */
-/* ========================================= */
-@media (max-width: 480px) {
-    .app-container {
-        padding: 0.75rem;
-    }
-
-    .app-container h1 {
-        font-size: 1.5rem;
-    }
-
-    .table-card {
-        padding: 0.85rem;
-        border-radius: 0.75rem;
-    }
-
-    .table-number-main {
-        font-size: 1.5rem;
-    }
-
-    .table-capacity-status {
-        font-size: 0.75rem;
-    }
-
-    .table-timer {
-        font-size: 0.75rem;
-        padding: 0.15rem 0.4rem;
-    }
-
-    .service-type-btn {
-        min-width: 65px;
-        padding: 0.2rem 0.6rem;
-        font-size: 0.75rem;
-    }
-
-    .table-card-actions button {
-        padding: 0.5rem;
-        font-size: 0.8rem;
-        border-radius: 0.375rem;
-    }
-
-    .table-card-call-to-action {
-        font-size: 1.1rem;
-    }
-
-    .open-table-form-container {
-        padding: 1.25rem;
-        margin: 0.75rem auto;
-    }
-
-    .open-table-form-container h2 {
-        font-size: 1.5rem;
-    }
-
-    .form-input {
-        padding: 0.65rem;
-        font-size: 0.9rem;
-    }
-
-    .btn-primary,
-    .btn-secondary {
-        padding: 0.65rem 1.25rem;
-        font-size: 0.9rem;
-    }
-
-    /* ✅ Modal บนจอเล็กมาก */
-    .fixed.inset-0.bg-gray-900\/80 {
-        padding: 0.5rem 0.25rem !important;
-    }
-
-    .billing-modal-content {
-        padding: 0.75rem;
-        gap: 1.25rem;
-    }
-
-    .modal-subtitle {
-        font-size: 1rem;
-    }
-
-    .billing-modal-details p {
-        font-size: 0.9rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .total-price {
-        font-size: 1.35rem;
-    }
-
-    .billing-modal-qr img {
-        max-width: 150px;
-    }
-}
-
-/* ========================================= */
-/* 🖥️ LARGE DESKTOP (> 1400px) */
-/* ========================================= */
-@media (min-width: 1400px) {
-    .app-container {
-        max-width: 1600px;
-        margin: 0 auto;
-    }
-
-    .table-card {
-        min-height: 200px;
-        padding: 1.5rem;
-    }
-
-    .table-number-main {
-        font-size: 2.5rem;
-    }
-
-    .open-table-form-container {
-        max-width: 42rem;
-        padding: 3.5rem;
-    }
-}
-/* ========================================= */
-/* 📱 MOBILE RESPONSIVE (< 768px) */
-/* ========================================= */
-@media (max-width: 768px) {
-    .app-container {
-        padding: 1rem;
-    }
-
-    .app-container h1 {
-        font-size: 1.75rem;
-        text-align: center;
-        margin-bottom: 1.5rem;
-    }
-
-    /* --- Table Card บนมือถือ --- */
-    .table-card {
-        padding: 1rem;
-        min-height: auto;
-    }
-
-    .table-number-main {
-        font-size: 1.75rem;
-    }
-
-    .table-capacity-status {
-        font-size: 0.8rem;
-    }
-
-    .table-timer {
-        font-size: 0.85rem;
-        padding: 0.2rem 0.5rem;
-    }
-
-    /* Service Type Selector บนมือถือ */
-    .service-type-selector {
-        gap: 0.5rem;
-    }
-
-    .service-type-btn {
-        min-width: 75px;
-        padding: 0.25rem 0.75rem;
-        font-size: 0.8rem;
-    }
-
-    /* ปุ่มต่างๆ บนการ์ด */
-    .table-card-actions {
-        gap: 0.5rem;
-    }
-
-    .table-card-actions button {
-        padding: 0.6rem;
-        font-size: 0.85rem;
-    }
-
-    .table-card-call-to-action {
-        font-size: 1.25rem;
-        padding-top: 0.75rem;
-    }
-
-    /* --- Open Table Form บนมือถือ --- */
-    .open-table-form-container {
-        margin: 1rem auto;
-        padding: 1.5rem;
-        border-radius: 1rem;
-    }
-
-    .open-table-form-container h2 {
-        font-size: 1.75rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .form-label {
-        font-size: 0.85rem;
-    }
-
-    .form-input {
-        padding: 0.75rem;
-        font-size: 0.95rem;
-    }
-
-    .btn-primary,
-    .btn-secondary {
-        padding: 0.75rem 1.5rem;
-        font-size: 0.95rem;
-    }
-
-    /* --- QR Modal บนมือถือ --- */
-    .modal-qr-details {
-        max-width: 90vw !important;
-    }
-
-    .modal-qr-details h2 {
-        font-size: 1.5rem;
-    }
-
-    .modal-qr-details img {
-        width: 200px !important;
-        height: 200px !important;
-    }
-
-    .modal-qr-details button {
-        padding: 0.75rem;
-        font-size: 0.95rem;
-    }
-
-    /* --- Check Bill Modal บนมือถือ --- */
-    /* ✅ แก้ให้ Modal แสดงผลได้ดีบนหน้าจอเล็ก */
-    
-    /* Modal Container - ให้เลื่อนได้และจัดกึ่งกลาง */
-    body:has(.fixed.inset-0.bg-gray-900\/80) {
-        overflow: hidden !important;
-    }
-    
-    .fixed.inset-0.bg-gray-900\/80 {
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        padding: 1rem 0.5rem !important;
-        display: flex !important;
-        align-items: flex-start !important;
-        justify-content: center !important;
-    }
-
-    /* Modal Content Wrapper */
-    .fixed.inset-0 > .bg-white.rounded-xl {
-        width: 95vw !important;
-        max-width: 95vw !important;
+    /* 3. Check Bill Modal: บีบขนาดลงให้มีขอบเหลือสวยงาม */
+    .billing-modal-container {
+        width: auto !important;
+        min-width: 700px !important;
+        max-width: 900px !important; /* ไม่ให้กว้างจนชนขอบ */
+        max-height: 85vh !important; /* สูงไม่เกิน 85% ของจอ เพื่อให้เห็นขอบ */
         margin: auto !important;
-        max-height: none !important;
-        overflow: visible !important;
+        border-radius: 16px !important;
+        overflow: hidden !important;
         display: flex !important;
-        flex-direction: column !important;
+        flex-direction: row !important; /* บังคับแนวนอน */
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
     }
-
-    /* แยกแสดงเนื้อหา 2 คอลัมน์เป็นแนวตั้ง */
-    .fixed.inset-0 > .bg-white.rounded-xl > .p-6 {
-        width: 100% !important;
-        max-width: 100% !important;
-        border-right: none !important;
-        border-bottom: 2px solid #e5e7eb;
-        overflow-y: visible !important;
+    
+    .billing-left-col, .billing-right-col {
+        padding: 1.5rem !important;
+        overflow-y: auto !important; /* ให้ Scroll ได้ถ้าเนื้อหายาว */
+        max-height: 85vh !important;
     }
-
-    /* คอลัมน์ขวา (ส่วนคำนวณราคา) */
-    .fixed.inset-0 > .bg-white.rounded-xl > .p-6.md\:w-2\/5 {
-        border-bottom: none;
-        border-top: 2px solid #e5e7eb;
+    
+    /* ปรับขนาดตัวหนังสือให้พอดี */
+    .billing-modal-container h2 { font-size: 1.25rem !important; }
+    .billing-modal-container .text-sm { font-size: 0.85rem !important; }
+    .total-price-display { font-size: 2.25rem !important; }
+    
+    /* ปรับปุ่ม */
+    .billing-modal-container button {
+        padding: 0.75rem !important;
+        font-size: 0.95rem !important;
     }
-
-    /* ลดขนาดข้อความและปุ่มต่างๆ */
-    .fixed.inset-0 h2 {
-        font-size: 1.25rem !important;
-        margin-bottom: 1rem !important;
-    }
-
-    .fixed.inset-0 .text-sm {
+    
+    .payment-method-grid button {
+        padding: 0.5rem !important;
         font-size: 0.8rem !important;
     }
-
-    .fixed.inset-0 .text-xl {
-        font-size: 1.25rem !important;
-    }
-
-    .fixed.inset-0 .text-4xl {
-        font-size: 2rem !important;
-    }
-
-    /* Payment Method Grid */
-    .fixed.inset-0 .grid.grid-cols-3 {
-        grid-template-columns: 1fr !important;
-        gap: 0.5rem !important;
-    }
-
-    .fixed.inset-0 .grid.grid-cols-3 button {
-        padding: 0.75rem !important;
-        font-size: 0.9rem !important;
-    }
-
-    /* QR Code ในส่วนชำระเงิน */
-    .fixed.inset-0 img[alt="QR PromptPay"] {
-        width: 120px !important;
-        height: 120px !important;
-    }
-
-    /* Promotion Selector */
-    .fixed.inset-0 select {
-        padding: 0.75rem !important;
-        font-size: 0.9rem !important;
-    }
-
-    /* Action Buttons */
-    .fixed.inset-0 button[class*="bg-gradient"] {
-        padding: 1rem !important;
-        font-size: 1rem !important;
-    }
-
-    .fixed.inset-0 button[class*="bg-gray"] {
-        padding: 0.75rem !important;
-        font-size: 0.9rem !important;
-    }
-
-    /* Close Button */
-    .fixed.inset-0 .absolute.top-4.right-4 {
-        top: 0.75rem !important;
-        right: 0.75rem !important;
-    }
-
-    /* รายการอาหาร */
-    .fixed.inset-0 .space-y-1 > div {
-        padding: 0.5rem 0 !important;
-    }
-
-    /* Price Display Box */
-    .fixed.inset-0 .space-y-3.p-5 {
-        padding: 1rem !important;
-    }
-
-    .modal-subtitle {
-        font-size: 1.15rem;
-    }
-
-    .billing-modal-details p {
-        font-size: 0.95rem;
-    }
-
-    .total-price {
-        font-size: 1.5rem;
-    }
-
-    /* ตัวเลือกการชำระเงินบนมือถือ */
-    .checkbox-group {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-        background-color: #f9fafb;
-        padding: 1rem;
-        border-radius: 0.5rem;
-    }
-
-    .checkbox-label {
-        width: 100%;
-        font-size: 0.95rem;
-    }
-
-    .checkbox-label input[type="checkbox"] {
-        width: 1.1em;
-        height: 1.1em;
-    }
-}
-.modal-container, 
-.fixed.inset-0.z-\[9999\] {
-    z-index: 9999 !important;
-    backdrop-filter: blur(4px); /* เพิ่มการเบลอหลัง Modal เพื่อความสวยงาม */
 }
 
-/* ป้องกันการคลิกทะลุไปโดนเมนูข้างหลังขณะเปิด Modal */
-body:has(.z-\[9999\]) {
-    overflow: hidden !important;
-}
-
-/* ปรับแต่ง Check Bill Modal ให้เลื่อนได้เฉพาะภายในตัวเองถ้าจอมือถือเล็กเกินไป */
+/* ========================================= */
+/* 📱 MOBILE RESPONSIVE (< 768px) */
+/* ========================================= */
 @media (max-width: 768px) {
-    .fixed.inset-0.z-\[9999\] {
-        align-items: flex-start !important; /* ให้เริ่มจากด้านบนเพื่อให้ Scroll ได้ง่าย */
+    .app-container { padding: 1rem; }
+    .app-container h1 { font-size: 1.75rem; text-align: center; margin-bottom: 1.5rem; }
+    .table-card { padding: 1rem; min-height: auto; }
+    .table-number-main { font-size: 1.75rem; }
+    .table-capacity-status { font-size: 0.8rem; }
+    .table-timer { font-size: 0.85rem; padding: 0.2rem 0.5rem; }
+    .service-type-selector { gap: 0.5rem; }
+    .service-type-btn { min-width: 75px; padding: 0.25rem 0.75rem; font-size: 0.8rem; }
+    .table-card-actions { gap: 0.5rem; }
+    .table-card-actions button { padding: 0.6rem; font-size: 0.85rem; }
+    .table-card-call-to-action { font-size: 1.25rem; padding-top: 0.75rem; }
+    .open-table-form-container { margin: 1rem auto; padding: 1.5rem; border-radius: 1rem; }
+    .open-table-form-container h2 { font-size: 1.75rem; margin-bottom: 1.5rem; }
+    
+    .form-label { font-size: 0.85rem; }
+    .form-input { padding: 0.75rem; font-size: 0.95rem; }
+    .btn-primary, .btn-secondary { padding: 0.75rem 1.5rem; font-size: 0.95rem; }
+
+    /* แก้ปัญหา Modal บนมือถือ: ดันลงมา */
+    .qr-overlay, .billing-overlay {
+        align-items: flex-start !important;
+        padding-top: 5rem !important;
         overflow-y: auto !important;
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-}
-
-/* 2. ปรับปรุง Responsive สำหรับ Desktop ขนาดกลาง (เช่น จอ Tablet แนวนอน หรือ Laptop จอเล็ก) */
-@media (min-width: 769px) and (max-width: 1280px) {
-    /* ปรับขนาด Modal ให้เล็กลงเพื่อไม่ให้ชนขอบ */
-    .modal-container > div {
-        max-width: 90% !important;
-        transform: scale(0.95);
     }
 
-    /* ปรับสัดส่วน Check Bill Modal ใหม่ */
-    .billing-modal-content {
-        gap: 1.5rem !important;
-        padding: 1.5rem !important;
+    .qr-modal-container {
+        max-width: 90vw !important;
+        margin-top: 1rem !important;
     }
-
-    /* ลดขนาดตัวหนังสือในบิล */
-    .check-bill-order-details {
-        font-size: 0.9rem;
+    
+    .billing-modal-container {
+        flex-direction: column !important;
+        width: 95vw !important;
+        margin-top: 1rem !important;
+        max-height: calc(100vh - 120px) !important;
     }
-
-    .total-price {
-        font-size: 2.5rem !important;
-    }
-}
-
-/* 3. ป้องกันเนื้อหาไหลทะลุออกนอก Modal */
-.billing-modal-content {
-    max-height: 85vh;
-    overflow-y: auto;
-}
-
-/* 4. ปรับ Layout บิลในหน้าจอที่เริ่มแคบ */
-@media (max-width: 1160px) {
-    /* เมื่อเมนูข้างซ้ายหดตัว ให้ขยายพื้นที่ Grid */
-    .app-container .grid {
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    }
-}
-
-/* เพิ่มเติม: ตกแต่ง scrollbar ใน Modal */
-.billing-modal-content::-webkit-scrollbar {
-    width: 6px;
-}
-.billing-modal-content::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
+    .billing-left-col, .billing-right-col { width: 100% !important; border: none !important; }
+    .billing-right-col { border-top: 2px solid #e5e7eb !important; }
 }

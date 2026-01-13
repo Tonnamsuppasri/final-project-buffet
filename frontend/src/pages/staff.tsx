@@ -3,7 +3,7 @@ import './staff.css';
 import { PlusCircleIcon } from '@heroicons/react/24/solid';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import axios from 'axios'; // 🔥 1. นำเข้า axios
+import axios from 'axios';
 
 interface StaffType {
   id: number;
@@ -17,6 +17,10 @@ interface StaffType {
   image?: string;
 }
 
+// SVG Icons สำหรับใช้ใน SweetAlert HTML string
+const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#9ca3af" class="w-6 h-6" style="width: 20px; height: 20px;"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" /><path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z" clip-rule="evenodd" /></svg>`;
+const eyeSlashIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#9ca3af" class="w-6 h-6" style="width: 20px; height: 20px;"><path d="M3.53 2.47a.75.75 0 00-1.06 1.06l18 18a.75.75 0 101.06-1.06l-18-18zM22.676 12.553a11.249 11.249 0 01-2.631 4.31l-3.099-3.099a5.25 5.25 0 00-6.71-6.71L7.759 4.577a11.217 11.217 0 014.242-.827c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113z" /><path d="M15.75 12c0 .18-.013.357-.037.53l-4.244-4.243A3.75 3.75 0 0115.75 12zM12.53 15.713l-4.243-4.244a3.75 3.75 0 004.243 4.243z" /><path d="M6.75 12c0-.619.107-1.213.304-1.764l-3.1-3.1a11.25 11.25 0 00-2.63 4.31c-.12.362-.12.752 0 1.114 1.489 4.467 5.702 7.69 10.675 7.69 1.5 0 2.933-.294 4.242-.827l-2.477-2.477A5.25 5.25 0 016.75 12z" /></svg>`;
+
 const Staff = () => {
   const MySwal = withReactContent(Swal);
   const [staffList, setStaffList] = useState<StaffType[]>([]);
@@ -26,15 +30,12 @@ const Staff = () => {
     fetchStaff();
   }, []);
 
-  // 🔥 2. แก้ function นี้ให้ใช้ axios
   const fetchStaff = async () => {
     try {
-      // ใช้ axios แทน fetch (มันจะแนบ Header x-user-id ให้เองจาก App.tsx)
       const res = await axios.get<StaffType[]>(`${apiUrl}/api/staff`);
       setStaffList(res.data);
     } catch (err) {
       console.error('Error fetching staff:', err);
-      // ใส่ Array ว่างกันจอขาว ถ้าโหลดไม่ผ่าน
       setStaffList([]); 
       Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลพนักงานได้', 'error');
     }
@@ -69,6 +70,20 @@ const Staff = () => {
     });
   };
 
+  // ✅ ฟังก์ชันช่วยสลับ icon และ type input
+  const setupPasswordToggle = (toggleId: string, inputId: string) => {
+    const toggleBtn = document.getElementById(toggleId);
+    const passwordInput = document.getElementById(inputId) as HTMLInputElement;
+    
+    if (toggleBtn && passwordInput) {
+      toggleBtn.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        toggleBtn.innerHTML = type === 'password' ? eyeIcon : eyeSlashIcon;
+      });
+    }
+  };
+
   const addStaff = async () => {
     const { value: formValues } = await MySwal.fire({
       title: '<h3 style="font-size: 1.5rem; color: #1e293b;">เพิ่มพนักงานใหม่</h3>',
@@ -93,7 +108,12 @@ const Staff = () => {
             </div>
             <div class="swal-input-group">
                <label class="swal-label">รหัสผ่าน (Password)*</label>
-               <input id="swal-password" class="swal2-input custom-input" type="password" placeholder="ระบุรหัสผ่าน">
+               <div style="position: relative;">
+                 <input id="swal-password" class="swal2-input custom-input" type="password" placeholder="ระบุรหัสผ่าน" style="padding-right: 40px;">
+                 <button type="button" id="toggle-password-add" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 5px;">
+                   ${eyeIcon}
+                 </button>
+               </div>
             </div>
           </div>
 
@@ -147,6 +167,9 @@ const Staff = () => {
       confirmButtonColor: '#4f46e5',
       cancelButtonColor: '#94a3b8',
       didOpen: () => {
+        // ✅ Setup Toggle Password
+        setupPasswordToggle('toggle-password-add', 'swal-password');
+
         const imageInput = document.getElementById('image-upload') as HTMLInputElement;
         const previewImage = document.getElementById('preview-image') as HTMLImageElement;
         const uploadPlaceholder = document.getElementById('upload-placeholder') as HTMLDivElement;
@@ -197,9 +220,7 @@ const Staff = () => {
 
     if (formValues) {
       try {
-        // 🔥 3. แก้ตรงนี้ให้ใช้ axios.post
         await axios.post(`${apiUrl}/api/staff`, formValues);
-
         fetchStaff();
         Swal.fire({
           icon: 'success',
@@ -245,7 +266,12 @@ const Staff = () => {
           <div class="swal-form-row">
             <div class="swal-input-group">
                <label class="swal-label">รหัสผ่านใหม่ (ว่างไว้ถ้าไม่เปลี่ยน)</label>
-               <input id="swal-password" class="swal2-input custom-input" type="password" placeholder="********">
+               <div style="position: relative;">
+                 <input id="swal-password" class="swal2-input custom-input" type="password" placeholder="********" style="padding-right: 40px;">
+                 <button type="button" id="toggle-password-edit" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 5px;">
+                   ${eyeIcon}
+                 </button>
+               </div>
             </div>
              <div class="swal-input-group">
                <label class="swal-label">เบอร์โทรศัพท์</label>
@@ -292,6 +318,9 @@ const Staff = () => {
       confirmButtonColor: '#4f46e5',
       cancelButtonColor: '#94a3b8',
       didOpen: () => {
+        // ✅ Setup Toggle Password สำหรับหน้าแก้ไข
+        setupPasswordToggle('toggle-password-edit', 'swal-password');
+
         const imageInput = document.getElementById('image-upload') as HTMLInputElement;
         const previewImage = document.getElementById('preview-image') as HTMLImageElement;
         const uploadPlaceholder = document.getElementById('upload-placeholder') as HTMLDivElement;
@@ -343,9 +372,7 @@ const Staff = () => {
 
     if (formValues) {
       try {
-        // 🔥 4. แก้ตรงนี้ให้ใช้ axios.put
         await axios.put(`${apiUrl}/api/staff/${staff.id}`, formValues);
-
         fetchStaff();
         Swal.fire({
           icon: 'success',
@@ -374,9 +401,7 @@ const Staff = () => {
 
     if (result.isConfirmed) {
       try {
-        // 🔥 5. แก้ตรงนี้ให้ใช้ axios.delete
         await axios.delete(`${apiUrl}/api/staff/${id}`);
-
         fetchStaff();
         Swal.fire(
           'ลบสำเร็จ!',
@@ -432,7 +457,6 @@ const Staff = () => {
             </tr>
           </thead>
           <tbody className="text-center">
-            {/* 🔥 6. เช็คให้แน่ใจว่า staffList เป็น Array ก่อน map */}
             {Array.isArray(staffList) && staffList.map((staff, index) => (
               <tr key={staff.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-200'}>
                 <td className="py-2 px-2 sm:px-4 border font-bold text-base sm:text-lg" data-label="ID">{index + 1}.</td>

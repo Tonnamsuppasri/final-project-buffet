@@ -1,241 +1,242 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { format } from 'date-fns';
+import { registerLocale } from "react-datepicker";
+import { th as thLocale } from 'date-fns/locale/th';
+registerLocale('th', thLocale);
 
-// ลงทะเบียน components ที่จำเป็นสำหรับ Chart.js
+import { 
+    format, startOfMonth, endOfMonth, startOfYear, endOfYear, 
+    startOfDay, endOfDay, subYears 
+} from 'date-fns';
+import { CalendarIcon, TrophyIcon, ClipboardIcon, ArrowPathIcon, FunnelIcon, ArchiveBoxIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
-// URL ของ Backend API (ดึงจาก environment variable หรือใช้ค่า default)
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-// Interfaces กำหนดโครงสร้างข้อมูลที่คาดหวังจาก API
-interface PlanSale {
-  plan_id: number | null; // ID ของ Plan อาจเป็น null สำหรับ 'A La Carte / อื่นๆ'
-  plan_name: string; // ชื่อ Plan
-  price_per_person: number | null; // ราคาต่อหัว อาจเป็น null
-  total_orders: number; // จำนวน Order ทั้งหมดที่ใช้ Plan นี้
-  total_customers: number; // จำนวนลูกค้าทั้งหมดที่ใช้ Plan นี้
-  total_revenue: number | null; // ยอดรวมจาก Plan นี้ อาจเป็น null
-}
+interface PlanSale { plan_name: string; price_per_person: number; total_orders: number; total_customers: number; total_revenue: number; }
+interface MenuItemSale { menu_id: number; name: string; category: string; total_quantity: number; total_revenue: number; }
+type SmartMode = 'hour' | 'day' | 'month' | 'year' | null;
 
-interface MenuItemSale {
-  menu_id: number; // ID เมนู
-  name: string; // ชื่อเมนู
-  category: string; // หมวดหมู่เมนู
-  total_quantity: number; // จำนวนที่สั่งทั้งหมด
-  total_revenue: number; // ยอดรวมจากเมนูนี้ (เฉพาะ A la carte)
-}
-
-// Component หลัก
 const ReportMenu = () => {
-  // States สำหรับเก็บข้อมูลที่ได้จาก API
-  const [planSales, setPlanSales] = useState<PlanSale[]>([]); // ข้อมูล Plan
-  const [menuSales, setMenuSales] = useState<MenuItemSale[]>([]); // ข้อมูลเมนูทั้งหมด
-  const [loading, setLoading] = useState(true); // สถานะกำลังโหลด
-  const [error, setError] = useState<string | null>(null); // ข้อความ Error (ถ้ามี)
+  const [planSales, setPlanSales] = useState<PlanSale[]>([]);
+  const [menuSales, setMenuSales] = useState<MenuItemSale[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  // ✅ Pagination States
+  const [planPage, setPlanPage] = useState(1);
+  const [menuPage, setMenuPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // States สำหรับ Date Picker
-  const [startDate, setStartDate] = useState(new Date()); // วันที่เริ่มต้น (default วันนี้)
-  const [endDate, setEndDate] = useState(new Date()); // วันที่สิ้นสุด (default วันนี้)
+  // Dates
+  const [startDate, setStartDate] = useState(startOfMonth(new Date()));
+  const [endDate, setEndDate] = useState(endOfMonth(new Date()));
 
-  // useEffect: ทำงานเมื่อ Component ถูกสร้าง หรือเมื่อ startDate/endDate เปลี่ยน
+  // Smart Filter UI
+  const [smartMode, setSmartMode] = useState<SmartMode>('day');
+  const [smartDate, setSmartDate] = useState<Date>(new Date());
+  const [smartStartYear, setSmartStartYear] = useState<Date>(subYears(new Date(), 4));
+  const [smartEndYear, setSmartEndYear] = useState<Date>(new Date());
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
-    fetchData(); // เรียกฟังก์ชันดึงข้อมูล
-  }, [startDate, endDate]);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // ฟังก์ชันสำหรับดึงข้อมูลจาก Backend API
+  // Sync Logic
+  useEffect(() => {
+      if (!smartMode) return;
+      let start, end;
+      if (smartMode === 'hour') { start = startOfDay(smartDate); end = endOfDay(smartDate); }
+      else if (smartMode === 'day') { start = startOfMonth(smartDate); end = endOfMonth(smartDate); }
+      else if (smartMode === 'month') { start = startOfYear(smartDate); end = endOfYear(smartDate); }
+      else { start = startOfYear(smartStartYear); end = endOfYear(smartEndYear); }
+      setStartDate(start); setEndDate(end);
+      setPlanPage(1); // Reset page when filter changes
+      setMenuPage(1);
+  }, [smartMode, smartDate, smartStartYear, smartEndYear]);
+
+  const handleManualDateChange = (type: 'start' | 'end', date: Date | null) => {
+      if (!date) return;
+      setSmartMode(null);
+      if (type === 'start') setStartDate(startOfDay(date));
+      else setEndDate(endOfDay(date));
+      setPlanPage(1);
+      setMenuPage(1);
+  };
+
   const fetchData = async () => {
-    setLoading(true); // เริ่มโหลด
-    setError(null); // ล้าง Error เก่า
+    setLoading(true);
     try {
-      // แปลงวันที่เป็น format 'yyyy-MM-dd' ที่ Backend ต้องการ
-      const formattedStart = format(startDate, 'yyyy-MM-dd');
-      const formattedEnd = format(endDate, 'yyyy-MM-dd');
-
-      // เรียก API ทั้งสองส่วนพร้อมกันโดยใช้ Promise.all
       const [planRes, menuRes] = await Promise.all([
-        axios.get(`${apiUrl}/api/reports/menu/plans`, { // API ดึงข้อมูล Plan
-          params: { startDate: formattedStart, endDate: formattedEnd }
-        }),
-        axios.get(`${apiUrl}/api/reports/menu/items`, { // API ดึงข้อมูลเมนู
-          params: { startDate: formattedStart, endDate: formattedEnd }
-        }),
+        axios.get(`${apiUrl}/api/reports/menu/plans`, { params: { startDate: format(startDate,'yyyy-MM-dd'), endDate: format(endDate,'yyyy-MM-dd') } }),
+        axios.get(`${apiUrl}/api/reports/menu/items`, { params: { startDate: format(startDate,'yyyy-MM-dd'), endDate: format(endDate,'yyyy-MM-dd') } }),
       ]);
-
-      // อัปเดต State ด้วยข้อมูลที่ได้รับ
       setPlanSales(planRes.data);
-      setMenuSales(menuRes.data); // เก็บข้อมูลเมนูทั้งหมด
-
-    } catch (err) {
-      // หากเกิด Error
-      console.error("Error fetching menu report data:", err);
-      setError("ไม่สามารถดึงข้อมูลรายงานเมนูได้");
-    } finally {
-      // ไม่ว่าจะสำเร็จหรือล้มเหลว
-      setLoading(false); // หยุดโหลด
-    }
+      setMenuSales(menuRes.data);
+    } catch (err) { console.error("Error:", err); } finally { setLoading(false); }
   };
 
-  // --- Chart Data ---
-  // ข้อมูลสำหรับกราฟแท่งของ Plan
+  useEffect(() => { fetchData(); }, [startDate, endDate]);
+
+  // ✅ Pagination Logic
+  const paginatedPlans = useMemo(() => {
+    const start = (planPage - 1) * itemsPerPage;
+    return planSales.slice(start, start + itemsPerPage);
+  }, [planSales, planPage]);
+
+  const paginatedMenus = useMemo(() => {
+    const start = (menuPage - 1) * itemsPerPage;
+    return menuSales.slice(start, start + itemsPerPage);
+  }, [menuSales, menuPage]);
+
+  const totalPlanPages = Math.ceil(planSales.length / itemsPerPage);
+  const totalMenuPages = Math.ceil(menuSales.length / itemsPerPage);
+
   const planChartData = {
-    labels: planSales.map(p => p.plan_name), // ชื่อ Plan เป็นแกน Y
-    datasets: [{
-      label: 'จำนวนลูกค้า (คน)', // ชื่อชุดข้อมูล
-      data: planSales.map(p => p.total_customers), // จำนวนลูกค้าเป็นค่า
-      backgroundColor: '#34D399', // สีแท่งกราฟ
-    }],
+    labels: planSales.slice(0, 10).map(p => p.plan_name), // กราฟโชว์แค่ Top 10 เพื่อความสวยงาม
+    datasets: [{ label: 'ลูกค้า (คน)', data: planSales.slice(0, 10).map(p => p.total_customers), backgroundColor: '#34D399', borderRadius: 4 }],
   };
-
-  // ✅ FIX: ดึงข้อมูลเฉพาะ 5 อันดับแรกสำหรับกราฟเมนูขายดี
   const top5MenuSales = menuSales.slice(0, 5);
-
-  // ข้อมูลสำหรับกราฟแท่งของเมนูขายดี (ใช้ top5MenuSales)
   const menuChartData = {
-    labels: top5MenuSales.map(m => m.name), // ชื่อเมนู 5 อันดับแรกเป็นแกน Y
-    datasets: [{
-      label: 'จำนวนที่ขายได้ (จาน)', // ชื่อชุดข้อมูล
-      data: top5MenuSales.map(m => m.total_quantity), // จำนวนที่ขายได้เป็นค่า
-      backgroundColor: '#F87171', // สีแท่งกราฟ
-    }],
+    labels: top5MenuSales.map(m => m.name),
+    datasets: [{ label: 'จำนวน (จาน)', data: top5MenuSales.map(m => m.total_quantity), backgroundColor: '#F87171', borderRadius: 4 }],
   };
-  // --- End Chart Data ---
 
-  // แสดงผล "กำลังโหลด" ถ้ายังโหลดข้อมูลไม่เสร็จ
-  if (loading) return <div className="text-center p-10">กำลังโหลดข้อมูล...</div>;
-  // แสดงผล Error ถ้าการดึงข้อมูลล้มเหลว
-  if (error) return <div className="text-center p-10 text-red-500">{error}</div>;
+  const commonOptions = {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis: 'y' as const,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { font: { size: isMobile ? 10 : 12 } } }, y: { ticks: { font: { size: isMobile ? 10 : 12 } } } }
+  };
 
-  // แสดงผล Component หลัก
   return (
-    <div className="p-4 space-y-6 bg-gray-50 min-h-screen"> {/* เพิ่มพื้นหลังและ min-height */}
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">รายงานเมนูและบุฟเฟต์</h1> {/* เพิ่ม margin-bottom */}
+    <div className="p-4 sm:p-6 space-y-6 bg-gray-50 min-h-screen">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">รายงานเมนู & บุฟเฟต์</h1>
 
-      {/* Date Picker Section */}
-      <div className="flex flex-wrap items-center gap-4 p-4 bg-white rounded-lg shadow-md mb-6"> {/* เพิ่ม shadow และ margin-bottom */}
-        <label className="font-semibold text-gray-700">เลือกช่วงวันที่:</label>
-        <DatePicker
-          selected={startDate}
-          onChange={(date: Date | null) => setStartDate(date || new Date())} // Handle null date
-          selectsStart
-          startDate={startDate}
-          endDate={endDate}
-          dateFormat="dd/MM/yyyy"
-          className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" // ปรับสไตล์
-        />
-        <span className="mx-2 text-gray-500">ถึง</span>
-        <DatePicker
-          selected={endDate}
-          onChange={(date: Date | null) => setEndDate(date || startDate)} // Handle null date, default to startDate if null
-          selectsEnd
-          startDate={startDate}
-          endDate={endDate}
-          minDate={startDate} // วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น
-          dateFormat="dd/MM/yyyy"
-          className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" // ปรับสไตล์
-        />
-        {/* ไม่จำเป็นต้องมีปุ่ม "เรียกดู" เพราะ useEffect ทำงานอัตโนมัติเมื่อวันที่เปลี่ยน */}
+      {/* Hybrid Filter Card (Red Theme) */}
+      <div className="bg-white rounded-lg shadow-md border-l-4 border-red-500 overflow-hidden">
+          {/* ... ส่วน Filter (เหมือนเดิม) ... */}
+          <div className="p-4 bg-gray-50 border-b border-gray-100 flex flex-col md:flex-row gap-4 items-end md:items-center">
+              <div className="w-full md:w-auto">
+                  <label className="block text-xs text-gray-500 mb-1 font-bold flex items-center gap-1"><FunnelIcon className="w-3 h-3" /> มุมมองด่วน</label>
+                  <div className="flex bg-white rounded-lg p-1 border border-gray-200 shadow-sm">
+                      {[{ id: 'hour', label: 'รายวัน' }, { id: 'day', label: 'รายเดือน' }, { id: 'month', label: 'รายปี' }, { id: 'year', label: 'ช่วงปี' }].map((mode) => (
+                          <button key={mode.id} onClick={() => setSmartMode(mode.id as SmartMode)} className={`px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all flex-1 ${smartMode === mode.id ? 'bg-red-50 text-red-600 border border-red-100 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}>{mode.label}</button>
+                      ))}
+                  </div>
+              </div>
+              <div className="w-full md:w-auto flex-grow max-w-sm transition-opacity duration-300" style={{ opacity: smartMode ? 1 : 0.5 }}>
+                  <label className="block text-xs text-gray-500 mb-1 font-bold">
+                      {smartMode === 'hour' ? 'เลือกวันที่' : smartMode === 'day' ? 'เลือกเดือน' : smartMode === 'month' ? 'เลือกปี' : smartMode === 'year' ? 'เลือกช่วงปี' : 'กำหนดเอง'}
+                  </label>
+                  {smartMode === 'hour' && (<DatePicker selected={smartDate} onChange={(d: Date | null) => d && setSmartDate(d)} dateFormat="dd MMM yyyy" locale="th" className="input-field w-full p-2 border border-gray-300 rounded-md text-sm text-center focus:ring-red-500" withPortal={isMobile} />)}
+                  {smartMode === 'day' && (<DatePicker selected={smartDate} onChange={(d: Date | null) => d && setSmartDate(d)} dateFormat="MMMM yyyy" showMonthYearPicker locale="th" className="input-field w-full p-2 border border-gray-300 rounded-md text-sm text-center focus:ring-red-500" withPortal={isMobile} />)}
+                  {smartMode === 'month' && (<DatePicker selected={smartDate} onChange={(d: Date | null) => d && setSmartDate(d)} dateFormat="yyyy" showYearPicker locale="th" className="input-field w-full p-2 border border-gray-300 rounded-md text-sm text-center focus:ring-red-500" withPortal={isMobile} />)}
+                  {smartMode === 'year' && (<div className="flex items-center gap-2"><DatePicker selected={smartStartYear} onChange={(d: Date | null) => d && setSmartStartYear(d)} dateFormat="yyyy" showYearPicker locale="th" className="input-field w-full p-2 border border-gray-300 rounded-md text-sm text-center w-24" /><span className="text-gray-400">-</span><DatePicker selected={smartEndYear} onChange={(d: Date | null) => d && setSmartEndYear(d)} dateFormat="yyyy" showYearPicker locale="th" className="input-field w-full p-2 border border-gray-300 rounded-md text-sm text-center w-24" /></div>)}
+                  {!smartMode && (<div className="w-full p-2 border border-dashed border-gray-300 rounded-md text-sm text-gray-400 text-center bg-gray-50 cursor-not-allowed">(กำหนดเอง)</div>)}
+              </div>
+          </div>
+          <div className="p-4 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <ArchiveBoxIcon className={`w-5 h-5 ${!smartMode ? 'text-red-600' : 'text-gray-400'}`} />
+                  <span className={`text-sm font-bold ${!smartMode ? 'text-gray-800' : 'text-gray-500'}`}>ช่วงเวลา:</span>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <DatePicker selected={startDate} onChange={(d) => handleManualDateChange('start', d)} dateFormat="dd/MM/yyyy" locale="th" className={`input-field w-full sm:w-28 p-2 border rounded-md text-sm text-center outline-none transition-all ${!smartMode ? 'border-red-500 ring-1 ring-red-500 shadow-sm' : 'border-gray-300 text-gray-600'}`} withPortal={isMobile} />
+                  <span className="text-gray-400">-</span>
+                  <DatePicker selected={endDate} onChange={(d) => handleManualDateChange('end', d)} dateFormat="dd/MM/yyyy" locale="th" className={`input-field w-full sm:w-28 p-2 border rounded-md text-sm text-center outline-none transition-all ${!smartMode ? 'border-red-500 ring-1 ring-red-500 shadow-sm' : 'border-gray-300 text-gray-600'}`} withPortal={isMobile} />
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                  <button onClick={fetchData} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow-sm flex items-center gap-1 text-sm"><ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin': ''}`} /> อัปเดต</button>
+              </div>
+          </div>
       </div>
 
-      {/* Plan (Buffet) Report Section */}
-      <div className="p-6 bg-white rounded-lg shadow-md mb-6"> {/* เพิ่ม padding และ margin-bottom */}
-        <h2 className="text-2xl font-semibold mb-4 text-green-700 border-b pb-2">รายงานแพ็กเกจบุฟเฟต์</h2> {/* เพิ่ม border-bottom */}
-        {/* กราฟ Plan */}
-        <div className="h-80 mb-6 relative"> {/* เพิ่ม margin-bottom และ relative positioning */}
-          {planSales.length > 0 ? (
-             <Bar data={planChartData} options={{ maintainAspectRatio: false, indexAxis: 'y' }} />
-          ) : (
-            <p className="text-center text-gray-500 absolute inset-0 flex items-center justify-center">ไม่มีข้อมูลแพ็กเกจในช่วงวันที่เลือก</p>
-          )}
-        </div>
-        {/* ตาราง Plan */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 border border-gray-200"> {/* เพิ่ม border */}
-            <thead className="bg-gray-100"> {/* เปลี่ยนสีพื้นหลัง a */}
+      {/* Buffet Plan Section */}
+      <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md overflow-hidden">
+        <h2 className="text-xl font-bold mb-4 text-green-700 flex items-center gap-2"><ClipboardIcon className="w-6 h-6" /> แพ็กเกจบุฟเฟต์</h2>
+        <div className="h-64 sm:h-80 w-full">{loading ? <div className="flex h-full items-center justify-center text-gray-400">Loading...</div> : <Bar data={planChartData} options={commonOptions} />}</div>
+        
+        <div className="overflow-x-auto mt-6">
+          <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+            <thead className="bg-green-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">แพ็กเกจ</th> {/* ปรับสีและ tracking */}
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">ราคา/คน</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">จำนวนบิล</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">จำนวนลูกค้า</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">ยอดรวม (฿)</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-green-800 uppercase">แพ็กเกจ</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-green-800 uppercase">ลูกค้า</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-green-800 uppercase">ยอดรวม (฿)</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {planSales.length > 0 ? (
-                planSales.map((plan, index) => (
-                  <tr key={plan.plan_id ?? `alacarte-${index}`} className="hover:bg-gray-50 transition-colors"> {/* เพิ่ม hover effect */}
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{plan.plan_name}</td>
-                    {/* ตรวจสอบว่าเป็น Number ก่อนเรียก .toFixed() */}
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700">
-                      {typeof plan.price_per_person === 'number'
-                        ? plan.price_per_person.toFixed(2)
-                        : 'N/A'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700">{plan.total_orders}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900">{plan.total_customers}</td> {/* ปรับ font-weight */}
-                    {/* ตรวจสอบว่าเป็น Number ก่อนเรียก .toLocaleString() */}
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
-                       {typeof plan.total_revenue === 'number'
-                         ? plan.total_revenue.toLocaleString('th-TH', { minimumFractionDigits: 2 })
-                         : 'N/A'}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-gray-500">ไม่มีข้อมูล</td>
+            <tbody className="bg-white divide-y divide-gray-200 text-sm">
+              {paginatedPlans.length > 0 ? paginatedPlans.map((plan, index) => (
+                <tr key={index} className="hover:bg-green-50 transition">
+                  <td className="px-4 py-3 font-medium text-gray-900">{plan.plan_name}</td>
+                  <td className="px-4 py-3 text-right text-gray-600">{plan.total_customers}</td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-800">{Number(plan.total_revenue).toLocaleString()}</td>
                 </tr>
+              )) : (
+                <tr><td colSpan={3} className="px-4 py-4 text-center text-gray-400">ไม่มีข้อมูลในช่วงที่เลือก</td></tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* ✅ Pagination Controls for Plans */}
+        {totalPlanPages > 1 && (
+          <div className="flex justify-between items-center mt-4 px-2">
+            <span className="text-xs text-gray-500">หน้า {planPage} จาก {totalPlanPages}</span>
+            <div className="flex gap-2">
+              <button onClick={() => setPlanPage(prev => Math.max(prev - 1, 1))} disabled={planPage === 1} className="p-1 rounded-md border disabled:opacity-30"><ChevronLeftIcon className="w-5 h-5"/></button>
+              <button onClick={() => setPlanPage(prev => Math.min(prev + 1, totalPlanPages))} disabled={planPage === totalPlanPages} className="p-1 rounded-md border disabled:opacity-30"><ChevronRightIcon className="w-5 h-5"/></button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* A La Carte Menu Report Section */}
-      <div className="p-6 bg-white rounded-lg shadow-md"> {/* เพิ่ม padding */}
-        <h2 className="text-2xl font-semibold mb-4 text-red-700 border-b pb-2">รายงานเมนู (ขายดี)</h2> {/* เพิ่ม border-bottom */}
-        {/* กราฟ Menu (Top 5) */}
-        <div className="h-80 mb-6 relative"> {/* เพิ่ม margin-bottom และ relative */}
-         {top5MenuSales.length > 0 ? (
-            <Bar data={menuChartData} options={{ maintainAspectRatio: false, indexAxis: 'y' }} />
-          ) : (
-            <p className="text-center text-gray-500 absolute inset-0 flex items-center justify-center">ไม่มีข้อมูลเมนู ในช่วงวันที่เลือก</p>
-          )}
-        </div>
-        {/* ตาราง Menu (ทั้งหมด) */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 border border-gray-200"> {/* เพิ่ม border */}
-            <thead className="bg-gray-100"> {/* เปลี่ยนสีพื้นหลัง */}
+      {/* Best Sellers Section */}
+      <div className="p-4 sm:p-6 bg-white rounded-lg shadow-md overflow-hidden">
+        <h2 className="text-xl font-bold mb-4 text-red-600 flex items-center gap-2"><TrophyIcon className="w-6 h-6" /> เมนูขายดี</h2>
+        <div className="h-64 sm:h-80 w-full">{loading ? <div className="flex h-full items-center justify-center text-gray-400">Loading...</div> : <Bar data={menuChartData} options={commonOptions} />}</div>
+        
+        <div className="overflow-x-auto mt-6">
+          <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+            <thead className="bg-red-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">เมนู</th> {/* ปรับสีและ tracking */}
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">หมวดหมู่</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">จำนวน (จาน)</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">ยอดรวม (฿)</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-red-800 uppercase">เมนู</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-red-800 uppercase">จำนวน</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-red-800 uppercase">ยอดรวม (฿)</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {menuSales.length > 0 ? (
-                 // ✅ ใช้ menuSales (ตัวเต็ม) ในการ render ตาราง
-                menuSales.map((item) => (
-                  <tr key={item.menu_id} className="hover:bg-gray-50 transition-colors"> {/* เพิ่ม hover effect */}
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{item.category}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900">{item.total_quantity}</td> {/* ปรับ font-weight */}
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-semibold text-gray-900">{item.total_revenue.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                  </tr>
-                ))
-              ) : (
-                 <tr>
-                  <td colSpan={4} className="px-4 py-4 text-center text-gray-500">ไม่มีข้อมูล</td>
+            <tbody className="bg-white divide-y divide-gray-200 text-sm">
+              {paginatedMenus.length > 0 ? paginatedMenus.map((item) => (
+                <tr key={item.menu_id} className="hover:bg-red-50 transition">
+                  <td className="px-4 py-3 font-medium text-gray-900">{item.name}</td>
+                  <td className="px-4 py-3 text-right text-gray-600">{item.total_quantity}</td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-800">{Number(item.total_revenue).toLocaleString()}</td>
                 </tr>
+              )) : (
+                <tr><td colSpan={3} className="px-4 py-4 text-center text-gray-400">ไม่มีข้อมูลในช่วงที่เลือก</td></tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* ✅ Pagination Controls for Menus */}
+        {totalMenuPages > 1 && (
+          <div className="flex justify-between items-center mt-4 px-2">
+            <span className="text-xs text-gray-500">หน้า {menuPage} จาก {totalMenuPages}</span>
+            <div className="flex gap-2">
+              <button onClick={() => setMenuPage(prev => Math.max(prev - 1, 1))} disabled={menuPage === 1} className="p-1 rounded-md border disabled:opacity-30"><ChevronLeftIcon className="w-5 h-5"/></button>
+              <button onClick={() => setMenuPage(prev => Math.min(prev + 1, totalMenuPages))} disabled={menuPage === totalMenuPages} className="p-1 rounded-md border disabled:opacity-30"><ChevronRightIcon className="w-5 h-5"/></button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
