@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef, type ChangeEvent, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
+import { createPortal } from 'react-dom'; // ✅ เพิ่ม import นี้เพื่อแก้ปัญหาโดนบัง
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import DatePicker from 'react-datepicker'; 
 import "react-datepicker/dist/react-datepicker.css"; 
 import { format, parseISO } from 'date-fns'; 
+import { FaUtensils, FaCheck, FaSearch, FaTimes, FaImage } from 'react-icons/fa'; 
 import './setting.css'; 
 
 // --- Interfaces ---
@@ -30,6 +32,7 @@ interface PlanData {
     plan_name: string;
     price_per_person: number;
     description: string | null; 
+    menu_ids?: number[]; 
 }
 
 interface MenuData {
@@ -69,6 +72,7 @@ interface EditingPlanState {
     plan_name: string;
     price_per_person: string;
     description: string;
+    menu_ids: number[]; 
 }
 
 interface UserPermissionData {
@@ -81,7 +85,6 @@ interface UserPermissionData {
 const Setting = () => {
     const location = useLocation();
 
-    // ✅ [แก้ไข 1] ระบุ Type ให้ useRef รองรับ null ได้อย่างถูกต้อง
     const tableFormRef = useRef<HTMLDivElement | null>(null);
     const planFormRef = useRef<HTMLDivElement | null>(null);
     const menuFormRef = useRef<HTMLDivElement | null>(null);
@@ -114,11 +117,23 @@ const Setting = () => {
 
     // Plan states
     const [plans, setPlans] = useState<PlanData[]>([]);
-    const [newPlan, setNewPlan] = useState({ plan_name: '', price_per_person: '', description: '' });
+    const [newPlan, setNewPlan] = useState({ 
+        plan_name: '', 
+        price_per_person: '', 
+        description: '',
+        menu_ids: [] as number[] 
+    });
     const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
     const [editingPlanData, setEditingPlanData] = useState<EditingPlanState>({
-        plan_name: '', price_per_person: '', description: ''
+        plan_name: '', 
+        price_per_person: '', 
+        description: '',
+        menu_ids: [] 
     });
+
+    // Modal State
+    const [showMenuSelector, setShowMenuSelector] = useState(false);
+    const [menuSearchTerm, setMenuSearchTerm] = useState('');
 
     // Menu states
     const [menuItems, setMenuItems] = useState<MenuData[]>([]);
@@ -158,7 +173,6 @@ const Setting = () => {
         shop: false, tables: false, plans: false, menu: false, promotions: false, employee: false
     });
 
-    // ✅ [แก้ไข 2] ปรับ Type ของ parameter เพื่อแก้ Error "not assignable"
     const scrollToRef = (ref: React.RefObject<HTMLDivElement | null>) => {
         setTimeout(() => {
             if (ref.current) {
@@ -192,24 +206,22 @@ const Setting = () => {
         finally { setLoadingSection(prev => ({ ...prev, tables: false })); }
     };
 
-    const fetchPlans = async () => {
-        if (plans.length > 0) return;
-        setLoadingSection(prev => ({ ...prev, plans: true }));
-        try {
-            const res = await axios.get<PlanData[]>(`${apiUrl}/api/plans`);
-            setPlans(res.data);
-        } catch (error) { console.error("Error fetching plans:", error); }
-        finally { setLoadingSection(prev => ({ ...prev, plans: false })); }
-    };
-
     const fetchMenu = async () => {
-        if (menuItems.length > 0) return;
         setLoadingSection(prev => ({ ...prev, menu: true }));
         try {
             const res = await axios.get<MenuData[]>(`${apiUrl}/api/menu`);
             setMenuItems(res.data);
         } catch (error) { console.error("Error fetching menu:", error); }
         finally { setLoadingSection(prev => ({ ...prev, menu: false })); }
+    };
+
+    const fetchPlans = async () => {
+        setLoadingSection(prev => ({ ...prev, plans: true }));
+        try {
+            const res = await axios.get<PlanData[]>(`${apiUrl}/api/plans`);
+            setPlans(res.data);
+        } catch (error) { console.error("Error fetching plans:", error); }
+        finally { setLoadingSection(prev => ({ ...prev, plans: false })); }
     };
 
     const fetchPromotions = async () => {
@@ -243,7 +255,10 @@ const Setting = () => {
             switch (section) {
                 case 'shop': fetchShopData(); break;
                 case 'tables': fetchTables(); break;
-                case 'plans': fetchPlans(); break;
+                case 'plans': 
+                    fetchPlans(); 
+                    fetchMenu(); 
+                    break;
                 case 'menu': fetchMenu(); break;
                 case 'promotions': fetchPromotions(); break;
                 case 'employee': fetchEmployees(); break;
@@ -337,13 +352,42 @@ const Setting = () => {
     const handleNewPlanChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setNewPlan(prev => ({ ...prev, [e.target.name]: e.target.value }));
     const handleEditingPlanChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setEditingPlanData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     
+    // Logic การเลือก/ยกเลิกเมนู (ใช้ร่วมกันทั้ง New/Edit)
+    const handleToggleMenuSelection = (menuId: number) => {
+        if (editingPlanId) {
+            setEditingPlanData(prev => {
+                const currentIds = prev.menu_ids || [];
+                if (currentIds.includes(menuId)) {
+                    return { ...prev, menu_ids: currentIds.filter(id => id !== menuId) };
+                } else {
+                    return { ...prev, menu_ids: [...currentIds, menuId] };
+                }
+            });
+        } else {
+            setNewPlan(prev => {
+                const currentIds = prev.menu_ids || [];
+                if (currentIds.includes(menuId)) {
+                    return { ...prev, menu_ids: currentIds.filter(id => id !== menuId) };
+                } else {
+                    return { ...prev, menu_ids: [...currentIds, menuId] };
+                }
+            });
+        }
+    };
+
     const handleAddPlan = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!newPlan.plan_name || !newPlan.price_per_person) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกชื่อและราคาแพ็กเกจ', 'warning');
         try {
-            const response = await axios.post<PlanData>(`${apiUrl}/api/plans`, newPlan);
-            setPlans([...plans, response.data]);
-            setNewPlan({ plan_name: '', price_per_person: '', description: '' });
+            const dataToSend = {
+                ...newPlan,
+                price_per_person: parseFloat(newPlan.price_per_person) || 0,
+                menu_ids: newPlan.menu_ids
+            };
+            await axios.post(`${apiUrl}/api/plans`, dataToSend);
+            const plansRes = await axios.get<PlanData[]>(`${apiUrl}/api/plans`);
+            setPlans(plansRes.data);
+            setNewPlan({ plan_name: '', price_per_person: '', description: '', menu_ids: [] });
             Swal.fire('สำเร็จ!', 'เพิ่มแพ็กเกจราคาเรียบร้อย', 'success');
         } catch (error: any) { Swal.fire('ผิดพลาด!', error.response?.data?.error || 'ไม่สามารถเพิ่มแพ็กเกจราคาได้', 'error'); }
     };
@@ -353,14 +397,15 @@ const Setting = () => {
         setEditingPlanData({
             plan_name: plan.plan_name,
             price_per_person: String(plan.price_per_person),
-            description: plan.description || ''
+            description: plan.description || '',
+            menu_ids: plan.menu_ids || [] 
         });
         scrollToRef(planFormRef);
     };
 
     const handleCancelPlanEdit = () => {
         setEditingPlanId(null);
-        setEditingPlanData({ plan_name: '', price_per_person: '', description: '' });
+        setEditingPlanData({ plan_name: '', price_per_person: '', description: '', menu_ids: [] });
     };
 
     const handleUpdatePlan = async (e: FormEvent<HTMLFormElement>) => {
@@ -370,7 +415,8 @@ const Setting = () => {
             await axios.put(`${apiUrl}/api/plans/${editingPlanId}`, {
                 plan_name: editingPlanData.plan_name,
                 price_per_person: parseFloat(editingPlanData.price_per_person) || 0,
-                description: editingPlanData.description
+                description: editingPlanData.description,
+                menu_ids: editingPlanData.menu_ids
             });
             const res = await axios.get<PlanData[]>(`${apiUrl}/api/plans`);
             setPlans(res.data);
@@ -547,9 +593,8 @@ const Setting = () => {
          return <div className="p-8 text-center text-red-600 bg-red-100 border border-red-400 rounded-md">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</div>;
     }
 
-    /* Prevent page-level horizontal overflow on small screens; keep spacing as before */
     return (
-        <div className="p-4 sm:p-8 space-y-6 overflow-x-hidden"> 
+        <div className="p-4 sm:p-8 space-y-6 overflow-x-hidden relative"> 
             <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-gray-800">ตั้งค่าทั่วไป</h1> 
             <div className="space-y-4 max-w-4xl mx-auto"> 
 
@@ -600,7 +645,6 @@ const Setting = () => {
                      <div className={`accordion-content ${accordionState.tables ? 'open' : ''}`}>
                          {loadingSection.tables ? <div className="p-8 text-center text-gray-500">กำลังโหลดข้อมูลโต๊ะ...</div> : (
                              <div className="p-6">
-                                {/* 🚀 ใส่ Ref ให้ Form โต๊ะ */}
                                 <div ref={tableFormRef}>
                                     <h3 className="text-xl font-semibold mb-4 text-green-700">เพิ่มโต๊ะใหม่</h3>
                                     <form onSubmit={handleAddTable} className="flex flex-col sm:flex-row items-end gap-4 mb-6">
@@ -655,7 +699,6 @@ const Setting = () => {
                     <div className={`accordion-content ${accordionState.menu ? 'open' : ''}`}>
                          {loadingSection.menu ? <div className="p-8 text-center text-gray-500">กำลังโหลดเมนูอาหาร...</div> : (
                              <div className="p-6">
-                                {/* 🚀 ใส่ Ref ให้ Form เมนู */}
                                 <div ref={menuFormRef}>
                                     {editingMenuId ? (
                                         <>
@@ -741,9 +784,8 @@ const Setting = () => {
                     <div className={`accordion-content ${accordionState.plans ? 'open' : ''}`}>
                          {loadingSection.plans ? <div className="p-8 text-center text-gray-500">กำลังโหลดแพ็กเกจ...</div> : (
                             <div className="p-6">
-                                {/* 🚀 ใส่ Ref ให้ Form Plan */}
                                 <div ref={planFormRef}>
-                                    {/* ✅ Toggle ระหว่าง เพิ่ม และ แก้ไข */}
+                                    {/* Toggle ระหว่าง เพิ่ม และ แก้ไข */}
                                     {editingPlanId ? (
                                         <>
                                             <h3 className="text-xl font-semibold mb-4 text-indigo-700">แก้ไขแพ็กเกจราคา</h3>
@@ -760,9 +802,41 @@ const Setting = () => {
                                                     <label htmlFor="description" className="block text-sm font-medium text-gray-700">คำอธิบาย (ไม่บังคับ)</label>
                                                     <textarea name="description" value={editingPlanData.description} onChange={handleEditingPlanChange} className="input-field mt-1" rows={2} />
                                                 </div>
-                                                <div className="flex justify-center md:justify-end gap-2 pt-2">
-                                                    <button type="button" onClick={handleCancelPlanEdit} className="btn-secondary w-full md:w-auto">ยกเลิก</button>
-                                                    <button type="submit" className="btn-success w-full md:w-auto">บันทึกการแก้ไข</button>
+
+                                                {/* ปุ่มเลือกเมนู แบบใหม่ (Modal Trigger) */}
+                                                <div className="mt-6">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">เมนูในแพ็กเกจ</label>
+                                                    <div className="flex flex-col gap-3">
+                                                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex flex-wrap justify-between items-center gap-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-blue-800 font-bold text-lg">
+                                                                    เลือกแล้ว {editingPlanData.menu_ids.length} รายการ
+                                                                </span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowMenuSelector(true)}
+                                                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-md transition-all flex items-center gap-2 font-semibold text-lg"
+                                                            >
+                                                                <FaUtensils /> เลือกเมนูอาหาร
+                                                            </button>
+                                                        </div>
+                                                        {/* Preview List (รายการที่เลือก) */}
+                                                        {editingPlanData.menu_ids.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                {menuItems.filter(m => editingPlanData.menu_ids.includes(m.menu_id)).map(m => (
+                                                                    <span key={m.menu_id} className="inline-flex items-center gap-1 text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full border border-green-200">
+                                                                        <FaCheck size={10}/> {m.menu_name}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-center md:justify-end gap-2 pt-6 border-t mt-6">
+                                                    <button type="button" onClick={handleCancelPlanEdit} className="btn-secondary w-full md:w-auto text-lg py-3">ยกเลิก</button>
+                                                    <button type="submit" className="btn-success w-full md:w-auto text-lg py-3">บันทึกการแก้ไข</button>
                                                 </div>
                                             </form>
                                         </>
@@ -773,7 +847,39 @@ const Setting = () => {
                                                 <div><label htmlFor="plan_name" className="block text-sm font-medium text-gray-700">ชื่อแพ็กเกจ</label><input type="text" name="plan_name" value={newPlan.plan_name} onChange={handleNewPlanChange} className="input-field mt-1" placeholder="เช่น Standard Buffet" required /></div>
                                                 <div><label htmlFor="price_per_person" className="block text-sm font-medium text-gray-700">ราคาต่อคน (บาท)</label><input type="number" name="price_per_person" value={newPlan.price_per_person} onChange={handleNewPlanChange} className="input-field mt-1" placeholder="เช่น 299" required min="0" step="any"/></div>
                                                 <div><label htmlFor="description" className="block text-sm font-medium text-gray-700">คำอธิบาย (ไม่บังคับ)</label><textarea name="description" value={newPlan.description} onChange={handleNewPlanChange} className="input-field mt-1" rows={2} placeholder="เช่น พิเศษ! เพิ่มเมนูเนื้อพรีเมียม" /></div>
-                                                <div className="flex justify-center md:justify-end pt-2"><button type="submit" className="btn-primary w-full md:w-auto">เพิ่มแพ็กเกจ</button></div>
+                                                
+                                                {/* ปุ่มเลือกเมนู แบบใหม่ (Modal Trigger) */}
+                                                <div className="mt-6">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">เมนูในแพ็กเกจ</label>
+                                                    <div className="flex flex-col gap-3">
+                                                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex flex-wrap justify-between items-center gap-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-blue-800 font-bold text-lg">
+                                                                    เลือกแล้ว {newPlan.menu_ids.length} รายการ
+                                                                </span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowMenuSelector(true)}
+                                                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-md transition-all flex items-center gap-2 font-semibold text-lg"
+                                                            >
+                                                                <FaUtensils /> เลือกเมนูอาหาร
+                                                            </button>
+                                                        </div>
+                                                        {/* Preview List (รายการที่เลือก) */}
+                                                        {newPlan.menu_ids.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                {menuItems.filter(m => newPlan.menu_ids.includes(m.menu_id)).map(m => (
+                                                                    <span key={m.menu_id} className="inline-flex items-center gap-1 text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full border border-green-200">
+                                                                        <FaCheck size={10}/> {m.menu_name}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-center md:justify-end pt-6 border-t mt-6"><button type="submit" className="btn-primary w-full md:w-auto text-lg py-3">เพิ่มแพ็กเกจ</button></div>
                                             </form>
                                         </>
                                     )}
@@ -788,9 +894,12 @@ const Setting = () => {
                                                 <span className="font-bold text-lg text-gray-800">{plan.plan_name}</span>
                                                 <span className="text-gray-600 ml-3">({plan.price_per_person} บาท/คน)</span>
                                                 {plan.description && <p className="text-sm text-gray-500 mt-1">{plan.description}</p>}
+                                                {/* แสดงจำนวนเมนูที่เลือกไว้ */}
+                                                {plan.menu_ids && plan.menu_ids.length > 0 && (
+                                                    <p className="text-xs text-blue-600 mt-1">เมนูที่เลือก: {plan.menu_ids.length} รายการ</p>
+                                                )}
                                             </div>
                                             <div className="flex gap-2 mt-2 sm:mt-0 self-center md:self-auto">
-                                                {/* ✅ เพิ่มปุ่มแก้ไข Plan */}
                                                 <button onClick={() => handleEditPlanClick(plan)} className="btn-secondary btn-sm">แก้ไข</button>
                                                 <button onClick={() => handleDeletePlan(plan.id)} className="btn-danger btn-sm">ลบ</button>
                                             </div>
@@ -812,7 +921,6 @@ const Setting = () => {
                     <div className={`accordion-content ${accordionState.promotions ? 'open' : ''}`}>
                          {loadingSection.promotions ? <div className="p-8 text-center text-gray-500">กำลังโหลดโปรโมชั่น...</div> : (
                             <div className="p-6">
-                                {/* 🚀 ใส่ Ref ให้ Form Promotion */}
                                 <div ref={promotionFormRef}>
                                     {editingPromotionId ? (
                                         <>
@@ -860,7 +968,6 @@ const Setting = () => {
                                 <hr className="my-8 border-t border-gray-300" />
                                 <h3 className="text-xl font-semibold mb-4 text-blue-700">โปรโมชั่นที่มีอยู่ ({promotions.length})</h3>
                                 <div className="overflow-x-auto">
-                                    {/* make table shrinkable on very small screens (min-w-0) and enable mobile card layout */}
                                     <table className="w-full text-left border-collapse min-w-0 mobile-card-table">
                                          <thead className="bg-gray-100">
                                             <tr>
@@ -876,7 +983,6 @@ const Setting = () => {
                                          <tbody className="bg-white divide-y divide-gray-200">
                                              {promotions.length > 0 ? (
                                                 promotions.map(promo => (
-                                                    /* table-fixed lets cells wrap with consistent widths on small screens */
                                                     <tr key={promo.promotion_id} className="hover:bg-gray-50 transition-colors">
                                                          <td className="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900 max-w-xs" data-label="ชื่อ">{promo.name}{promo.description && <p className="text-xs text-gray-500 mt-1">{promo.description}</p>}{promo.conditions && <p className="text-xs text-red-500 mt-1">เงื่อนไข: {promo.conditions}</p>}</td>
                                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700" data-label="ประเภท">{promo.type === 'percentage' && 'เปอร์เซ็นต์'}{promo.type === 'fixed_amount' && 'จำนวนเงิน'}{promo.type === 'special' && 'ข้อเสนอพิเศษ'}</td>
@@ -912,7 +1018,6 @@ const Setting = () => {
                             <div className="p-6">
                                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">🛡️ กำหนดสิทธิการใช้งาน (พนักงาน)</h2>
                                 <div className="overflow-x-auto">
-                                    {/* make table shrinkable on very small screens (min-w-0) */}
                                     <table className="w-full text-left border-collapse min-w-0 employee-table">
                                          <thead>
                                              <tr className="bg-gray-100 border-b text-gray-700">
@@ -978,6 +1083,118 @@ const Setting = () => {
                 </div>
                 )}
             </div> 
+
+            {/* ✅ Full Screen Modal สำหรับเลือกเมนู (ใช้ Portal เพื่อไม่ให้โดนบัง) */}
+            {showMenuSelector && createPortal(
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+                        {/* Header */}
+                        <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                    <FaUtensils className="text-blue-600"/> เลือกเมนูอาหาร
+                                </h2>
+                                <p className="text-gray-500 mt-1">เลือกเมนูที่ต้องการให้ลูกค้าสั่งได้ในแพ็กเกจนี้</p>
+                            </div>
+                            <button onClick={() => setShowMenuSelector(false)} className="text-gray-400 hover:text-red-500 transition-colors">
+                                <FaTimes size={32} />
+                            </button>
+                        </div>
+
+                        {/* Search & Content */}
+                        <div className="p-6 flex-1 overflow-hidden flex flex-col">
+                            {/* Search Bar */}
+                            <div className="relative mb-6">
+                                <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20}/>
+                                <input 
+                                    type="text" 
+                                    placeholder="ค้นหาชื่อเมนู..." 
+                                    className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-colors"
+                                    value={menuSearchTerm}
+                                    onChange={(e) => setMenuSearchTerm(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Menu Grid */}
+                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    {menuItems
+                                        .filter(m => m.menu_name.toLowerCase().includes(menuSearchTerm.toLowerCase()))
+                                        .map(menu => {
+                                            const isSelected = editingPlanId 
+                                                ? editingPlanData.menu_ids.includes(menu.menu_id)
+                                                : newPlan.menu_ids.includes(menu.menu_id);
+
+                                            return (
+                                                <div 
+                                                    key={menu.menu_id}
+                                                    onClick={() => handleToggleMenuSelection(menu.menu_id)}
+                                                    className={`
+                                                        relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-200 group
+                                                        ${isSelected 
+                                                            ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-300 transform scale-[1.02]' 
+                                                            : 'border-gray-200 hover:border-blue-400 hover:shadow-lg'
+                                                        }
+                                                    `}
+                                                >
+                                                    {/* Image */}
+                                                    <div className="aspect-square bg-gray-100 relative">
+                                                        {menu.menu_image ? (
+                                                            <img 
+                                                                src={`data:image/png;base64,${menu.menu_image}`} 
+                                                                alt={menu.menu_name} 
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                                                <FaImage size={40} />
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {/* ✅ Overlay ปรับให้โปร่งใสมากๆ (10%) ตามที่ขอ */}
+                                                        {isSelected && (
+                                                            <div className="absolute inset-0 bg-green-500 bg-opacity-10 flex items-center justify-center">
+                                                                <div className="bg-green-500 text-white rounded-full p-2 shadow-lg transform scale-125">
+                                                                    <FaCheck size={24} />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Text Info */}
+                                                    <div className="p-3 text-center">
+                                                        <h4 className={`font-bold text-lg mb-1 leading-tight ${isSelected ? 'text-green-800' : 'text-gray-800'}`}>
+                                                            {menu.menu_name}
+                                                        </h4>
+                                                        <p className="text-gray-500 text-sm">{menu.price} บาท</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                                {menuItems.length === 0 && (
+                                    <div className="text-center py-20 text-gray-400">
+                                        <FaUtensils size={48} className="mx-auto mb-4 opacity-50"/>
+                                        <p className="text-xl">ยังไม่มีเมนูอาหาร</p>
+                                        <p>กรุณาเพิ่มเมนูที่ "จัดการเมนูอาหาร" ก่อนนะครับ</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
+                            <button 
+                                onClick={() => setShowMenuSelector(false)}
+                                className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white text-xl font-bold rounded-xl shadow-lg transform active:scale-95 transition-all w-full md:w-auto"
+                            >
+                                เสร็จสิ้น / บันทึก
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body // ✅ เรนเดอร์ไปที่ body โดยตรง
+            )}
         </div> 
     );
 }

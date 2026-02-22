@@ -67,6 +67,53 @@ const Menu = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isNotiOpen, setIsNotiOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('soundEnabled') !== 'false'; // default เปิดเสียง
+  });
+  const playNotificationSound = (type: 'new_order' | 'call_bill' | 'other') => {
+    if (!soundEnabled) return;
+    try {
+      const ctx = new AudioContext();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      if (type === 'new_order') {
+        // เสียง ding สั้น สูง
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+        oscillator.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.4);
+      } else if (type === 'call_bill') {
+        // เสียง ding ding สองครั้ง
+        oscillator.frequency.setValueAtTime(660, ctx.currentTime);
+        oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.2);
+        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.6);
+      } else {
+        oscillator.frequency.setValueAtTime(440, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.3);
+      }
+    } catch (e) {
+      console.warn('Audio error:', e);
+    }
+  };
+
+  const toggleSound = () => {
+    setSoundEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem('soundEnabled', String(next));
+      return next;
+    });
+  };
 
   const bellButtonRef = useRef<HTMLButtonElement>(null);
   const notiPopoverRef = useRef<HTMLDivElement>(null);
@@ -174,8 +221,9 @@ const Menu = () => {
   }, [username, navigate]);
 
   const showToast = (notification: NotificationItem) => {
-    const newToast: ToastMessage = { ...notification, key: uuidv4() };
+  const newToast: ToastMessage = { ...notification, key: uuidv4() };
     setToasts((prev) => [...prev, newToast]);
+    playNotificationSound(notification.type as 'new_order' | 'call_bill' | 'other');
     setTimeout(() => {
       closeToast(newToast.key);
     }, 4000);
@@ -748,6 +796,22 @@ const Menu = () => {
             <div className="hidden min-[1160px]:flex items-center bg-white/40 p-2 rounded-lg shadow-inner">
               <ClockInOutButton />
             </div>
+            {/* --- Sound Toggle --- */}
+            <button
+              onClick={toggleSound}
+              title={soundEnabled ? 'ปิดเสียง' : 'เปิดเสียง'}
+              className="relative p-2 text-white rounded-full transition-colors duration-200 hover:bg-white/10"
+            >
+              {soundEnabled ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M9 9H5a1 1 0 00-1 1v4a1 1 0 001 1h4l3 3V6L9 9z" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+              )}
+            </button>
             {/* --- Notification Bell --- */}
             <div className="relative">
               <button

@@ -541,23 +541,32 @@ app.get('/api/order-session/:order_uuid', async (req, res) => {
   const { order_uuid } = req.params;
   try {
     const orderSql = `
-            SELECT
-                o.order_id, o.customer_quantity, o.service_type, o.start_time,
-                t.table_id, t.table_number, t.uuid AS table_uuid,
-                p.plan_name, p.price_per_person
-            FROM orders o
-            JOIN tables t ON o.table_id = t.table_id
-            LEFT JOIN pricing_plans p ON o.plan_id = p.id 
-            WHERE o.order_uuid = ? AND o.order_status = 'in-progress'
-        `;
+      SELECT
+        o.order_id, o.plan_id, o.customer_quantity, o.service_type, o.start_time,
+        t.table_id, t.table_number, t.uuid AS table_uuid,
+        p.plan_name, p.price_per_person
+      FROM orders o
+      JOIN tables t ON o.table_id = t.table_id
+      LEFT JOIN pricing_plans p ON o.plan_id = p.id
+      WHERE o.order_uuid = ? AND o.order_status = 'in-progress'
+    `;
     const [orderResult] = await db.query(orderSql, [order_uuid]);
 
     if (orderResult.length === 0) {
       return res.status(404).json({ error: "ไม่พบออเดอร์สำหรับโต๊ะนี้ หรือโต๊ะถูกปิดไปแล้ว" });
     }
 
-    const menuSql = "SELECT * FROM menu ORDER BY menu_category, menu_name";
-    const [menuResult] = await db.query(menuSql);
+    const planId = orderResult[0].plan_id;
+
+    const menuSql = `
+      SELECT m.*
+      FROM menu m
+      INNER JOIN plan_menu_access pma ON m.menu_id = pma.menu_id
+      WHERE pma.plan_id = ?
+      ORDER BY m.menu_category, m.menu_name
+    `;
+    const [menuResult] = await db.query(menuSql, [planId]);
+
     const menuWithImages = menuResult.map(item => ({
       ...item,
       menu_image: bufferToBase64(item.menu_image)
@@ -616,17 +625,34 @@ app.post('/api/orders/:orderId/details', async (req, res) => {
     ]);
     await connection.query("INSERT INTO order_details (order_id, menu_id, quantity, price_per_item, item_status, customer_name) VALUES ?", [values]);
 
-    // ... (ส่วน Notification คงเดิม) ...
     await connection.commit();
     
     // แจ้งเตือน Socket
     io.emit('new_order_item', { orderId: orderId, items: orderDetails });
+
+    // ดึงเลขโต๊ะแล้วส่ง Toast แจ้งพนักงาน
+    const [orderInfo] = await db.query(
+      `SELECT t.table_number 
+       FROM orders o 
+       JOIN tables t ON o.table_id = t.table_id 
+       WHERE o.order_id = ?`,
+      [orderId]
+    );
+    const tableNumber = orderInfo[0]?.table_number ?? '?';
+    const totalItems = orderDetails.reduce((sum, item) => sum + item.quantity, 0);
+
+    io.emit('notification', {
+      message: `🍽️ โต๊ะ ${tableNumber} — สั่งอาหารใหม่ ${totalItems} รายการ`,
+      type: 'new_order',
+      linkTo: '/order'
+    });
+
     res.status(201).json({ message: 'Order details added successfully' });
 
   } catch (err) {
     if (connection) await connection.rollback();
     console.error("Order Detail Error:", err.message);
-    return res.status(400).json({ error: err.message }); // ส่ง 400 Bad Request พร้อมข้อความแจ้งเตือน
+    return res.status(400).json({ error: err.message });
   } finally {
     if (connection) connection.release();
   }
@@ -1336,6 +1362,43 @@ app.post('/api/promotions', requireAuth, checkPermission('manage_settings'), asy
   }
 });
 
+//
+app.put('/api/plans/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { plan_name, price_per_person, description, menu_ids } = req.body;
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 1. แก้เป็น pricing_plans
+    await connection.query(
+      "UPDATE pricing_plans SET plan_name = ?, price_per_person = ?, description = ? WHERE id = ?",
+      [plan_name, price_per_person, description, id]
+    );
+
+    // 2. ลบเมนูเดิม
+    await connection.query("DELETE FROM plan_menu_access WHERE plan_id = ?", [id]);
+
+    // 3. เพิ่มเมนูใหม่
+    if (menu_ids && menu_ids.length > 0) {
+      const values = menu_ids.map(menuId => [id, menuId]);
+      await connection.query(
+        "INSERT INTO plan_menu_access (plan_id, menu_id) VALUES ?", 
+        [values]
+      );
+    }
+
+    await connection.commit();
+    res.json({ message: 'Plan updated successfully' });
+  } catch (err) {
+    await connection.rollback();
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update plan' });
+  } finally {
+    connection.release();
+  }
+});
+
 // Protected: แก้ไขโปรโมชั่น
 app.put('/api/promotions/:id', requireAuth, checkPermission('manage_settings'), async (req, res) => {
   const { id } = req.params;
@@ -1401,44 +1464,84 @@ app.delete('/api/promotions/:id', requireAuth, checkPermission('manage_settings'
 // ============================
 app.get('/api/plans', async (req, res) => {
   try {
-    const sql = "SELECT * FROM pricing_plans ORDER BY price_per_person ASC";
-    const [results] = await db.query(sql);
-    res.json(results);
+    const [plans] = await db.query("SELECT * FROM pricing_plans");
+    const [accessData] = await db.query("SELECT * FROM plan_menu_access");
+
+    const plansWithMenus = plans.map(plan => {
+      // 1. หา ID ของ Plan (แปลงเป็น String เพื่อความชัวร์)
+      // เช็คทุกชื่อที่เป็นไปได้: id, plan_id, หรือ pricing_plan_id
+      const pId = String(plan.id || plan.plan_id || plan.pricing_plan_id);
+
+      // 2. จับคู่กับตาราง plan_menu_access
+      const selectedMenuIds = accessData
+        .filter(item => {
+            // ดึง plan_id จากตารางจับคู่ แล้วแปลงเป็น String เทียบกัน
+            const accessPlanId = String(item.plan_id || item.pricing_plan_id); 
+            return accessPlanId === pId; // เทียบแบบ String เจอแน่นอน
+        })
+        .map(item => Number(item.menu_id)); // ✅ สำคัญ: แปลง menu_id กลับเป็นตัวเลข (Int) ให้ Frontend
+      
+      return { 
+        ...plan, 
+        id: Number(pId), // ส่ง id เป็นตัวเลขกลับไป
+        menu_ids: selectedMenuIds 
+      }; 
+    });
+
+    res.json(plansWithMenus);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error("Error fetching plans:", err);
+    res.status(500).json({ error: 'Failed to fetch plans' });
   }
 });
 
 // Protected: เพิ่มแผนราคา
-app.post('/api/plans', requireAuth, checkPermission('manage_settings'), async (req, res) => {
-  const { plan_name, price_per_person, description } = req.body;
-  if (!plan_name || price_per_person === undefined || price_per_person === null) {
-    return res.status(400).json({ error: 'Missing plan name or price' });
-  }
+
+app.post('/api/plans', requireAuth, requireAdmin, async (req, res) => {
+  // ** เช็คชื่อ column ใน database ให้ดีว่าตรงกับตัวแปรเหล่านี้ไหม **
+  const { plan_name, price_per_person, description, menu_ids } = req.body; 
+  
+  const connection = await db.getConnection();
   try {
-    const sql = "INSERT INTO pricing_plans (plan_name, price_per_person, description) VALUES (?, ?, ?)";
-    const [result] = await db.query(sql, [plan_name, price_per_person, description || null]);
-    console.log('🚀 Emitting plans_updated');
-    io.emit('plans_updated');
-    res.status(201).json({ id: result.insertId, plan_name, price_per_person, description });
+    await connection.beginTransaction();
+
+    // 1. แก้เป็น pricing_plans
+    const [result] = await connection.query(
+      "INSERT INTO pricing_plans (plan_name, price_per_person, description) VALUES (?, ?, ?)",
+      [plan_name, price_per_person, description]
+    );
+    const planId = result.insertId;
+
+    // 2. บันทึกเมนู (ใช้ plan_menu_access เหมือนเดิม)
+    if (menu_ids && menu_ids.length > 0) {
+      const values = menu_ids.map(menuId => [planId, menuId]);
+      await connection.query(
+        "INSERT INTO plan_menu_access (plan_id, menu_id) VALUES ?", 
+        [values]
+      );
+    }
+
+    await connection.commit();
+    res.json({ message: 'Plan created successfully', id: planId });
   } catch (err) {
-    return res.status(500).json({ error: 'Could not add pricing plan' });
+    await connection.rollback();
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create plan' });
+  } finally {
+    connection.release();
   }
 });
 
 // Protected: ลบแผนราคา
-app.delete('/api/plans/:id', requireAuth, checkPermission('manage_settings'), async (req, res) => {
+app.delete('/api/plans/:id', requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    const sql = "DELETE FROM pricing_plans WHERE id = ?";
-    const [result] = await db.query(sql, [id]);
-    if (result.affectedRows === 0) return res.status(404).json({ message: 'Pricing plan not found' });
-    console.log('🚀 Emitting plans_updated');
-    io.emit('plans_updated');
-    res.json({ message: 'Pricing plan deleted successfully' });
+    // แก้เป็น pricing_plans
+    await db.query("DELETE FROM pricing_plans WHERE id = ?", [id]);
+    res.json({ message: 'Plan deleted successfully' });
   } catch (err) {
-    console.error("Error deleting plan:", err);
-    return res.status(500).json({ error: 'Could not delete pricing plan (it might be in use)' });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete plan' });
   }
 });
 
