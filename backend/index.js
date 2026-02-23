@@ -603,19 +603,42 @@ app.post('/api/orders/:orderId/details', async (req, res) => {
     await connection.beginTransaction();
 
     // 1. ตรวจสอบสต็อกสำหรับทุกเมนูที่สั่ง
+    // 1. ตรวจสอบสต็อกสำหรับทุกเมนูที่สั่ง
     const menuIds = orderDetails.map(item => item.menu_id);
+
+    // ดึงสต็อกจริงจากตาราง menu
     const [stockResults] = await connection.query(
       "SELECT menu_id, menu_name, menu_quantity FROM menu WHERE menu_id IN (?) FOR UPDATE", 
+      [menuIds]
+    );
+
+    // ดึงยอดที่สั่งไปแล้วแต่ยังไม่ตัดสต็อก (กำลังจัดทำ อยู่ทุกโต๊ะ)
+    const [pendingResults] = await connection.query(
+      `SELECT od.menu_id, SUM(od.quantity) AS pending_quantity
+       FROM order_details od
+       JOIN orders o ON od.order_id = o.order_id
+       WHERE od.menu_id IN (?)
+         AND od.item_status = 'กำลังจัดทำ'
+         AND o.order_status = 'in-progress'
+       GROUP BY od.menu_id`,
       [menuIds]
     );
 
     for (const item of orderDetails) {
       const menu = stockResults.find(m => m.menu_id === item.menu_id);
       if (!menu) throw new Error(`ไม่พบเมนู ID: ${item.menu_id}`);
-      
-      // ถ้ามีการนับสต็อก (ไม่เป็น null) และของไม่พอ
-      if (menu.menu_quantity !== null && menu.menu_quantity < item.quantity) {
-        throw new Error(`วัตถุดิบหมด: ${menu.menu_name} (เหลือ ${menu.menu_quantity})`);
+
+      if (menu.menu_quantity !== null) {
+        // หายอดที่ถูกจองไว้แล้ว (pending) ของเมนูนี้
+        const pending = pendingResults.find(p => p.menu_id === item.menu_id);
+        const pendingQty = pending ? Number(pending.pending_quantity) : 0;
+
+        // สต็อกที่เหลือจริงๆ = สต็อกในมือ - ที่จองไว้แล้ว
+        const availableQty = menu.menu_quantity - pendingQty;
+
+        if (availableQty < item.quantity) {
+          throw new Error(`วัตถุดิบหมด: ${menu.menu_name} (คงเหลือ ${availableQty} จาก ${menu.menu_quantity})`);
+        }
       }
     }
 
