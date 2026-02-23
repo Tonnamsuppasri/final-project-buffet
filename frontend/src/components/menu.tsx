@@ -16,7 +16,6 @@ import {
   ArchiveBoxIcon,
   ClipboardDocumentListIcon,
   PresentationChartLineIcon,
-  ComputerDesktopIcon,
 } from '@heroicons/react/24/solid';
 import './menu.css';
 import Swal from 'sweetalert2';
@@ -634,7 +633,7 @@ const Menu = () => {
                     { path: '/report-sales', label: 'รายงานยอดขาย', color: 'text-green-300' },
                     { path: '/report-menu', label: 'รายงานเมนู/บุฟเฟต์', color: 'text-blue-300' },
                     { path: '/report-stock', label: 'รายงานสต็อก', color: 'text-yellow-400' }
-                  ].map((item, index) => (
+                  ].map((item) => (
                     <div key={item.path} className="relative group/item">
                       <div className={`absolute inset-0 rounded-xl transition-all duration-300
                         ${isActive(item.path)
