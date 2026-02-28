@@ -18,6 +18,7 @@ interface ShopData {
     close_time: string;
     payment_qr_code: string | null;
     shop_logo: string | null;
+    refill_water_price: number; // ✅ เพิ่ม
 }
 
 interface TableData {
@@ -32,7 +33,8 @@ interface PlanData {
     plan_name: string;
     price_per_person: number;
     description: string | null; 
-    menu_ids?: number[]; 
+    menu_ids?: number[];
+    allow_refill: number; // ✅ เพิ่ม
 }
 
 interface MenuData {
@@ -72,7 +74,8 @@ interface EditingPlanState {
     plan_name: string;
     price_per_person: string;
     description: string;
-    menu_ids: number[]; 
+    menu_ids: number[];
+    allow_refill: number; // ✅ เพิ่ม
 }
 
 interface UserPermissionData {
@@ -84,6 +87,8 @@ interface UserPermissionData {
 
 const Setting = () => {
     const location = useLocation();
+    const [serviceTypes, setServiceTypes] = useState<{id: number, name: string}[]>([]);
+    const [newServiceTypeName, setNewServiceTypeName] = useState('');
 
     const tableFormRef = useRef<HTMLDivElement | null>(null);
     const planFormRef = useRef<HTMLDivElement | null>(null);
@@ -106,7 +111,8 @@ const Setting = () => {
     const [shopData, setShopData] = useState<ShopData>({
         shop_name: '', shop_address: '', shop_phone: '',
         open_time: '', close_time: '', payment_qr_code: null,
-        shop_logo: null
+        shop_logo: null,
+        refill_water_price: 0  // ✅ เพิ่ม
     });
 
     // Table states
@@ -121,14 +127,16 @@ const Setting = () => {
         plan_name: '', 
         price_per_person: '', 
         description: '',
-        menu_ids: [] as number[] 
+        menu_ids: [] as number[],
+        allow_refill: 0
     });
     const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
     const [editingPlanData, setEditingPlanData] = useState<EditingPlanState>({
         plan_name: '', 
         price_per_person: '', 
         description: '',
-        menu_ids: [] 
+        menu_ids: [],
+        allow_refill: 0
     });
 
     // Modal State
@@ -146,6 +154,8 @@ const Setting = () => {
         menu_image: null as string | null
     });
     const [editingMenuId, setEditingMenuId] = useState<number | null>(null);
+    const [menuPage, setMenuPage] = useState(1);
+    const MENU_PER_PAGE = 10;
     const [editingMenuData, setEditingMenuData] = useState<EditingMenuState>({
         menu_name: '', menu_description: '', menu_category: '', price: '', menu_quantity: null, menu_image: null
     });
@@ -166,11 +176,10 @@ const Setting = () => {
     const [employees, setEmployees] = useState<UserPermissionData[]>([]);
 
     const [accordionState, setAccordionState] = useState({
-        shop: false, tables: false, plans: false, menu: false, promotions: false, employee: false
+        shop: false, tables: false, plans: false, menu: false, promotions: false, employee: false, serviceTypes: false
     });
-    
     const [loadingSection, setLoadingSection] = useState({
-        shop: false, tables: false, plans: false, menu: false, promotions: false, employee: false
+        shop: false, tables: false, plans: false, menu: false, promotions: false, employee: false, serviceTypes: false
     });
 
     const scrollToRef = (ref: React.RefObject<HTMLDivElement | null>) => {
@@ -248,6 +257,15 @@ const Setting = () => {
         finally { setLoadingSection(prev => ({ ...prev, employee: false })); }
     };
 
+    const fetchServiceTypes = async () => {
+        setLoadingSection(prev => ({ ...prev, serviceTypes: true }));
+        try {
+            const res = await axios.get(`${apiUrl}/api/service-types`);
+            setServiceTypes(res.data);
+        } catch (error) { console.error("Error fetching service types:", error); }
+        finally { setLoadingSection(prev => ({ ...prev, serviceTypes: false })); }
+    };
+
     const toggleAccordion = (section: keyof typeof accordionState) => {
         const isOpen = !accordionState[section];
         setAccordionState(prev => ({ ...prev, [section]: isOpen }));
@@ -257,8 +275,10 @@ const Setting = () => {
                 case 'tables': fetchTables(); break;
                 case 'plans': 
                     fetchPlans(); 
-                    fetchMenu(); 
+                    fetchMenu();
+                    fetchShopData(); // เพิ่ม
                     break;
+                case 'serviceTypes': fetchServiceTypes(); break;
                 case 'menu': fetchMenu(); break;
                 case 'promotions': fetchPromotions(); break;
                 case 'employee': fetchEmployees(); break;
@@ -279,6 +299,35 @@ const Setting = () => {
             reader.readAsDataURL(file);
         }
     };
+    const handleAddServiceType = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!newServiceTypeName.trim()) return;
+        try {
+            await axios.post(`${apiUrl}/api/service-types`, { name: newServiceTypeName.trim() });
+            setNewServiceTypeName('');
+            fetchServiceTypes();
+            Swal.fire({ icon: 'success', title: 'เพิ่มสำเร็จ', timer: 1200, showConfirmButton: false });
+        } catch {
+            Swal.fire({ icon: 'error', title: 'ชื่อนี้มีอยู่แล้ว' });
+        }
+    };
+
+    const handleDeleteServiceType = async (id: number) => {
+        const result = await Swal.fire({
+            title: 'ลบประเภทบริการนี้?', icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#d33',
+            confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก'
+        });
+        if (!result.isConfirmed) return;
+        try {
+            await axios.delete(`${apiUrl}/api/service-types/${id}`);
+            fetchServiceTypes();
+            Swal.fire({ icon: 'success', title: 'ลบสำเร็จ', timer: 1200, showConfirmButton: false });
+        } catch {
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด' });
+        }
+    };
+
     const handleQrCodeChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
@@ -387,7 +436,7 @@ const Setting = () => {
             await axios.post(`${apiUrl}/api/plans`, dataToSend);
             const plansRes = await axios.get<PlanData[]>(`${apiUrl}/api/plans`);
             setPlans(plansRes.data);
-            setNewPlan({ plan_name: '', price_per_person: '', description: '', menu_ids: [] });
+            setNewPlan({ plan_name: '', price_per_person: '', description: '', menu_ids: [], allow_refill: 0 });
             Swal.fire('สำเร็จ!', 'เพิ่มแพ็กเกจราคาเรียบร้อย', 'success');
         } catch (error: any) { Swal.fire('ผิดพลาด!', error.response?.data?.error || 'ไม่สามารถเพิ่มแพ็กเกจราคาได้', 'error'); }
     };
@@ -398,14 +447,15 @@ const Setting = () => {
             plan_name: plan.plan_name,
             price_per_person: String(plan.price_per_person),
             description: plan.description || '',
-            menu_ids: plan.menu_ids || [] 
+            menu_ids: plan.menu_ids || [],
+            allow_refill: plan.allow_refill || 0  // ✅ เพิ่ม
         });
         scrollToRef(planFormRef);
     };
 
     const handleCancelPlanEdit = () => {
         setEditingPlanId(null);
-        setEditingPlanData({ plan_name: '', price_per_person: '', description: '', menu_ids: [] });
+        setEditingPlanData({ plan_name: '', price_per_person: '', description: '', menu_ids: [], allow_refill: 0 });
     };
 
     const handleUpdatePlan = async (e: FormEvent<HTMLFormElement>) => {
@@ -416,7 +466,8 @@ const Setting = () => {
                 plan_name: editingPlanData.plan_name,
                 price_per_person: parseFloat(editingPlanData.price_per_person) || 0,
                 description: editingPlanData.description,
-                menu_ids: editingPlanData.menu_ids
+                menu_ids: editingPlanData.menu_ids,
+                allow_refill: editingPlanData.allow_refill  // ✅ เพิ่ม
             });
             const res = await axios.get<PlanData[]>(`${apiUrl}/api/plans`);
             setPlans(res.data);
@@ -473,7 +524,11 @@ const Setting = () => {
         if (result.isConfirmed) {
             try {
                 await axios.delete(`${apiUrl}/api/menu/${menuId}`);
-                setMenuItems(menuItems.filter(m => m.menu_id !== menuId));
+                const newItems = menuItems.filter(m => m.menu_id !== menuId);
+                setMenuItems(newItems);
+                // ถ้าหน้าปัจจุบันไม่มีเมนูแล้ว ให้ถอยกลับหน้าก่อน
+                const maxPage = Math.ceil(newItems.length / MENU_PER_PAGE);
+                if (menuPage > maxPage) setMenuPage(Math.max(1, maxPage));
                 Swal.fire('ลบแล้ว!', 'เมนูถูกลบเรียบร้อย', 'success');
             } catch (error: any) { Swal.fire('ผิดพลาด!', error.response?.data?.error || 'ไม่สามารถลบเมนูได้', 'error'); }
         }
@@ -690,6 +745,56 @@ const Setting = () => {
                     </div>
                 </div>
 
+                {/* Accordion: Service Type Management */}
+                <div className="accordion-item border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    <button onClick={() => toggleAccordion('serviceTypes')} className="accordion-header">
+                        <span>จัดการประเภทบริการ (ปิ้งย่าง / ชาบู)</span>
+                        <span className={`accordion-arrow ${accordionState.serviceTypes ? 'open' : ''}`}>▼</span>
+                    </button>
+                    <div className={`accordion-content ${accordionState.serviceTypes ? 'open' : ''}`}>
+                        {loadingSection.serviceTypes ? (
+                            <div className="p-8 text-center text-gray-500">กำลังโหลด...</div>
+                        ) : (
+                            <div className="p-6">
+                                <h3 className="text-xl font-semibold mb-4 text-orange-700">เพิ่มประเภทบริการใหม่</h3>
+                                <form onSubmit={handleAddServiceType} className="flex flex-col sm:flex-row items-end gap-4 mb-6">
+                                    <div className="w-full sm:w-auto flex-grow">
+                                        <label className="block text-sm font-medium text-gray-700">ชื่อประเภทบริการ</label>
+                                        <input
+                                            type="text"
+                                            value={newServiceTypeName}
+                                            onChange={e => setNewServiceTypeName(e.target.value)}
+                                            className="input-field mt-1 w-full"
+                                            placeholder="เช่น หม้อไฟ, สุกี้..."
+                                            required
+                                        />
+                                    </div>
+                                    <button type="submit" className="btn-primary w-full sm:w-auto">เพิ่ม</button>
+                                </form>
+
+                                <hr className="my-6 border-t border-gray-300" />
+                                <h3 className="text-xl font-semibold mb-4 text-orange-700">ประเภทบริการที่มีอยู่ ({serviceTypes.length})</h3>
+                                <ul className="space-y-3">
+                                    {serviceTypes.map(st => (
+                                        <li key={st.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm">
+                                            <span className="font-bold text-lg text-gray-800">{st.name}</span>
+                                            <button
+                                                onClick={() => handleDeleteServiceType(st.id)}
+                                                className="btn-danger btn-sm"
+                                            >
+                                                ลบ
+                                            </button>
+                                        </li>
+                                    ))}
+                                    {serviceTypes.length === 0 && (
+                                        <li className="text-center text-gray-400 py-4">ยังไม่มีประเภทบริการ</li>
+                                    )}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 {/* Accordion: Menu Management */}
                 <div className="accordion-item border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                     <button onClick={() => toggleAccordion('menu')} className="accordion-header">
@@ -747,29 +852,56 @@ const Setting = () => {
                                         </>
                                     )}
                                 </div>
+
                                 <hr className="my-8 border-t border-gray-300" />
                                 <h3 className="text-xl font-semibold mb-4 text-purple-700">รายการเมนูทั้งหมด ({menuItems.length})</h3>
                                 <ul className="space-y-3">
-                                    {menuItems.map(menu => (
-                                        <li key={menu.menu_id} className="flex flex-col sm:flex-row justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm gap-2">
-                                            <div className="flex items-center gap-4 w-full">
-                                                <img src={menu.menu_image ? `data:image/png;base64,${menu.menu_image}` : 'https://via.placeholder.com/50'} alt={menu.menu_name} className="menu-list-thumbnail"/>
-                                                <div className="flex-grow">
-                                                    <span className="font-bold text-lg text-gray-800">{menu.menu_name}</span>
-                                                    <span className="text-gray-600 ml-2 sm:ml-3">({menu.price} บาท)</span>
-                                                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                                                        {menu.menu_category && <span className="text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">{menu.menu_category}</span>}
-                                                        {menu.menu_quantity !== null && <span className="text-xs font-semibold px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">สต็อก: {menu.menu_quantity}</span>}
+                                    {menuItems
+                                        .slice((menuPage - 1) * MENU_PER_PAGE, menuPage * MENU_PER_PAGE)
+                                        .map(menu => (
+                                            <li key={menu.menu_id} className="flex flex-col sm:flex-row justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm gap-2">
+                                                <div className="flex items-center gap-4 w-full">
+                                                    <img src={menu.menu_image ? `data:image/png;base64,${menu.menu_image}` : 'https://via.placeholder.com/50'} alt={menu.menu_name} className="menu-list-thumbnail"/>
+                                                    <div className="flex-grow">
+                                                        <span className="font-bold text-lg text-gray-800">{menu.menu_name}</span>
+                                                        <span className="text-gray-600 ml-2 sm:ml-3">({menu.price} บาท)</span>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                                                            {menu.menu_category && <span className="text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">{menu.menu_category}</span>}
+                                                            {menu.menu_quantity !== null && <span className="text-xs font-semibold px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full">สต็อก: {menu.menu_quantity}</span>}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div className="flex gap-2 flex-shrink-0 mt-2 sm:mt-0 self-center">
-                                                <button onClick={() => handleEditMenuClick(menu)} className="btn-secondary btn-sm">แก้ไข</button>
-                                                <button onClick={() => handleDeleteMenu(menu.menu_id)} className="btn-danger btn-sm">ลบ</button>
-                                            </div>
-                                        </li>
-                                    ))}
+                                                <div className="flex gap-2 flex-shrink-0 mt-2 sm:mt-0 self-center">
+                                                    <button onClick={() => handleEditMenuClick(menu)} className="btn-secondary btn-sm">แก้ไข</button>
+                                                    <button onClick={() => handleDeleteMenu(menu.menu_id)} className="btn-danger btn-sm">ลบ</button>
+                                                </div>
+                                            </li>
+                                        ))}
                                 </ul>
+
+                                {/* Pagination */}
+                                {menuItems.length > MENU_PER_PAGE && (
+                                    <div className="flex items-center justify-between mt-4 px-1">
+                                        <p className="text-sm text-gray-500">
+                                            แสดง {(menuPage - 1) * MENU_PER_PAGE + 1}–{Math.min(menuPage * MENU_PER_PAGE, menuItems.length)} จาก {menuItems.length} รายการ
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setMenuPage(p => Math.max(1, p - 1))}
+                                                disabled={menuPage === 1}
+                                                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                            >←</button>
+                                            <span className="text-sm font-semibold text-gray-700">
+                                                {menuPage} / {Math.ceil(menuItems.length / MENU_PER_PAGE)}
+                                            </span>
+                                            <button
+                                                onClick={() => setMenuPage(p => Math.min(Math.ceil(menuItems.length / MENU_PER_PAGE), p + 1))}
+                                                disabled={menuPage === Math.ceil(menuItems.length / MENU_PER_PAGE)}
+                                                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                            >→</button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                          )}
                     </div>
@@ -847,7 +979,7 @@ const Setting = () => {
                                                 <div><label htmlFor="plan_name" className="block text-sm font-medium text-gray-700">ชื่อแพ็กเกจ</label><input type="text" name="plan_name" value={newPlan.plan_name} onChange={handleNewPlanChange} className="input-field mt-1" placeholder="เช่น Standard Buffet" required /></div>
                                                 <div><label htmlFor="price_per_person" className="block text-sm font-medium text-gray-700">ราคาต่อคน (บาท)</label><input type="number" name="price_per_person" value={newPlan.price_per_person} onChange={handleNewPlanChange} className="input-field mt-1" placeholder="เช่น 299" required min="0" step="any"/></div>
                                                 <div><label htmlFor="description" className="block text-sm font-medium text-gray-700">คำอธิบาย (ไม่บังคับ)</label><textarea name="description" value={newPlan.description} onChange={handleNewPlanChange} className="input-field mt-1" rows={2} placeholder="เช่น พิเศษ! เพิ่มเมนูเนื้อพรีเมียม" /></div>
-                                                
+
                                                 {/* ปุ่มเลือกเมนู แบบใหม่ (Modal Trigger) */}
                                                 <div className="mt-6">
                                                     <label className="block text-sm font-medium text-gray-700 mb-2">เมนูในแพ็กเกจ</label>
@@ -884,9 +1016,41 @@ const Setting = () => {
                                         </>
                                     )}
                                 </div>
-
+                                
+                                {/* 🥤 ราคารีฟิลน้ำ */}
+                                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h3 className="text-lg font-semibold text-blue-800 mb-1">🥤 ราคารีฟิลน้ำ (ส่วนกลาง)</h3>
+                                    <p className="text-sm text-gray-500 mb-3">ราคาที่จะบวกเพิ่มต่อคน เมื่อพนักงานติ๊กรีฟิลน้ำตอนเปิดโต๊ะ</p>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="number"
+                                            value={shopData.refill_water_price}
+                                            onChange={e => setShopData(prev => ({ ...prev, refill_water_price: Number(e.target.value) }))}
+                                            className="input-field w-40"
+                                            placeholder="เช่น 29"
+                                            min="0"
+                                            step="any"
+                                        />
+                                        <span className="text-gray-600 font-medium">บาท/คน</span>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                try {
+                                                    await axios.put(`${apiUrl}/api/shop`, shopData);
+                                                    Swal.fire({ icon: 'success', title: 'บันทึกราคารีฟิลน้ำแล้ว', timer: 1200, showConfirmButton: false });
+                                                } catch {
+                                                    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด' });
+                                                }
+                                            }}
+                                            className="btn-primary"
+                                        >
+                                            บันทึก
+                                        </button>
+                                    </div>
+                                </div>
                                 <hr className="my-6 border-t border-gray-300" />
                                 <h3 className="text-xl font-semibold mb-4 text-indigo-700">แพ็กเกจที่มีอยู่ ({plans.length})</h3>
+                                
                                 <ul className="space-y-3">
                                     {plans.map(plan => (
                                         <li key={plan.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 p-3 rounded-md shadow-sm gap-2">

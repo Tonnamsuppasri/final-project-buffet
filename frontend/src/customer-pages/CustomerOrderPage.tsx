@@ -321,7 +321,7 @@ const CustomerOrderPage = () => {
                 <p className="menu-item-desc">{item.menu_description}</p>
             </div>
             <div className="menu-item-actions">
-                <span className="menu-item-price">฿{item.price}</span>
+                <span className="menu-item-price">฿{item.price.toLocaleString()}</span>
                 <button className="add-to-cart-btn" onClick={(e) => handleAddToCart(item, e)}><FaShoppingCart/></button>
             </div>
         </div>
@@ -365,15 +365,21 @@ const CustomerOrderPage = () => {
                         <h2 className="menu-group-header">{group.category}</h2>
                         {group.items.map(item => <MenuItemCard key={item.menu_id} item={item} />)}
                     </section>
-                )) : filteredMenu.map(item => <MenuItemCard key={item.menu_id} item={item} />)}
+                )) : (
+                    <section className="menu-group-section">
+                        {filteredMenu.map(item => <MenuItemCard key={item.menu_id} item={item} />)}
+                    </section>
+                )}
             </main>
 
             {/* Cart Modal / Bottom Sheet */}
             {isCartOpen && (
                 <div className="cart-modal-overlay" onClick={() => setIsCartOpen(false)}>
                     <div className="cart-modal" style={cartDrag.style} onClick={e => e.stopPropagation()}>
-                        <div className="cart-header" {...cartDrag.handlers}>
-                            <div className="drag-handle" style={{ width: '40px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', margin: '8px auto' }}></div>
+                        <div {...cartDrag.handlers} style={{ padding: '10px 0 0 0', cursor: 'grab' }}>
+                            <div style={{ width: '40px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', margin: '0 auto' }}></div>
+                        </div>
+                        <div className="cart-header">
                             <h2>รายการสั่งใหม่</h2>
                             <button className="close-cart-btn" onClick={() => setIsCartOpen(false)}><FaTimes /></button>
                         </div>
@@ -402,8 +408,10 @@ const CustomerOrderPage = () => {
             {isInfoSheetOpen && (
                 <div className="info-sheet-overlay" onClick={() => setIsInfoSheetOpen(false)}>
                     <div className="info-sheet-content" style={infoDrag.style} onClick={e => e.stopPropagation()}>
-                        <div className="info-sheet-header" {...infoDrag.handlers}>
-                            <div className="drag-handle" style={{ width: '40px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', margin: '8px auto' }}></div>
+                        <div {...infoDrag.handlers} style={{ padding: '10px 0 0 0', cursor: 'grab' }}>
+                            <div style={{ width: '40px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', margin: '0 auto' }}></div>
+                        </div>
+                        <div className="info-sheet-header">
                             {infoSheetView === 'qr' && <button className="back-sheet-btn" onClick={() => setInfoSheetView('details')}><FaArrowLeft /></button>}
                             <span className="sheet-header-title">{infoSheetView === 'details' ? 'รายละเอียดโต๊ะ' : 'Share QR Code'}</span>
                             <button className="close-sheet-btn" onClick={() => setIsInfoSheetOpen(false)}><FaChevronDown /></button>
@@ -433,10 +441,12 @@ const CustomerOrderPage = () => {
             {isCategorySheetOpen && (
                 <div className="category-sheet-overlay" onClick={() => setIsCategorySheetOpen(false)}>
                     <div className="category-sheet-content" style={categoryDrag.style} onClick={e => e.stopPropagation()}>
-                        <div className="category-sheet-header" {...categoryDrag.handlers}>
-                             <div className="drag-handle" style={{ width: '40px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', margin: '8px auto' }}></div>
-                             <h3>ประเภทอาหาร</h3>
-                             <button className="close-sheet-btn" onClick={() => setIsCategorySheetOpen(false)}><FaChevronDown /></button>
+                        <div {...categoryDrag.handlers} style={{ padding: '10px 0 0 0', cursor: 'grab' }}>
+                            <div style={{ width: '40px', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', margin: '0 auto' }}></div>
+                        </div>
+                        <div className="category-sheet-header">
+                            <h3>ประเภทอาหาร</h3>
+                            <button className="close-sheet-btn" onClick={() => setIsCategorySheetOpen(false)}><FaChevronDown /></button>
                         </div>
                         <ul className="category-sheet-list">
                             {categories.map(cat => (

@@ -68,12 +68,14 @@ const StockManagement = () => {
             socket.connect();
         }
         socket.on('connect', () => console.log('✅ (StockMgmt) Connected to Socket.IO'));
-        socket.on('menu_updated', fetchData); 
+        
+        // ❌ ปิดการดึงข้อมูลใหม่ทั้งหมดทุกครั้งที่มีการอัปเดตเมนู (ป้องกันการค้าง 3 วิ)
+        // socket.on('menu_updated', fetchData); 
 
         return () => {
-            socket.off('menu_updated', fetchData);
+            // socket.off('menu_updated', fetchData);
         };
-    }, [fetchData]); 
+    }, [fetchData]);
 
     // ✅ สร้างรายการหมวดหมู่จากข้อมูลสินค้า (Memoized)
     const categories = useMemo(() => {

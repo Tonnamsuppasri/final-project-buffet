@@ -20,6 +20,7 @@ const allowedOrigins = [
   'http://10.226.247.45:5173',
   frontendUrl,
   // 'http://[YOUR_HOTSPOT_IP]:5173' 
+   'https://salic-direly-jacquiline.ngrok-free.dev',
 ];
 
 const corsOptions = {
@@ -158,7 +159,7 @@ const requireAdmin = (req, res, next) => {
 // Public: ดึงข้อมูลร้าน (สำหรับแสดงผลหน้า Login/Welcome)
 app.get('/api/shop', async (req, res) => {
   try {
-    const sql = "SELECT shop_name, shop_address, shop_phone, open_time, close_time, payment_qr_code, shop_logo FROM shop WHERE id = 1";
+    const sql = "SELECT shop_name, shop_address, shop_phone, open_time, close_time, payment_qr_code, shop_logo, refill_water_price FROM shop WHERE id = 1";
     const [result] = await db.query(sql);
     if (result.length === 0) return res.status(404).json({ message: 'Shop info not found' });
     const shopData = result[0];
@@ -173,9 +174,9 @@ app.get('/api/shop', async (req, res) => {
 // Protected: แก้ไขข้อมูลร้าน (ต้องมีสิทธิ manage_settings)
 app.put('/api/shop', requireAuth, checkPermission('manage_settings'), async (req, res) => {
   try {
-    const { shop_name, shop_address, shop_phone, open_time, close_time, payment_qr_code, shop_logo } = req.body;
-    let sql = `UPDATE shop SET shop_name = ?, shop_address = ?, shop_phone = ?, open_time = ?, close_time = ?`;
-    let params = [shop_name, shop_address, shop_phone, open_time, close_time];
+    const { shop_name, shop_address, shop_phone, open_time, close_time, payment_qr_code, shop_logo, refill_water_price } = req.body;
+let sql = `UPDATE shop SET shop_name = ?, shop_address = ?, shop_phone = ?, open_time = ?, close_time = ?, refill_water_price = ?`;
+let params = [shop_name, shop_address, shop_phone, open_time, close_time, refill_water_price || 0];
     if (payment_qr_code) {
       const qrCodeBuffer = Buffer.from(payment_qr_code, 'base64');
       sql += ', payment_qr_code = ?';
@@ -419,28 +420,23 @@ app.post('/api/menu', requireAuth, checkPermission('manage_settings'), async (re
 app.put('/api/menu/:id', requireAuth, checkPermission('manage_settings'), async (req, res) => {
   const { id } = req.params;
   const { menu_name, menu_description, menu_category, price, menu_quantity, menu_image } = req.body;
-  const imageBuffer = menu_image ? Buffer.from(menu_image, 'base64') : null;
 
   try {
-    let currentQuantity = null;
     const [menuResult] = await db.query("SELECT menu_quantity FROM menu WHERE menu_id = ?", [id]);
-    if (menuResult.length > 0) {
-      currentQuantity = menuResult[0].menu_quantity;
+    if (menuResult.length === 0) return res.status(404).json({ message: 'Menu item not found' });
+    const currentQuantity = menuResult[0].menu_quantity;
+
+    let sqlUpdate, paramsUpdate;
+    if (menu_image) {
+      // มีรูปใหม่ → อัพเดตรูปด้วย
+      const imageBuffer = Buffer.from(menu_image, 'base64');
+      sqlUpdate = "UPDATE menu SET menu_name = ?, menu_description = ?, menu_category = ?, price = ?, menu_quantity = ?, menu_image = ? WHERE menu_id = ?";
+      paramsUpdate = [menu_name, menu_description || null, menu_category || null, price, menu_quantity === null || menu_quantity === '' ? null : Number(menu_quantity), imageBuffer, id];
     } else {
-      return res.status(404).json({ message: 'Menu item not found' });
+      // ไม่มีรูปใหม่ → คงรูปเดิมไว้
+      sqlUpdate = "UPDATE menu SET menu_name = ?, menu_description = ?, menu_category = ?, price = ?, menu_quantity = ? WHERE menu_id = ?";
+      paramsUpdate = [menu_name, menu_description || null, menu_category || null, price, menu_quantity === null || menu_quantity === '' ? null : Number(menu_quantity), id];
     }
-
-    const sqlUpdate = "UPDATE menu SET menu_name = ?, menu_description = ?, menu_category = ?, price = ?, menu_quantity = ?, menu_image = ? WHERE menu_id = ?";
-    const paramsUpdate = [
-      menu_name,
-      menu_description || null,
-      menu_category || null,
-      price,
-      menu_quantity === null || menu_quantity === '' ? null : Number(menu_quantity),
-      imageBuffer,
-      id
-    ];
-
     const [resultUpdate] = await db.query(sqlUpdate, paramsUpdate);
     if (resultUpdate.affectedRows === 0) return res.status(404).json({ message: 'Menu item not found for update' });
 
@@ -464,16 +460,32 @@ app.put('/api/menu/:id', requireAuth, checkPermission('manage_settings'), async 
 
 // Protected: ลบเมนู (manage_settings)
 app.delete('/api/menu/:id', requireAuth, checkPermission('manage_settings'), async (req, res) => {
+  const { id } = req.params;
+  const connection = await db.getConnection();
   try {
-    const { id } = req.params;
-    const sql = "DELETE FROM menu WHERE menu_id = ?";
-    const [result] = await db.query(sql, [id]);
-    if (result.affectedRows === 0) return res.status(404).json({ message: 'Menu item not found' });
-    console.log('🚀 Emitting menu_updated');
+    await connection.beginTransaction();
+
+    // ลบออกจาก plan_menu_access ก่อน
+    await connection.query("DELETE FROM plan_menu_access WHERE menu_id = ?", [id]);
+
+    // ลบออกจาก order_details ก่อน
+    await connection.query("DELETE FROM order_details WHERE menu_id = ?", [id]);
+
+    // แล้วค่อยลบเมนู
+    const [result] = await connection.query("DELETE FROM menu WHERE menu_id = ?", [id]);
+    if (result.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'ไม่พบเมนูนี้' });
+    }
+
+    await connection.commit();
     io.emit('menu_updated');
-    res.json({ message: 'Menu item deleted successfully' });
+    res.json({ message: 'ลบเมนูเรียบร้อย' });
   } catch (err) {
+    await connection.rollback();
     res.status(500).json({ error: err.message });
+  } finally {
+    connection.release();
   }
 });
 
@@ -483,12 +495,12 @@ app.delete('/api/menu/:id', requireAuth, checkPermission('manage_settings'), asy
 
 // Public: สร้าง Order (สแกน QR Code)
 app.post('/api/orders', async (req, res) => {
-  const { table_id, customer_quantity, plan_id, service_type } = req.body;
+  const { table_id, customer_quantity, plan_id, service_type, refill_water } = req.body;
   const order_uuid = uuidv4();
 
   try {
-    const sql = `INSERT INTO orders (table_id, customer_quantity, plan_id, service_type, start_time, order_status, order_uuid) VALUES (?, ?, ?, ?, NOW(), 'in-progress', ?)`;
-    const [result] = await db.query(sql, [table_id, customer_quantity, plan_id, service_type, order_uuid]);
+    const sql = `INSERT INTO orders (table_id, customer_quantity, plan_id, service_type, refill_water, start_time, order_status, order_uuid) VALUES (?, ?, ?, ?, ?, NOW(), 'in-progress', ?)`;
+    const [result] = await db.query(sql, [table_id, customer_quantity, plan_id, service_type, refill_water || 0, order_uuid]);
 
     const updateTableSql = "UPDATE tables SET status = 'ไม่ว่าง' WHERE table_id = ?";
     await db.query(updateTableSql, [table_id]);
@@ -518,9 +530,8 @@ app.post('/api/orders', async (req, res) => {
 app.get('/api/orders/active', requireAuth, async (req, res) => {
   try {
     const sql = `
-            SELECT
-                o.order_id, o.customer_quantity, o.service_type, o.start_time,
-                o.order_status, o.order_uuid, 
+            SELECT o.order_id, o.customer_quantity, o.service_type, o.start_time,
+                o.order_status, o.order_uuid, o.refill_water,
                 t.table_id, t.table_number, t.uuid,
                 p.plan_name, p.price_per_person
             FROM orders o
@@ -850,15 +861,17 @@ app.post('/api/payment', requireAuth, async (req, res) => {
 
     // 1. ดึงข้อมูลออเดอร์เพื่อคำนวณบุฟเฟต์
     const [orderRes] = await connection.query(
-      `SELECT o.customer_quantity, pp.price_per_person 
-       FROM orders o LEFT JOIN pricing_plans pp ON o.plan_id = pp.id 
-       WHERE o.order_id = ?`, 
+      `SELECT o.customer_quantity, o.refill_water, pp.price_per_person,
+              s.refill_water_price
+      FROM orders o 
+      LEFT JOIN pricing_plans pp ON o.plan_id = pp.id
+      LEFT JOIN shop s ON s.id = 1
+      WHERE o.order_id = ?`, 
       [order_id]
     );
-    if (orderRes.length === 0) throw new Error('Order not found');
-    
-    const { customer_quantity, price_per_person } = orderRes[0];
+    const { customer_quantity, price_per_person, refill_water, refill_water_price } = orderRes[0];
     const buffetTotal = customer_quantity * (price_per_person || 0);
+    const waterTotal = refill_water ? customer_quantity * (refill_water_price || 0) : 0;
 
     // 2. ดึงข้อมูลรายการสั่งเพิ่ม (A La Carte) เพื่อคำนวณ
     const [alaCarteRes] = await connection.query(
@@ -869,7 +882,7 @@ app.post('/api/payment', requireAuth, async (req, res) => {
     const alaCarteTotal = Number(alaCarteRes[0].total || 0);
 
     // 3. รวมยอด
-    const rawTotal = buffetTotal + alaCarteTotal;
+    const rawTotal = buffetTotal + waterTotal + alaCarteTotal;
     
     // 4. คำนวณส่วนลด (Server Side Logic) - เพื่อความปลอดภัยสูงสุดควรดึง promotion_id มาเช็คเงื่อนไขที่นี่
     // (ในตัวอย่างนี้เชื่อค่า discount ที่ส่งมา แต่ตรวจสอบไม่ให้เกินยอดรวม)
@@ -959,12 +972,14 @@ app.get('/api/payments/:id', requireAuth, async (req, res) => {
     const paymentDetailsSql = `
             SELECT
                 p.payment_id, p.order_id, p.payment_time, p.total_price, p.payment_method,
-                o.customer_quantity, o.service_type, o.start_time,
-                t.table_number, pp.plan_name
+                o.customer_quantity, o.service_type, o.start_time, o.refill_water,
+                t.table_number, pp.plan_name, pp.price_per_person,
+                s.refill_water_price
             FROM payment p
             JOIN orders o ON p.order_id = o.order_id
             JOIN tables t ON o.table_id = t.table_id
             LEFT JOIN pricing_plans pp ON o.plan_id = pp.id
+            LEFT JOIN shop s ON s.id = 1
             WHERE p.payment_id = ?
         `;
 
@@ -999,12 +1014,16 @@ app.get('/api/payments', requireAuth, async (req, res) => {
     let sql = `
             SELECT p.payment_id, p.order_id, p.payment_time, p.total_price, p.payment_method, 
                    p.discount, p.promotion_id,
-                   t.table_number, o.customer_quantity,
-                   pp.plan_name, pp.price_per_person
+                   t.table_number, o.customer_quantity, o.service_type, o.refill_water,
+                   pp.plan_name, pp.price_per_person,
+                   s.refill_water_price,
+                   promo.name AS promotion_name, promo.type AS promotion_type, promo.value AS promotion_value
             FROM payment p
             JOIN orders o ON p.order_id = o.order_id
             JOIN tables t ON o.table_id = t.table_id
             LEFT JOIN pricing_plans pp ON o.plan_id = pp.id
+            LEFT JOIN shop s ON s.id = 1
+            LEFT JOIN promotions promo ON p.promotion_id = promo.promotion_id
             WHERE 1=1
         `;
     const params = [];
@@ -1388,15 +1407,15 @@ app.post('/api/promotions', requireAuth, checkPermission('manage_settings'), asy
 //
 app.put('/api/plans/:id', requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { plan_name, price_per_person, description, menu_ids } = req.body;
+  const { plan_name, price_per_person, description, menu_ids, allow_refill } = req.body;
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
 
     // 1. แก้เป็น pricing_plans
     await connection.query(
-      "UPDATE pricing_plans SET plan_name = ?, price_per_person = ?, description = ? WHERE id = ?",
-      [plan_name, price_per_person, description, id]
+      "UPDATE pricing_plans SET plan_name = ?, price_per_person = ?, description = ?, allow_refill = ? WHERE id = ?",
+      [plan_name, price_per_person, description, allow_refill || 0, id]
     );
 
     // 2. ลบเมนูเดิม
@@ -1406,7 +1425,7 @@ app.put('/api/plans/:id', requireAuth, requireAdmin, async (req, res) => {
     if (menu_ids && menu_ids.length > 0) {
       const values = menu_ids.map(menuId => [id, menuId]);
       await connection.query(
-        "INSERT INTO plan_menu_access (plan_id, menu_id) VALUES ?", 
+        "INSERT INTO plan_menu_access (plan_id, menu_id) VALUES ?",
         [values]
       );
     }
@@ -1522,7 +1541,7 @@ app.get('/api/plans', async (req, res) => {
 
 app.post('/api/plans', requireAuth, requireAdmin, async (req, res) => {
   // ** เช็คชื่อ column ใน database ให้ดีว่าตรงกับตัวแปรเหล่านี้ไหม **
-  const { plan_name, price_per_person, description, menu_ids } = req.body; 
+  const { plan_name, price_per_person, description, menu_ids, allow_refill } = req.body;
   
   const connection = await db.getConnection();
   try {
@@ -1530,8 +1549,8 @@ app.post('/api/plans', requireAuth, requireAdmin, async (req, res) => {
 
     // 1. แก้เป็น pricing_plans
     const [result] = await connection.query(
-      "INSERT INTO pricing_plans (plan_name, price_per_person, description) VALUES (?, ?, ?)",
-      [plan_name, price_per_person, description]
+      "INSERT INTO pricing_plans (plan_name, price_per_person, description, allow_refill) VALUES (?, ?, ?, ?)",
+      [plan_name, price_per_person, description, allow_refill || 0]
     );
     const planId = result.insertId;
 
@@ -1858,6 +1877,29 @@ app.get('/api/stock/history/:menuId', requireAuth, checkPermission('manage_stock
     console.error(`Error fetching stock history for menu ${menuId}:`, err);
     res.status(500).json({ error: 'Could not fetch stock history' });
   }
+});
+
+app.get('/api/service-types', async (req, res) => {
+  const [results] = await db.query("SELECT * FROM service_types ORDER BY id");
+  res.json(results);
+});
+
+// เพิ่ม service type ใหม่
+app.post('/api/service-types', requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'กรุณาระบุชื่อ' });
+  try {
+    const [result] = await db.query("INSERT INTO service_types (name) VALUES (?)", [name]);
+    res.status(201).json({ id: result.insertId, name });
+  } catch (err) {
+    res.status(400).json({ error: 'ชื่อนี้มีอยู่แล้ว' });
+  }
+});
+
+// ลบ service type
+app.delete('/api/service-types/:id', requireAuth, async (req, res) => {
+  await db.query("DELETE FROM service_types WHERE id = ?", [req.params.id]);
+  res.json({ message: 'ลบสำเร็จ' });
 });
 
 // ============================

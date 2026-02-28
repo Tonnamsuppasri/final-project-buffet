@@ -22,6 +22,7 @@ interface PlanData {
     id: number;
     plan_name: string;
     price_per_person: number;
+    allow_refill: number; // ✅ เพิ่ม
 }
 
 interface ActiveOrderData {
@@ -35,11 +36,13 @@ interface ActiveOrderData {
     plan_name: string;
     price_per_person: number;
     start_time: string;
+    refill_water: number; // เพิ่ม
 }
 
 interface ShopInfo {
     shop_name: string;
     payment_qr_code: string;
+    refill_water_price: number; // เพิ่ม
 }
 
 interface PromotionData {
@@ -109,7 +112,7 @@ const Timer = ({ startTime }: { startTime: string }) => {
 // Component สำหรับพิมพ์ใบเสร็จ
 class PrintableBill extends React.Component<any> {
     render() {
-        const { order, items, totals, shop, date } = this.props;
+        const { order, items, totals, shop, date, refillWaterPrice } = this.props;
         if (!order || !shop) return null;
 
         // ✅ จัดรูปแบบเวลาเริ่มโต๊ะ
@@ -160,6 +163,13 @@ class PrintableBill extends React.Component<any> {
                     <div className="text-xs text-gray-600 pl-2">
                         {order.customer_quantity} × {order.price_per_person.toLocaleString()}
                     </div>
+
+                    {order.refill_water === 1 && (
+                        <div className="flex justify-between font-semibold mt-1">
+                            <span>🥤 รีฟิลน้ำ ({order.customer_quantity} คน)</span>
+                            <span>{(order.customer_quantity * refillWaterPrice).toLocaleString()}</span>
+                        </div>
+                    )}
 
                     {items.length > 0 && (
                         <>
@@ -311,7 +321,10 @@ const Table = () => {
     // Form States
     const [customerQuantity, setCustomerQuantity] = useState(1);
     const [selectedPlanId, setSelectedPlanId] = useState('');
-    const [serviceType, setServiceType] = useState('ปิ้งย่าง');
+    const [serviceType, setServiceType] = useState('');
+    const [serviceTypes, setServiceTypes] = useState<{id: number, name: string}[]>([]);
+    const [refillWater, setRefillWater] = useState(false);
+    const [refillWaterPrice, setRefillWaterPrice] = useState(0);
     const [totalPrice, setTotalPrice] = useState(0);
 
     // Bill Modal States
@@ -358,6 +371,7 @@ const Table = () => {
             setPlans(plansRes.data);
             setActiveOrders(activeOrdersRes.data);
             setShopInfo(shopRes.data);
+            setRefillWaterPrice(shopRes.data.refill_water_price || 0); // เพิ่ม
             if (plansRes.data.length > 0 && !selectedPlanId) {
                 setSelectedPlanId(String(plansRes.data[0].id));
             }
@@ -369,6 +383,11 @@ const Table = () => {
             setLoading(false);
         }
     }, [apiUrl, selectedPlanId]);
+
+    useEffect(() => {
+    axios.get(`${apiUrl}/api/service-types`)
+        .then(res => setServiceTypes(res.data));
+    }, [apiUrl]);
 
     useEffect(() => {
         fetchAllData();
@@ -386,18 +405,21 @@ const Table = () => {
         if (view === 'form' && selectedPlanId && plans.length > 0) {
             const selectedPlan = plans.find(p => String(p.id) === selectedPlanId);
             if (selectedPlan) {
-                setTotalPrice(customerQuantity * selectedPlan.price_per_person);
+                const buffet = customerQuantity * selectedPlan.price_per_person;
+                const water = refillWater ? customerQuantity * refillWaterPrice : 0;
+                setTotalPrice(buffet + water);
             }
         }
-    }, [customerQuantity, selectedPlanId, plans, view]);
+    }, [customerQuantity, selectedPlanId, plans, view, refillWater, refillWaterPrice]);
 
     // ✅ Calculation Logic
     const calculateBill = () => {
         if (!checkBillOrder) return { total: 0, discount: 0, netTotal: 0, buffetTotal: 0, alaCarteTotal: 0 };
 
         const buffetTotal = checkBillOrder.customer_quantity * checkBillOrder.price_per_person;
+        const waterTotal = checkBillOrder.refill_water ? checkBillOrder.customer_quantity * refillWaterPrice : 0;
         const alaCarteTotal = checkBillItems.reduce((sum, item) => sum + item.total, 0);
-        const total = buffetTotal + alaCarteTotal;
+        const total = buffetTotal + waterTotal + alaCarteTotal;
 
         let discount = 0;
 
@@ -427,7 +449,7 @@ const Table = () => {
         }
 
         const netTotal = Math.max(0, total - discount);
-        return { buffetTotal, alaCarteTotal, total, discount, netTotal };
+        return { buffetTotal, waterTotal, alaCarteTotal, total, discount, netTotal };
     };
 
     // --- Handlers ---
@@ -513,7 +535,7 @@ const Table = () => {
         if (table.status === 'ว่าง') {
             setSelectedTable(table);
             setCustomerQuantity(1);
-            setServiceType('ปิ้งย่าง');
+            setServiceType(serviceTypes[0]?.name || '');
             setView('form');
         }
     };
@@ -521,6 +543,7 @@ const Table = () => {
     const handleBackToGrid = () => {
         setView('grid');
         setSelectedTable(null);
+        setRefillWater(false); // เพิ่ม
     };
 
     const handleOrderSubmit = async (e: FormEvent) => {
@@ -532,7 +555,8 @@ const Table = () => {
                 table_id: selectedTable.table_id,
                 customer_quantity: customerQuantity,
                 plan_id: Number(selectedPlanId),
-                service_type: serviceType
+                service_type: serviceType,
+                refill_water: refillWater ? 1 : 0  // เพิ่ม
             });
             await Swal.fire({ icon: 'success', title: `เปิดโต๊ะสำเร็จ!`, timer: 1500, showConfirmButton: false });
             handleBackToGrid();
@@ -603,8 +627,11 @@ const Table = () => {
                                         {order ? (
                                             <>
                                                 <div className="service-type-selector">
-                                                    <span className={`service-type-btn ${order?.service_type === 'ปิ้งย่าง' ? 'active' : 'inactive'}`}>ปิ้งย่าง</span>
-                                                    <span className={`service-type-btn ${order?.service_type === 'ชาบู' ? 'active' : 'inactive'}`}>ชาบู</span>
+                                                    {serviceTypes.map(st => (
+                                                        <span key={st.id} className={`service-type-btn ${order?.service_type === st.name ? 'active' : 'inactive'}`}>
+                                                            {st.name}
+                                                        </span>
+                                                    ))}
                                                 </div>
 
                                                 <div className="table-card-actions mt-2 flex gap-2">
@@ -658,15 +685,53 @@ const Table = () => {
                             >
                                 {plans.map(plan => (
                                     <option key={plan.id} value={plan.id}>
-                                        {plan.plan_name} ({plan.price_per_person} บาท/คน)
+                                        {plan.plan_name} ({plan.price_per_person} บาท/คน){plan.allow_refill ? ' 🔄 รีฟิล' : ''}
                                     </option>
                                 ))}
                             </select>
+                            {plans.find(p => String(p.id) === selectedPlanId)?.allow_refill === 1 && (
+                                <p className="mt-2 text-sm font-semibold text-orange-600 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+                                    🔄 แพ็กเกจนี้อนุญาตให้รีฟิลได้
+                                </p>
+                            )}
                         </div>
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2"><input type="radio" name="st" value="ปิ้งย่าง" checked={serviceType === 'ปิ้งย่าง'} onChange={e => setServiceType(e.target.value)} /> ปิ้งย่าง</label>
-                            <label className="flex items-center gap-2"><input type="radio" name="st" value="ชาบู" checked={serviceType === 'ชาบู'} onChange={e => setServiceType(e.target.value)} /> ชาบู</label>
-                        </div>
+                        {serviceTypes.map(st => (
+                        <label key={st.id} className="flex items-center gap-2">
+                            <input 
+                            type="radio" 
+                            name="st" 
+                            value={st.name} 
+                            checked={serviceType === st.name} 
+                            onChange={e => setServiceType(e.target.value)} 
+                            /> 
+                            {st.name}
+                        </label>
+                        ))}
+                        {/* 🥤 รีฟิลน้ำ */}
+                        {refillWaterPrice > 0 && (
+                            <div
+                                onClick={() => setRefillWater(prev => !prev)}
+                                className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all
+                                    ${refillWater ? 'bg-blue-50 border-blue-400' : 'bg-gray-50 border-gray-200'}`}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={refillWater}
+                                    onChange={() => {}}
+                                    className="w-5 h-5 accent-blue-500 pointer-events-none"
+                                />
+                                <div>
+                                    <p className="font-semibold text-gray-800">🥤 รีฟิลน้ำ</p>
+                                    <p className="text-sm text-gray-500">
+                                        +{refillWaterPrice} บาท/คน × {customerQuantity} คน = +{(customerQuantity * refillWaterPrice).toLocaleString()} บาท
+                                    </p>
+                                </div>
+                                {refillWater && (
+                                    <span className="ml-auto text-sm font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">✓ เพิ่มแล้ว</span>
+                                )}
+                            </div>
+                        )}
+
                         <div className="text-center pt-4 border-t">
                             <p className="text-4xl font-bold text-green-600">
                                 {totalPrice.toLocaleString()} บาท
@@ -861,8 +926,8 @@ const Table = () => {
                             items={checkBillItems}
                             totals={calculateBill()}
                             shop={shopInfo}
-                            // ✅ ใช้ date-fns format ให้มีทั้งวันและเวลา (dd/MM/yyyy HH:mm น.)
                             date={format(new Date(), 'dd/MM/yyyy HH:mm น.', { locale: th })}
+                            refillWaterPrice={refillWaterPrice}
                         />
                     </div>
                 )}

@@ -15,8 +15,14 @@ interface PaymentData {
     payment_method: string | null;
     table_number: number;
     customer_quantity: number;
+    service_type: string;
     plan_name: string;
     price_per_person: number;
+    refill_water: number;
+    refill_water_price: number;
+    promotion_name: string | null;
+    promotion_type: string | null;
+    promotion_value: number | null;
 }
 
 // Interface รายการอาหารย่อย (สำหรับ Modal)
@@ -342,9 +348,11 @@ const PaymentPage: React.FC = () => {
                         </div>
 
                         <div className="p-6 overflow-y-auto">
-                            <div className="mb-4 text-sm text-gray-600">
+                            <div className="mb-4 text-sm text-gray-600 space-y-1">
                                 <p><strong>วันที่:</strong> {format(new Date(selectedPayment.payment_time), 'dd MMMM yyyy HH:mm', { locale: th })}</p>
                                 <p><strong>โต๊ะ:</strong> {selectedPayment.table_number}</p>
+                                <p><strong>จำนวนลูกค้า:</strong> {selectedPayment.customer_quantity} คน</p>
+                                <p><strong>ประเภทบริการ:</strong> {selectedPayment.service_type}</p>
                                 <p><strong>วิธีชำระ:</strong> {selectedPayment.payment_method}</p>
                             </div>
 
@@ -354,6 +362,12 @@ const PaymentPage: React.FC = () => {
                                     <span>{selectedPayment.plan_name} (x{selectedPayment.customer_quantity})</span>
                                     <span>{(selectedPayment.customer_quantity * selectedPayment.price_per_person).toLocaleString()}</span>
                                 </div>
+                                {selectedPayment.refill_water === 1 && (
+                                    <div className="flex justify-between text-sm mb-1 text-blue-600">
+                                        <span>🥤 รีฟิลน้ำ (x{selectedPayment.customer_quantity})</span>
+                                        <span>{(selectedPayment.customer_quantity * selectedPayment.refill_water_price).toLocaleString()}</span>
+                                    </div>
+                                )}
                             </div>
 
                             {modalLoading ? <p className="text-center py-4">กำลังโหลดรายการอาหาร...</p> : orderItems.length > 0 && (
@@ -371,8 +385,9 @@ const PaymentPage: React.FC = () => {
                             <div className="space-y-2 pt-4 border-t mt-2">
                                 {(() => {
                                     const buffetTotal = selectedPayment.customer_quantity * selectedPayment.price_per_person;
+                                    const waterTotal = selectedPayment.refill_water ? selectedPayment.customer_quantity * selectedPayment.refill_water_price : 0;
                                     const alaCarteTotal = orderItems.reduce((sum, item) => sum + (item.quantity * item.price_per_item), 0);
-                                    const grossTotal = buffetTotal + alaCarteTotal;
+                                    const grossTotal = buffetTotal + waterTotal + alaCarteTotal;
 
                                     return (
                                         <>
@@ -383,7 +398,15 @@ const PaymentPage: React.FC = () => {
 
                                             {selectedPayment.discount > 0 && (
                                                 <div className="flex justify-between text-red-500 font-medium">
-                                                    <span>ส่วนลด</span>
+                                                    <span>
+                                                        ส่วนลด
+                                                        {selectedPayment.promotion_name && (
+                                                            <span className="text-xs font-normal ml-1 text-red-400">
+                                                                ({selectedPayment.promotion_name}
+                                                                {selectedPayment.promotion_type?.includes('percent') && ` ${selectedPayment.promotion_value}%`})
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                     <span>-{selectedPayment.discount.toLocaleString()}</span>
                                                 </div>
                                             )}

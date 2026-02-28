@@ -176,7 +176,7 @@ const CustomerBillPage = () => {
         <div className="order-card">
             <div className="order-card-header">
                 <h3>{title}</h3>
-                <span className={`status-badge ${status}`}>{status === 'making' ? 'making' : 'Completed'}</span>
+                <span className={`status-badge ${status}`}>{status === 'making' ? '🍳 กำลังทำ' : '✅ จัดส่งแล้ว'}</span>
             </div>
             {items.map(item => (
                 <div key={item.order_detail_id} className="bill-item-row">
@@ -193,7 +193,8 @@ const CustomerBillPage = () => {
                 </div>
             ))}
             <div className="bill-item-total">
-                Total {items.reduce((sum, item) => sum + item.quantity, 0)}
+                {items.reduce((sum, item) => sum + item.quantity, 0)} รายการ
+                · ฿{items.reduce((sum, item) => sum + item.price_per_item * item.quantity, 0).toLocaleString()}
             </div>
         </div>
     );

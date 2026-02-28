@@ -95,9 +95,15 @@ const OrderDetailsModal = ({
             }
         };
 
-        const handleItemStatus = () => {
-            console.log('🎉 Socket (Modal): item_status_updated. Refetching details...');
-            fetchDetails();
+        const handleItemStatus = (data: { detailId: number, newStatus: string }) => {
+            console.log('🎉 Socket (Modal): item_status_updated. Updating state instantly!');
+            setDetails(prevDetails =>
+                prevDetails.map(item =>
+                    item.order_detail_id === Number(data.detailId)
+                        ? { ...item, item_status: 'จัดส่งแล้ว' } // เปลี่ยนสถานะทันที
+                        : item
+                )
+            );
         };
 
         socket.on('new_order_item', handleNewItem);
