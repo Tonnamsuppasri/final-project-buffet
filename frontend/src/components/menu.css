@@ -1,12 +1,14 @@
 .side-bar {
   background-color: #393939; /* Darker gray for a sleek look */
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
+  z-index: 2;
 }
 
 /* Topbar Background */
 .top-bar {
   background-color: #fe5555; /* Retain the vibrant red */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Shadow for separation */
+  z-index: 2;
 }
 
 /* Edit Profile Button Styling */
