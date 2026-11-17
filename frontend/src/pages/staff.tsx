@@ -4,7 +4,10 @@ import { PlusCircleIcon } from '@heroicons/react/24/solid';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import axios from 'axios';
+<<<<<<< HEAD
 import { getImageUrl } from '../utils/imageUtils';
+=======
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 interface StaffType {
   id: number;
@@ -244,7 +247,11 @@ const Staff = () => {
         <div class="swal-form-layout">
           <div class="swal-image-upload-container">
             <div class="image-preview-circle">
+<<<<<<< HEAD
               <img id="preview-image" style="width: 100%; height: 100%; object-fit: cover; ${staff.image ? 'display: block;' : 'display: none;'}" ${staff.image ? `src="${getImageUrl(staff.image)}"` : ''} />
+=======
+              <img id="preview-image" style="width: 100%; height: 100%; object-fit: cover; ${staff.image ? 'display: block;' : 'display: none;'}" ${staff.image ? `src="data:image/jpeg;base64,${staff.image}"` : ''} />
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
               <div id="upload-placeholder" style="text-align: center; ${staff.image ? 'display: none;' : 'display: block;'}">
                 <span style="font-size: 24px;">📷</span><br/>
                 <span style="font-size: 11px; color: #64748b;">เปลี่ยนรูป</span>
@@ -464,7 +471,11 @@ const Staff = () => {
                 <td className="py-2 px-2 sm:px-4 border" data-label="รูปภาพ">
                   <div className="flex justify-center">
                     <img 
+<<<<<<< HEAD
                       src={getImageUrl(staff.image, '/src/assets/images/no-profile.png')} 
+=======
+                      src={staff.image ? `data:image/jpeg;base64,${staff.image}` : '/src/assets/images/no-profile.png'} 
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                       alt={`รูปของ ${staff.username}`}
                       className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-gray-300"
                       onError={(e) => { (e.target as HTMLImageElement).src = '/src/assets/images/no-profile.png'; }}

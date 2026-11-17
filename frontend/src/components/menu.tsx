@@ -21,7 +21,10 @@ import './menu.css';
 import Swal from 'sweetalert2';
 import { v4 as uuidv4 } from 'uuid';
 import ClockInOutButton from './ClockInOutButton';
+<<<<<<< HEAD
 import { getImageUrl } from '../utils/imageUtils';
+=======
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 // --- Socket Connection ---
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -248,7 +251,11 @@ const Menu = () => {
              document.title = response.data.shop_name;
           }
           if (response.data.shop_logo) {
+<<<<<<< HEAD
              const iconPath = getImageUrl(response.data.shop_logo);
+=======
+             const iconPath = `data:image/png;base64,${response.data.shop_logo}`;
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
              let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
              if (!link) {
                link = document.createElement('link');
@@ -381,7 +388,11 @@ const Menu = () => {
                     shadow-2xl transition-all duration-500 transform 
                     group-hover:scale-105 group-hover:border-white/40 group-hover:shadow-3xl
                     hover:scale-110 cursor-pointer"
+<<<<<<< HEAD
                   src={getImageUrl(shopLogo)}
+=======
+                  src={`data:image/png;base64,${shopLogo}`}
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                   alt="profile"
                   title="กลับไปหน้าหลัก"
                 />

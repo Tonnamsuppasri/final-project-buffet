@@ -15,7 +15,10 @@ import {
   CameraIcon 
 } from '@heroicons/react/24/solid'
 import './edit-profile.css'
+<<<<<<< HEAD
 import { getImageUrl } from '../utils/imageUtils'
+=======
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 interface UserProfile {
   id: number
@@ -257,7 +260,11 @@ function EditProfile() {
       return previewImage
     }
     if (profile.image) {
+<<<<<<< HEAD
       return getImageUrl(profile.image, '/src/assets/images/no-profile.png')
+=======
+      return `data:image/jpeg;base64,${profile.image}`
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
     }
     return '/src/assets/images/no-profile.png'
   }

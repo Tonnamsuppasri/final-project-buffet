@@ -1,11 +1,18 @@
+<<<<<<< HEAD
 import { useState, useEffect, useCallback, useMemo } from 'react';
+=======
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import {
     MagnifyingGlassIcon, ArrowPathIcon, PencilSquareIcon, CheckIcon, XMarkIcon, PlusIcon, MinusIcon
 } from '@heroicons/react/24/outline'; 
 import Swal from 'sweetalert2';
+<<<<<<< HEAD
 import { getImageUrl } from '../utils/imageUtils';
+=======
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 // Backend API URL
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -339,7 +346,11 @@ const StockManagement = () => {
                         >
                             <div className="flex items-center gap-4 mb-3">
                                 <img
+<<<<<<< HEAD
                                     src={getImageUrl(item.menu_image, 'https://via.placeholder.com/50')}
+=======
+                                    src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : 'https://via.placeholder.com/50'}
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                     alt={item.menu_name}
                                     className="w-16 h-16 object-cover rounded-lg border border-gray-100"
                                 />
@@ -379,7 +390,11 @@ const StockManagement = () => {
                                 <tr key={item.menu_id} className={`transition-colors ${editingStockState?.id === item.menu_id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
                                     <td className="px-4 py-3 whitespace-nowrap align-middle">
                                         <img
+<<<<<<< HEAD
                                             src={getImageUrl(item.menu_image, 'https://via.placeholder.com/50')}
+=======
+                                            src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : 'https://via.placeholder.com/50'}
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                             alt={item.menu_name}
                                             className="w-12 h-12 object-cover rounded-md shadow-sm"
                                         />

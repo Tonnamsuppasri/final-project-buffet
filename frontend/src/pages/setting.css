@@ -525,13 +525,22 @@
     height: auto;
 }
 
+<<<<<<< HEAD
 /* Make sure long words/numbers in table cards wrap cleanly without collapsing to 1-char columns */
+=======
+/* Make sure long words/numbers in table cards break instead of expanding */
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 .mobile-card-table td,
 .mobile-card-table th,
 table td,
 table th {
+<<<<<<< HEAD
     overflow-wrap: break-word;
     word-break: normal;
+=======
+    overflow-wrap: anywhere;
+    word-break: break-word;
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
     vertical-align: middle;
 }
 

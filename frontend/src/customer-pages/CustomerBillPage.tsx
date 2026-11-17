@@ -1,11 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+<<<<<<< HEAD
 import { io } from 'socket.io-client'; 
 import Swal from 'sweetalert2';
 import './CustomerBillPage.css'; //
 import { FaArrowLeft, FaBell } from 'react-icons/fa';
 import { getImageUrl } from '../utils/imageUtils';
+=======
+import { io, Socket } from 'socket.io-client'; 
+import Swal from 'sweetalert2';
+import './CustomerBillPage.css'; //
+import { FaArrowLeft, FaBell } from 'react-icons/fa';
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 // --- Interfaces ---
 interface ActiveOrder {
@@ -182,7 +189,11 @@ const CustomerBillPage = () => {
             {items.map(item => (
                 <div key={item.order_detail_id} className="bill-item-row">
                     <img
+<<<<<<< HEAD
                         src={getImageUrl(item.menu_image, '/path/to/placeholder.png')}
+=======
+                        src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png'}
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                         alt={item.menu_name || 'อาหาร'}
                         className="bill-item-image"
                     />

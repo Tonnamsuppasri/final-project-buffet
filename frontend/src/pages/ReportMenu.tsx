@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useState, useEffect, useMemo } from 'react';
+=======
+import React, { useState, useEffect, useMemo } from 'react';
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 import axios from 'axios';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
@@ -12,7 +16,11 @@ import {
     format, startOfMonth, endOfMonth, startOfYear, endOfYear, 
     startOfDay, endOfDay, subYears 
 } from 'date-fns';
+<<<<<<< HEAD
 import { TrophyIcon, ClipboardIcon, ArrowPathIcon, FunnelIcon, ArchiveBoxIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+=======
+import { CalendarIcon, TrophyIcon, ClipboardIcon, ArrowPathIcon, FunnelIcon, ArchiveBoxIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 

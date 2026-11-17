@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useState, useEffect, useMemo } from 'react';
+=======
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 import axios from 'axios';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement } from 'chart.js';
 import { Line } from 'react-chartjs-2';
@@ -14,7 +18,11 @@ import {
     startOfDay, endOfDay, subYears, isSameDay, isSameMonth, isSameYear, isSameHour
 } from 'date-fns';
 import { th } from 'date-fns/locale';
+<<<<<<< HEAD
 import { CurrencyDollarIcon, PresentationChartLineIcon, ReceiptPercentIcon, ArrowPathIcon, FunnelIcon, ArchiveBoxIcon } from '@heroicons/react/24/outline';
+=======
+import { CalendarIcon, CurrencyDollarIcon, PresentationChartLineIcon, ReceiptPercentIcon, ArrowPathIcon, FunnelIcon, ArchiveBoxIcon } from '@heroicons/react/24/outline';
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement);
 

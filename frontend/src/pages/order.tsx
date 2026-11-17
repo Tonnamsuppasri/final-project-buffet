@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './order.css';
 import { socket } from '../components/menu'; 
+<<<<<<< HEAD
 import { getImageUrl } from '../utils/imageUtils';
+=======
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 // --- Interfaces ---
 interface ActiveOrderData {
@@ -155,7 +158,11 @@ const OrderDetailsModal = ({
                                     <li key={item.order_detail_id} className="modal-list-item">
                                         <div className="modal-item-details">
                                             <img 
+<<<<<<< HEAD
                                                 src={getImageUrl(item.menu_image, 'https://via.placeholder.com/60')} 
+=======
+                                                src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : 'https://via.placeholder.com/60'} 
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                                 alt={item.menu_name} 
                                                 className="modal-item-image"
                                             />
@@ -185,7 +192,11 @@ const OrderDetailsModal = ({
                                     <li key={item.order_detail_id} className="modal-list-item-delivered">
                                         <div className="modal-item-details">
                                             <img 
+<<<<<<< HEAD
                                                 src={getImageUrl(item.menu_image, 'https://via.placeholder.com/60')} 
+=======
+                                                src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : 'https://via.placeholder.com/60'} 
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                                 alt={item.menu_name} 
                                                 className="modal-item-image"
                                             />

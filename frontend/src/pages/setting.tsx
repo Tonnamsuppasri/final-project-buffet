@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useState, useMemo, useRef, type ChangeEvent, type FormEvent } from 'react';
+=======
+import React, { useState, useEffect, useMemo, useRef, type ChangeEvent, type FormEvent } from 'react';
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom'; // ✅ เพิ่ม import นี้เพื่อแก้ปัญหาโดนบัง
 import axios from 'axios';
@@ -8,7 +12,10 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format, parseISO } from 'date-fns'; 
 import { FaUtensils, FaCheck, FaSearch, FaTimes, FaImage } from 'react-icons/fa'; 
 import './setting.css'; 
+<<<<<<< HEAD
 import { getImageUrl } from '../utils/imageUtils';
+=======
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 // --- Interfaces ---
 interface ShopData {
@@ -667,7 +674,11 @@ const Setting = () => {
                                      <label className="block text-gray-700 text-sm font-bold mb-2 text-center">โลโก้ร้าน</label>
                                      <div className="logo-section">
                                          <label htmlFor="logo-upload" className="logo-preview">
+<<<<<<< HEAD
                                              {shopData.shop_logo ? (<img src={getImageUrl(shopData.shop_logo)} alt="Shop Logo" />) : (<div className="logo-placeholder"><span>คลิกเพื่อ<br/>อัปโหลดโลโก้</span></div>)}
+=======
+                                             {shopData.shop_logo ? (<img src={`data:image/png;base64,${shopData.shop_logo}`} alt="Shop Logo" />) : (<div className="logo-placeholder"><span>คลิกเพื่อ<br/>อัปโหลดโลโก้</span></div>)}
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                          </label>
                                          <input id="logo-upload" type="file" accept="image/png, image/jpeg, image/webp" onChange={handleLogoChange} style={{ display: 'none' }}/>
                                      </div>
@@ -682,7 +693,11 @@ const Setting = () => {
                                 <div>
                                     <label className="block text-gray-700 text-sm font-bold mb-2">QR Code ชำระเงิน</label>
                                     <div className="qr-code-section">
+<<<<<<< HEAD
                                         <div className="qr-code-preview">{shopData.payment_qr_code ? (<img src={getImageUrl(shopData.payment_qr_code)} alt="Payment QR Code" />) : (<div className="qr-placeholder"><span>ไม่มีรูปภาพ</span></div>)}</div>
+=======
+                                        <div className="qr-code-preview">{shopData.payment_qr_code ? (<img src={`data:image/png;base64,${shopData.payment_qr_code}`} alt="Payment QR Code" />) : (<div className="qr-placeholder"><span>ไม่มีรูปภาพ</span></div>)}</div>
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                         <div className="qr-code-upload"><label htmlFor="qr-upload" className="btn-secondary">เลือกไฟล์ใหม่</label><input id="qr-upload" type="file" accept="image/png, image/jpeg, image/webp" onChange={handleQrCodeChange} /></div>
                                     </div>
                                 </div>
@@ -820,7 +835,11 @@ const Setting = () => {
                                                 <div>
                                                     <label className="form-label">รูปภาพเมนู</label>
                                                     <div className="menu-image-uploader">
+<<<<<<< HEAD
                                                         <div className="menu-image-preview">{editingMenuData.menu_image ? (<img src={getImageUrl(editingMenuData.menu_image)} alt="Menu Preview" />) : (<div className="qr-placeholder small"><span>ไม่มีรูป</span></div>)}</div>
+=======
+                                                        <div className="menu-image-preview">{editingMenuData.menu_image ? (<img src={`data:image/png;base64,${editingMenuData.menu_image}`} alt="Menu Preview" />) : (<div className="qr-placeholder small"><span>ไม่มีรูป</span></div>)}</div>
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                                         <div className="qr-code-upload"><label htmlFor="menu-image-edit-upload" className="btn-secondary">เลือกไฟล์</label><input id="menu-image-edit-upload" type="file" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleMenuImageChange(e, 'edit')} /></div>
                                                     </div>
                                                 </div>
@@ -844,7 +863,11 @@ const Setting = () => {
                                                 <div>
                                                     <label className="form-label">รูปภาพเมนู</label>
                                                     <div className="menu-image-uploader">
+<<<<<<< HEAD
                                                         <div className="menu-image-preview">{newMenu.menu_image ? (<img src={getImageUrl(newMenu.menu_image)} alt="Menu Preview" />) : (<div className="qr-placeholder small"><span>ไม่มีรูป</span></div>)}</div>
+=======
+                                                        <div className="menu-image-preview">{newMenu.menu_image ? (<img src={`data:image/png;base64,${newMenu.menu_image}`} alt="Menu Preview" />) : (<div className="qr-placeholder small"><span>ไม่มีรูป</span></div>)}</div>
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                                         <div className="qr-code-upload"><label htmlFor="menu-image-new-upload" className="btn-secondary">เลือกไฟล์</label><input id="menu-image-new-upload" type="file" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleMenuImageChange(e, 'new')} /></div>
                                                     </div>
                                                 </div>
@@ -862,7 +885,11 @@ const Setting = () => {
                                         .map(menu => (
                                             <li key={menu.menu_id} className="flex flex-col sm:flex-row justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm gap-2">
                                                 <div className="flex items-center gap-4 w-full">
+<<<<<<< HEAD
                                                     <img src={getImageUrl(menu.menu_image, 'https://via.placeholder.com/50')} alt={menu.menu_name} className="menu-list-thumbnail"/>
+=======
+                                                    <img src={menu.menu_image ? `data:image/png;base64,${menu.menu_image}` : 'https://via.placeholder.com/50'} alt={menu.menu_name} className="menu-list-thumbnail"/>
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                                     <div className="flex-grow">
                                                         <span className="font-bold text-lg text-gray-800">{menu.menu_name}</span>
                                                         <span className="text-gray-600 ml-2 sm:ml-3">({menu.price} บาท)</span>
@@ -1136,7 +1163,11 @@ const Setting = () => {
                                     <table className="w-full text-left border-collapse min-w-0 mobile-card-table">
                                          <thead className="bg-gray-100">
                                             <tr>
+<<<<<<< HEAD
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider min-w-[220px] sm:min-w-[280px] w-2/5">ชื่อ</th>
+=======
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">ชื่อ</th>
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">ประเภท</th>
                                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">ค่า</th>
                                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Code</th>
@@ -1149,7 +1180,11 @@ const Setting = () => {
                                              {promotions.length > 0 ? (
                                                 promotions.map(promo => (
                                                     <tr key={promo.promotion_id} className="hover:bg-gray-50 transition-colors">
+<<<<<<< HEAD
                                                          <td className="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900 min-w-[220px] sm:min-w-[280px]" data-label="ชื่อ"><div className="font-semibold text-gray-900">{promo.name}</div>{promo.description && <p className="text-xs text-gray-500 mt-1">{promo.description}</p>}{promo.conditions && <p className="text-xs text-red-500 mt-1">เงื่อนไข: {promo.conditions}</p>}</td>
+=======
+                                                         <td className="px-4 py-3 whitespace-normal text-sm font-medium text-gray-900 max-w-xs" data-label="ชื่อ">{promo.name}{promo.description && <p className="text-xs text-gray-500 mt-1">{promo.description}</p>}{promo.conditions && <p className="text-xs text-red-500 mt-1">เงื่อนไข: {promo.conditions}</p>}</td>
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700" data-label="ประเภท">{promo.type === 'percentage' && 'เปอร์เซ็นต์'}{promo.type === 'fixed_amount' && 'จำนวนเงิน'}{promo.type === 'special' && 'ข้อเสนอพิเศษ'}</td>
                                                           <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-700" data-label="ค่า">{promo.value} {promo.type === 'percentage' && '%'}{promo.type === 'fixed_amount' && ' บาท'}{promo.type === 'special' && ` (พิเศษ)`}</td>
                                                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-mono" data-label="Code">{promo.code || '-'}</td>
@@ -1306,7 +1341,11 @@ const Setting = () => {
                                                     <div className="aspect-square bg-gray-100 relative">
                                                         {menu.menu_image ? (
                                                             <img 
+<<<<<<< HEAD
                                                                 src={getImageUrl(menu.menu_image)} 
+=======
+                                                                src={`data:image/png;base64,${menu.menu_image}`} 
+>>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                                                 alt={menu.menu_name} 
                                                                 className="w-full h-full object-cover"
                                                             />
