@@ -1,0 +1,235 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { io } from 'socket.io-client'; 
+import Swal from 'sweetalert2';
+import './CustomerBillPage.css'; //
+import { FaArrowLeft, FaBell } from 'react-icons/fa';
+import { getImageUrl } from '../utils/imageUtils';
+
+// --- Interfaces ---
+interface ActiveOrder {
+    order_id: number;
+    table_id: number;
+    table_number: number;
+    uuid: string; // (นี่คือ Table UUID)
+    table_uuid: string; // (เพิ่ม)
+}
+
+interface OrderDetailItem {
+    order_detail_id: number;
+    menu_name: string;
+    quantity: number;
+    item_status: string;
+    price_per_item: number;
+    customer_name?: string; 
+    menu_image?: string;
+}
+
+// ============================
+//   Customer Bill Page Component
+// ============================
+const CustomerBillPage = () => {
+    // ✅ FIX: เปลี่ยนชื่อ param
+    const { order_uuid } = useParams<{ order_uuid: string }>(); // ⬅️
+    const navigate = useNavigate();
+    const [orderInfo, setOrderInfo] = useState<ActiveOrder | null>(null); 
+    const [allOrderItems, setAllOrderItems] = useState<OrderDetailItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    
+    const socket = useMemo(() => {
+        return io(apiUrl, {
+            autoConnect: false, 
+            reconnection: true,
+            reconnectionAttempts: 5,
+        });
+    }, [apiUrl]);
+    
+    useEffect(() => {
+        socket.connect();
+        return () => {
+            socket.disconnect();
+        };
+    }, [socket]); 
+
+    // ✅ FIX: แก้ไข useEffect หลัก
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!order_uuid) {
+                setError("ไม่พบรหัสออเดอร์ (Order UUID)");
+                setLoading(false);
+                return;
+            }
+            try {
+                // 1. เรียก API ใหม่ที่ปลอดภัย
+                const response = await axios.get(
+                    `${apiUrl}/api/order-session/${order_uuid}`, 
+                    { withCredentials: true }
+                );
+
+                // (เราใช้แค่ orderInfo จาก response นี้)
+                setOrderInfo(response.data.orderInfo);
+                
+            } catch (err) {
+                setError("ไม่สามารถโหลดข้อมูลออเดอร์ได้ กรุณาลองใหม่อีกครั้ง");
+                console.error("Error fetching order session:", err);
+                setLoading(false);
+            }
+        };
+        
+        fetchData();
+        
+    }, [order_uuid, apiUrl]);
+
+    // (useEffect นี้จะทำงาน *หลังจาก* ที่เราได้ orderInfo แล้ว)
+    useEffect(() => {
+        if (!orderInfo) {
+            if (!loading && !error) { 
+                setError("ไม่พบข้อมูลออเดอร์");
+            }
+            return;
+        }
+
+        const fetchOrderDetails = async () => {
+            try {
+                const detailsRes = await axios.get<OrderDetailItem[]>(
+                    `${apiUrl}/api/orders/${orderInfo.order_id}/details`,
+                    { withCredentials: true }
+                );
+                setAllOrderItems(detailsRes.data);
+            } catch (err) {
+                setError("ไม่สามารถโหลดรายละเอียดออเดอร์ได้ กรุณาลองใหม่อีกครั้ง");
+                console.error("Error fetching order details:", err);
+            } finally {
+                setLoading(false); 
+            }
+        };
+
+        fetchOrderDetails(); 
+
+        // --- Socket Listeners (คงเดิม) ---
+        const handleNewOrderItem = (data: { orderId: number; items: any[] }) => {
+            if (String(data.orderId) === String(orderInfo.order_id)) {
+                fetchOrderDetails(); 
+            }
+        };
+
+        const handleItemStatusUpdate = (data: { detailId: number; newStatus: string }) => {
+            setAllOrderItems(prevItems =>
+                prevItems.map(item =>
+                    item.order_detail_id === data.detailId
+                        ? { ...item, item_status: data.newStatus }
+                        : item
+                )
+            );
+        };
+
+        socket.on('new_order_item', handleNewOrderItem);
+        socket.on('item_status_updated', handleItemStatusUpdate);
+
+        return () => {
+            socket.off('new_order_item', handleNewOrderItem);
+            socket.off('item_status_updated', handleItemStatusUpdate);
+        };
+    }, [orderInfo, socket, apiUrl, loading, error]); 
+
+    // --- Memoized Grouping (คงเดิม) ---
+    const makingItems = useMemo(() => {
+        return allOrderItems.filter(item => item.item_status === 'กำลังจัดทำ');
+    }, [allOrderItems]);
+
+    const completedItems = useMemo(() => {
+        return allOrderItems.filter(item => item.item_status === 'จัดส่งแล้ว');
+    }, [allOrderItems]);
+
+    const totalBillPrice = useMemo(() => {
+        return allOrderItems.reduce((sum, item) => sum + item.price_per_item * item.quantity, 0);
+    }, [allOrderItems]);
+    
+    // --- Handlers (คงเดิม) ---
+    const handleCallStaff = () => {
+        if (orderInfo) {
+            socket.emit('call_for_bill', { 
+                tableId: orderInfo.table_id, 
+                tableNumber: orderInfo.table_number 
+            });
+
+            Swal.fire({
+                title: 'เรียกพนักงานแล้ว!',
+                text: `พนักงานกำลังจะไปที่โต๊ะ ${orderInfo.table_number} เพื่อชำระเงินค่ะ`,
+                icon: 'success',
+                timer: 3000,
+                showConfirmButton: false,
+            });
+        } else {
+            Swal.fire('ผิดพลาด', 'ไม่พบข้อมูลออเดอร์', 'error');
+        }
+    };
+
+    // --- Render Logic (คงเดิม) ---
+    if (loading) return <div className="bill-loading-container">กำลังโหลด...</div>;
+    if (error) return <div className="bill-error-container">{error}</div>;
+
+    const renderOrderList = (items: OrderDetailItem[], title: string, status: 'making' | 'completed') => (
+        <div className="order-card">
+            <div className="order-card-header">
+                <h3>{title}</h3>
+                <span className={`status-badge ${status}`}>{status === 'making' ? '🍳 กำลังทำ' : '✅ จัดส่งแล้ว'}</span>
+            </div>
+            {items.map(item => (
+                <div key={item.order_detail_id} className="bill-item-row">
+                    <img
+                        src={getImageUrl(item.menu_image, '/path/to/placeholder.png')}
+                        alt={item.menu_name || 'อาหาร'}
+                        className="bill-item-image"
+                    />
+                    <span className="bill-item-name">
+                        {item.menu_name || '(เมนูถูกลบ)'}
+                        {item.customer_name && <span className="bill-item-customer"> (สั่งโดย: {item.customer_name})</span>}
+                    </span>
+                    <span className="bill-item-quantity">X {item.quantity}</span>
+                </div>
+            ))}
+            <div className="bill-item-total">
+                {items.reduce((sum, item) => sum + item.quantity, 0)} รายการ
+                · ฿{items.reduce((sum, item) => sum + item.price_per_item * item.quantity, 0).toLocaleString()}
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="bill-page-container">
+            <header className="bill-header">
+                {/* ✅ FIX: ปุ่ม Back กลับไปที่ /order/:order_uuid */}
+                <button onClick={() => navigate(`/order/${order_uuid}`)} className="bill-back-button">
+                    <FaArrowLeft /> Back
+                </button>
+                <h2>รายการอาหาร</h2>
+                <div style={{ width: '80px' }}></div> {/* Spacer */}
+            </header>
+
+            <main className="bill-body">
+                {makingItems.length > 0 && renderOrderList(makingItems, 'รายการที่กำลังทำ', 'making')}
+                {completedItems.length > 0 && renderOrderList(completedItems, 'รายการที่จัดส่งแล้ว', 'completed')}
+                {allOrderItems.length === 0 && (
+                     <p className="empty-bill-message">ยังไม่มีรายการอาหารที่สั่ง</p>
+                )}
+            </main>
+
+            <footer className="bill-footer">
+                <div className="bill-total-summary">
+                    <span>ราคารวมทั้งหมด:</span>
+                    <span className="total-price">฿{totalBillPrice.toLocaleString()}</span>
+                </div>
+                <button className="food-bill-button" onClick={handleCallStaff}>
+                    <FaBell /> เรียกพนักงานเช็คบิล
+                </button>
+            </footer>
+        </div>
+    );
+};
+
+export default CustomerBillPage;

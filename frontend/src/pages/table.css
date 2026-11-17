@@ -1,0 +1,430 @@
+/* --- Google Font Import --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+/* --- General Body Style --- */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f4f7f9;
+}
+
+/* --- App Container Header --- */
+.app-container h1 {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+}
+
+/* --- Table Card --- */
+.table-card {
+    border-radius: 1rem;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 180px;
+    transition: all 0.3s ease;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.table-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+}
+
+.table-card-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.table-number-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.table-number-main {
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.table-capacity-status {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.table-timer {
+    background-color: rgba(0, 0, 0, 0.2);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 0.375rem;
+    letter-spacing: 1px;
+}
+
+.table-card-footer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.service-type-selector {
+    display: flex;
+    gap: 0.6rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.service-type-btn {
+    flex: none;
+    padding: 0.3rem 1rem;
+    min-width: 90px;
+    border-radius: 0.5rem;
+    text-align: center;
+    font-weight: 500;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.service-type-btn.active {
+    background-color: white;
+    color: #333;
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.bg-red-500 .service-type-btn.active { color: #ef4444; }
+.bg-green-500 .service-type-btn.active { color: #10b981; }
+
+.service-type-btn.inactive {
+    background-color: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.table-card-actions {
+    display: flex;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.check-bill-button,
+.cancel-order-button {
+    flex: 1;
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.check-bill-button {
+    background-color: #2dd4bf;
+    color: white;
+}
+
+.check-bill-button:hover {
+    background-color: #14b8a6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.cancel-order-button {
+    background-color: #4b5563;
+    color: white;
+}
+
+.cancel-order-button:hover {
+    background-color: #374151;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.table-card-call-to-action {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    padding-top: 1rem;
+    animation: pulse 2.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.98); }
+}
+
+.bg-green-500 { background-color: #10b981; }
+.bg-red-500 { background-color: #ef4444; }
+
+.open-table-form-container {
+    max-width: 36rem;
+    margin: 3rem auto;
+    background: white;
+    padding: 3rem;
+    border-radius: 1.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 24px rgba(0, 0, 0, 0.1);
+    animation: slide-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgb(55, 65, 81);
+    margin-bottom: 0.5rem;
+}
+
+.form-input {
+    display: block;
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background-color: #f9fafb;
+    border: 2px solid rgb(229, 231, 235);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background-color: white;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(59, 130, 246, 0.15);
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    font-weight: 700;
+    padding: 0.875rem 2rem;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3), 0 2px 4px rgba(59, 130, 246, 0.2);
+    font-size: 1rem;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4), 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+    font-weight: 700;
+    padding: 0.875rem 2rem;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3), 0 2px 4px rgba(107, 114, 128, 0.2);
+}
+
+.qr-overlay {
+    display: flex !important;
+    align-items: center !important;     /* กึ่งกลางแนวตั้ง */
+    justify-content: center !important; /* กึ่งกลางแนวนอน */
+    padding: 0 !important;
+}
+
+/* 2. บังคับขนาดกล่อง QR ไม่ให้ยืดเต็มจอ */
+.qr-modal-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    
+    /* สำคัญ: กำหนดความกว้างให้พอดี ไม่ให้ยืด */
+    width: auto !important; 
+    min-width: 320px !important;
+    max-width: 400px !important; /* ล็อคความกว้างสูงสุดไว้แค่นี้ พอดีคำ */
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* ปรับขนาดรูป QR ในจอคอมให้ใหญ่ชัดเจน */
+.qr-modal-container img {
+    width: 220px !important;
+    height: 220px !important;
+    object-fit: contain;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(107, 114, 128, 0.4), 0 4px 8px rgba(107, 114, 128, 0.3);
+}
+
+@keyframes slide-up {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Print Styles */
+@media print {
+    body * { visibility: hidden !important; }
+    .p-8.bg-white.text-black, .p-8.bg-white.text-black *,
+    .flex.flex-col.items-center.justify-center, .flex.flex-col.items-center.justify-center * {
+        visibility: visible !important;
+    }
+    .p-8.bg-white.text-black, .flex.flex-col.items-center.justify-center {
+        position: absolute !important; left: 0 !important; top: 0 !important;
+        width: 100% !important; margin: 0 !important; padding: 10mm !important;
+    }
+    @page { size: 80mm auto; margin: 5mm; }
+    button, .fixed, .bg-gray-900, nav, header { display: none !important; }
+    img { display: block !important; page-break-inside: avoid !important; }
+}
+
+/* ========================================= */
+/* 💻 NOTEBOOK & SMALL DESKTOP (1024px - 1440px) */
+/* ✅ แก้ไขสำหรับหน้าจอ 1366x768 โดยเฉพาะ */
+/* ========================================= */
+@media (min-width: 1024px) and (max-width: 1440px) {
+    .app-container { padding: 1rem; }
+    
+    /* 1. จัดกึ่งกลางจอเป๊ะๆ (Center Overlays) */
+    .qr-overlay, .billing-overlay {
+        display: flex !important;
+        align-items: center !important; /* จัดกึ่งกลางแนวตั้ง */
+        justify-content: center !important; /* จัดกึ่งกลางแนวนอน */
+        padding: 0 !important; /* ลบ Padding ที่เคยดันลงมา */
+    }
+
+    /* 2. QR Modal: ปรับให้ลอยกลางจอ */
+    .qr-modal-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        
+        /* แก้ไขขนาด: ให้กว้างพอดีเนื้อหา ไม่ยืดเต็ม */
+        width: auto; 
+        min-width: 320px;
+        max-width: 450px;
+        
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        
+        /* Animation เล็กน้อย */
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    .qr-modal-container img {
+        width: 180px !important;
+        height: 180px !important;
+    }
+
+    /* 3. Check Bill Modal: บีบขนาดลงให้มีขอบเหลือสวยงาม */
+    .billing-modal-container {
+        width: auto !important;
+        min-width: 700px !important;
+        max-width: 900px !important; /* ไม่ให้กว้างจนชนขอบ */
+        max-height: 85vh !important; /* สูงไม่เกิน 85% ของจอ เพื่อให้เห็นขอบ */
+        margin: auto !important;
+        border-radius: 16px !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: row !important; /* บังคับแนวนอน */
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    }
+    
+    .billing-left-col, .billing-right-col {
+        padding: 1.5rem !important;
+        overflow-y: auto !important; /* ให้ Scroll ได้ถ้าเนื้อหายาว */
+        max-height: 85vh !important;
+    }
+    
+    /* ปรับขนาดตัวหนังสือให้พอดี */
+    .billing-modal-container h2 { font-size: 1.25rem !important; }
+    .billing-modal-container .text-sm { font-size: 0.85rem !important; }
+    .total-price-display { font-size: 2.25rem !important; }
+    
+    /* ปรับปุ่ม */
+    .billing-modal-container button {
+        padding: 0.75rem !important;
+        font-size: 0.95rem !important;
+    }
+    
+    .payment-method-grid button {
+        padding: 0.5rem !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* ========================================= */
+/* 📱 MOBILE RESPONSIVE (< 768px) */
+/* ========================================= */
+@media (max-width: 768px) {
+    .app-container { padding: 1rem; }
+    .app-container h1 { font-size: 1.75rem; text-align: center; margin-bottom: 1.5rem; }
+    .table-card { padding: 1rem; min-height: auto; }
+    .table-number-main { font-size: 1.75rem; }
+    .table-capacity-status { font-size: 0.8rem; }
+    .table-timer { font-size: 0.85rem; padding: 0.2rem 0.5rem; }
+    .service-type-selector { gap: 0.5rem; }
+    .service-type-btn { min-width: 75px; padding: 0.25rem 0.75rem; font-size: 0.8rem; }
+    .table-card-actions { gap: 0.5rem; }
+    .table-card-actions button { padding: 0.6rem; font-size: 0.85rem; }
+    .table-card-call-to-action { font-size: 1.25rem; padding-top: 0.75rem; }
+    .open-table-form-container { margin: 1rem auto; padding: 1.5rem; border-radius: 1rem; }
+    .open-table-form-container h2 { font-size: 1.75rem; margin-bottom: 1.5rem; }
+    
+    .form-label { font-size: 0.85rem; }
+    .form-input { padding: 0.75rem; font-size: 0.95rem; }
+    .btn-primary, .btn-secondary { padding: 0.75rem 1.5rem; font-size: 0.95rem; }
+
+    /* แก้ปัญหา Modal บนมือถือ: ดันลงมา */
+    .qr-overlay, .billing-overlay {
+        align-items: flex-start !important;
+        padding-top: 5rem !important;
+        overflow-y: auto !important;
+    }
+
+    .qr-modal-container {
+        max-width: 90vw !important;
+        margin-top: 1rem !important;
+    }
+    
+    .billing-modal-container {
+        flex-direction: column !important;
+        width: 95vw !important;
+        margin-top: 1rem !important;
+        max-height: calc(100vh - 120px) !important;
+    }
+    .billing-left-col, .billing-right-col { width: 100% !important; border: none !important; }
+    .billing-right-col { border-top: 2px solid #e5e7eb !important; }
+}

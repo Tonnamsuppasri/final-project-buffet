@@ -1,0 +1,12 @@
+{
+  "name": "your-project",
+  "private": true,
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "scripts": {
+    "dev": "concurrently \"npm --prefix frontend run dev -- --host\" \"npm --prefix backend start\"",
+    "backend": "npm --prefix backend start",
+    "frontend": "npm --prefix frontend run dev -- --host"
+  }
+}

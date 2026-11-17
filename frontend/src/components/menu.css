@@ -1,0 +1,298 @@
+.side-bar {
+  background-color: #393939; /* Darker gray for a sleek look */
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
+  z-index: 2;
+}
+
+/* Topbar Background */
+.top-bar {
+  background-color: #fe5555; /* Retain the vibrant red */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* Shadow for separation */
+  z-index: 2;
+}
+
+/* Edit Profile Button Styling */
+.edit-bottom {
+  margin-top: 2px; /* Slightly adjust margin */
+  font-size: 0.95rem; /* Slightly smaller font for consistency */
+  color: #a0a0a0; /* Softer white */
+}
+
+
+.hr-menu {
+  border-color: #555555; /* Consistent divider color */
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Menu Item Taps (Links) */
+.menu-tap {
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-tap.bg-gray-400 {
+  background-color: #5a5a5a; /* Active state background - using a specific dark gray */
+}
+
+/* Logout Icon Positioning */
+.menu-logout-icon {
+  position: relative;
+  top: 1px; /* Fine-tune vertical alignment */
+}
+
+/* General Link and Button Hover Effects */
+button,
+a {
+  transition: all 0.2s ease-in-out; /* Apply smooth transitions globally for buttons and links */
+}
+/* Responsive adjustments for smaller screens */
+@media (max-width: 767px) {
+  /* Hide scrollbar on mobile sidebar when closed to prevent horizontal scroll */
+  .side-bar:not(.flex) {
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+}
+.setting-tap:hover .setting-icon-spin {
+  animation: spin 0.6s ease-in-out; /* หมุน 1 รอบใน 0.6 วินาที, ใช้ ease-in-out เพื่อความนุ่มนวล */
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* Custom Scrollbar Styles for WebKit browsers (Chrome, Safari, Edge, Opera, etc.) */
+
+/* Overall scrollbar track */
+.flex-1::-webkit-scrollbar {
+  width: 8px; /* Width of the vertical scrollbar */
+  height: 8px; /* Height of the horizontal scrollbar (if any) */
+}
+
+/* Track */
+.flex-1::-webkit-scrollbar-track {
+  background: #2a2a2a; /* Dark background for the track */
+  border-radius: 10px; /* Rounded corners for the track */
+}
+
+/* Handle */
+.flex-1::-webkit-scrollbar-thumb {
+  background: #888; /* Gray color for the scrollbar handle */
+  border-radius: 10px; /* Rounded corners for the handle */
+}
+
+/* Handle on hover */
+.flex-1::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Darker gray when hovered */
+}
+
+/* ================================
+✅✅✅ START: Notification Styles ✅✅✅
+================================
+*/
+
+/* --- Notification Bell Button --- */
+.noti-button {
+  position: relative;
+}
+
+.noti-badge {
+  position: absolute;
+  top: 6px; 
+  right: 6px; 
+  width: 10px;
+  height: 10px;
+  background-color: #fff67b; /* ✅ แก้ไข: เปลี่ยนเป็นสีขาว */
+  border-radius: 50%;
+  border: 2px solid #fe5555; /* ขอบสีแดง (สีเดียวกับ top-bar) เพื่อให้มองเห็นบนไอคอนกระดิ่งสีขาว */
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* --- Notification Popover --- */
+.noti-popover {
+  position: absolute;
+  top: 100%; 
+  right: 0;
+  width: 320px; 
+  max-height: 400px; 
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: 5000; /* (ตามที่แก้ไขล่าสุด) */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  color: #333;
+  margin-top: 10px; 
+}
+
+.noti-header {
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-bottom: 1px solid #eee;
+  background-color: #f9f9f9;
+}
+
+.noti-body {
+  overflow-y: auto;
+  max-height: 320px; 
+}
+
+.noti-empty {
+  padding: 2rem;
+  text-align: center;
+  color: #888;
+}
+
+.noti-item {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.noti-item:hover {
+  background-color: #f5f5f5;
+}
+.noti-item:last-child {
+  border-bottom: none;
+}
+
+.noti-item.unread .noti-message {
+  font-weight: 600; 
+  color: #222;
+}
+
+.noti-message {
+  font-size: 0.9rem;
+  color: #555;
+  margin-right: 1rem;
+}
+
+.noti-timestamp {
+  font-size: 0.8rem;
+  color: #999;
+  flex-shrink: 0; 
+}
+
+/* ================================
+   ✅ Toast Container & Items
+   ================================ */
+
+/* Container หลัก: ยึดติดมุมขวาล่าง และจัดเรียงลูกๆ ให้ซ้อนขึ้นไปด้านบน */
+.toast-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 9999;
+  
+  display: flex;
+  flex-direction: column; /* เรียงแนวตั้ง */
+  gap: 10px; /* ระยะห่างระหว่างกล่อง */
+  
+  /* ป้องกันไม่ให้ Container กว้างเกินไปบนมือถือ */
+  width: 90%;
+  max-width: 350px;
+  pointer-events: none; /* เพื่อให้คลิกทะลุพื้นที่ว่างได้ */
+}
+
+/* ตัวกล่อง Toast แต่ละอัน */
+.notification-toast {
+  pointer-events: auto; /* ให้คลิกที่ตัวกล่องได้ */
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  border-left: 5px solid #f5a623;
+  width: 100%;
+  
+  /* Animation ขาเข้า */
+  animation: slideInRight 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* ✅ Class สำหรับ Animation ขาออก (จางและเลื่อนหายไป) */
+.notification-toast.exit {
+  animation: slideOutRight 0.5s ease-in forwards; /* forwards จะคงสถานะสุดท้ายไว้ (หายไปเลย) */
+}
+
+/* Keyframes ขาเข้า */
+@keyframes slideInRight {
+  0% { opacity: 0; transform: translateX(120%); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* ✅ Keyframes ขาออก */
+@keyframes slideOutRight {
+  0% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(120%); max-height: 0; margin: 0; padding: 0; }
+}
+
+/* Responsive มือถือ */
+@media (max-width: 600px) {
+  .toast-container {
+    right: 5%; 
+    left: 5%;
+    width: 90%;
+    bottom: 6rem;
+  }
+}
+
+/* ... (CSS ส่วนเนื้อหาข้างในเหมือนเดิม) ... */
+.toast-content {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+}
+.toast-icon-container { margin-right: 1rem; flex-shrink: 0; }
+.toast-message { flex-grow: 1; color: #333; }
+.toast-close-btn { margin-left: 1rem; background: none; border: none; color: #999; cursor: pointer; }
+.toast-close-btn:hover { color: #333; }
+/* ============================
+   ✅ Mobile Responsive Fixes (Menu & Notifications)
+   ============================ */
+@media (max-width: 640px) {
+    /* --- ปรับ Popover แจ้งเตือนให้เป็น Modal ลอยตรงกลาง --- */
+    .noti-popover {
+        position: fixed; /* เปลี่ยนเป็น Fixed เพื่อไม่อิงกับปุ่ม */
+        top: 80px; /* ระยะห่างจากด้านบน (ให้พ้น Topbar) */
+        right: 5%; /* เว้นขวา 5% */
+        left: 5%; /* เว้นซ้าย 5% */
+        width: 90%; /* กว้างเกือบเต็มจอ */
+        max-width: 400px; /* ไม่ให้กว้างเกินไป */
+        max-height: 60vh; /* สูงไม่เกิน 60% ของจอ */
+        margin-top: 0;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.3); /* เพิ่มเงาให้ดูลอย */
+        border: 1px solid #eee;
+        
+        /* เพิ่ม Animation เล็กน้อย */
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ปรับส่วนหัวและเนื้อหาให้ใหญ่ขึ้นนิดหน่อยสำหรับนิ้วสัมผัส */
+    .noti-header {
+        padding: 1.2rem;
+        font-size: 1.2rem;
+    }
+
+    .noti-item {
+        padding: 1.2rem;
+    }
+}

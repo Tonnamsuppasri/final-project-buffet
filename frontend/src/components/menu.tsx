@@ -1,0 +1,944 @@
+import { useLocation, useNavigate, Outlet, type To } from 'react-router-dom';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import axios from 'axios';
+import { io, type Socket } from 'socket.io-client';
+import {
+  Bars3Icon,
+  CalendarIcon,
+  ChartBarIcon,
+  UserGroupIcon,
+  CurrencyDollarIcon,
+  BookOpenIcon,
+  ArrowRightStartOnRectangleIcon,
+  Cog6ToothIcon,
+  BellIcon,
+  XMarkIcon,
+  ArchiveBoxIcon,
+  ClipboardDocumentListIcon,
+  PresentationChartLineIcon,
+} from '@heroicons/react/24/solid';
+import './menu.css';
+import Swal from 'sweetalert2';
+import { v4 as uuidv4 } from 'uuid';
+import ClockInOutButton from './ClockInOutButton';
+import { getImageUrl } from '../utils/imageUtils';
+
+// --- Socket Connection ---
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const socket: Socket = io(apiUrl, {
+  autoConnect: false,
+});
+
+// --- Config Breakpoint ---
+const BREAKPOINT = 1160;
+
+// --- Interfaces ---
+interface ShopInfo {
+  shop_name: string;
+  shop_logo: string | null;
+}
+
+interface NotificationItem {
+  id: string;
+  message: string;
+  type: 'call_bill' | 'new_order' | 'other' | 'open_table' | 'close_table';
+  read: boolean;
+  timestamp: Date;
+  linkTo: string;
+}
+
+interface ToastMessage extends NotificationItem {
+  key: string;
+  isExiting?: boolean;
+}
+
+// ============================
+//   Menu Component
+// ============================
+const Menu = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // State สำหรับ UI
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= BREAKPOINT);
+  const [shopLogo, setShopLogo] = useState<string | null>(null);
+  
+  // State สำหรับ Notification
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [isNotiOpen, setIsNotiOpen] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem('soundEnabled') !== 'false'; // default เปิดเสียง
+  });
+  const playNotificationSound = (type: 'new_order' | 'call_bill' | 'other') => {
+    if (!soundEnabled) return;
+    try {
+      const ctx = new AudioContext();
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      if (type === 'new_order') {
+        // เสียง ding สั้น สูง
+        oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+        oscillator.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.4);
+      } else if (type === 'call_bill') {
+        // เสียง ding ding สองครั้ง
+        oscillator.frequency.setValueAtTime(660, ctx.currentTime);
+        oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.2);
+        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.6);
+      } else {
+        oscillator.frequency.setValueAtTime(440, ctx.currentTime);
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.3);
+      }
+    } catch (e) {
+      console.warn('Audio error:', e);
+    }
+  };
+
+  const toggleSound = () => {
+    setSoundEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem('soundEnabled', String(next));
+      return next;
+    });
+  };
+
+  const bellButtonRef = useRef<HTMLButtonElement>(null);
+  const notiPopoverRef = useRef<HTMLDivElement>(null);
+
+  // ข้อมูล User พื้นฐาน
+  const username = location.state?.username;
+  const role = location.state?.role;
+
+  // ✅ 1. ดึง userId จาก LocalStorage เพื่อใช้เช็ค Socket
+  const currentUserId = useMemo(() => {
+    const stored = localStorage.getItem('userId');
+    return stored ? parseInt(stored) : null;
+  }, []);
+
+  // ✅ 2. เปลี่ยน Permissions เป็น State เพื่อรองรับ Real-time update
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+
+  // ✅ 3. Effect: โหลดสิทธิครั้งแรก (จาก State -> LocalStorage -> API)
+  useEffect(() => {
+      const loadPermissions = async () => {
+          // A. ถ้ามีส่งมาทาง state (ตอน login ใหม่ๆ) ให้ใช้เลย
+          if (location.state?.permissions) {
+              setUserPermissions(location.state.permissions);
+              return;
+          }
+
+          // B. ถ้าไม่มี ให้ลองดึงจาก LocalStorage (กัน refresh แล้วหาย)
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+              try {
+                  const parsed = JSON.parse(storedUser);
+                  if (parsed.permissions) {
+                    setUserPermissions(parsed.permissions);
+                  }
+              } catch { /* ignore */ }
+          }
+
+          // C. เพื่อความชัวร์ ดึงล่าสุดจาก API อีกที
+          if (currentUserId) {
+              try {
+                  const res = await axios.get(`${apiUrl}/api/user/${currentUserId}`);
+                  if (res.data && res.data.permissions) {
+                      setUserPermissions(res.data.permissions);
+                      // อัพเดทลง LocalStorage ให้สดใหม่เสมอ
+                      const currentUserData = JSON.parse(localStorage.getItem('user') || '{}');
+                      currentUserData.permissions = res.data.permissions;
+                      localStorage.setItem('user', JSON.stringify(currentUserData));
+                  }
+              } catch (err) { console.error("Failed to fetch fresh permissions", err); }
+          }
+      };
+      loadPermissions();
+  }, [currentUserId, apiUrl, location.state]);
+
+  // ✅ 4. Effect: รอรับสัญญาณ Socket เมื่อมีการแก้สิทธิ
+  useEffect(() => {
+      if (!socket.connected) socket.connect();
+
+      const handlePermissionUpdate = (data: any) => {
+          // เช็คว่าเป็นสิทธิของ User คนนี้หรือเปล่า
+          if (currentUserId && data.userId === currentUserId) {
+              console.log("⚡ Received new permissions:", data.permissions);
+              
+              // อัพเดท State ทันที (เมนูจะเด้งขึ้นมาเอง)
+              setUserPermissions(data.permissions);
+
+              // อัพเดทลง LocalStorage ด้วย
+              const currentUserData = JSON.parse(localStorage.getItem('user') || '{}');
+              currentUserData.permissions = data.permissions;
+              localStorage.setItem('user', JSON.stringify(currentUserData));
+
+              // แจ้งเตือนพนักงาน
+              Swal.fire({
+                  icon: 'info',
+                  title: 'อัปเดตสิทธิการใช้งาน',
+                  text: 'สิทธิการเข้าถึงเมนูของคุณมีการเปลี่ยนแปลง',
+                  timer: 2000,
+                  showConfirmButton: false,
+                  position: 'top-end',
+                  toast: true
+              });
+          }
+      };
+
+      socket.on('permissions_updated', handlePermissionUpdate);
+
+      return () => {
+          socket.off('permissions_updated', handlePermissionUpdate);
+      };
+  }, [currentUserId]);
+
+  // ✅ 5. ฟังก์ชันเช็คสิทธิ (ใช้ state userPermissions)
+  const hasPermission = (permissionKey: string) => {
+    if (role === 'Admin') return true;
+    return Array.isArray(userPermissions) && userPermissions.includes(permissionKey);
+  };
+
+  const isActive = (path: string) => location.pathname === path;
+  const hasUnread = useMemo(() => notifications.some(n => !n.read), [notifications]);
+
+  useEffect(() => {
+    if (!username) {
+      navigate('/');
+    }
+  }, [username, navigate]);
+
+  const showToast = (notification: NotificationItem) => {
+  const newToast: ToastMessage = { ...notification, key: uuidv4() };
+    setToasts((prev) => [...prev, newToast]);
+    playNotificationSound(notification.type as 'new_order' | 'call_bill' | 'other');
+    setTimeout(() => {
+      closeToast(newToast.key);
+    }, 4000);
+  };
+
+  const closeToast = (key: string) => {
+    setToasts((prev) =>
+      prev.map((t) => (t.key === key ? { ...t, isExiting: true } : t))
+    );
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.key !== key));
+    }, 500);
+  };
+
+  useEffect(() => {
+    const fetchShopLogo = async () => {
+      try {
+        const response = await axios.get<ShopInfo>(`${apiUrl}/api/shop`);
+        if (response.data) {
+          setShopLogo(response.data.shop_logo || null);
+          if (response.data.shop_name) {
+             document.title = response.data.shop_name;
+          }
+          if (response.data.shop_logo) {
+             const iconPath = getImageUrl(response.data.shop_logo);
+             let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+             if (!link) {
+               link = document.createElement('link');
+               link.rel = 'icon';
+               document.getElementsByTagName('head')[0].appendChild(link);
+             }
+             link.href = iconPath;
+          }
+        } else {
+          setShopLogo(null);
+        }
+      } catch (error) {
+        console.error("Error fetching shop logo:", error);
+        setShopLogo(null);
+      }
+    };
+
+    const handleNewNotification = (data: Omit<NotificationItem, 'id' | 'read' | 'timestamp'>) => {
+      const newNoti: NotificationItem = {
+        ...data,
+        id: uuidv4(),
+        read: false,
+        timestamp: new Date(),
+      };
+      setNotifications(prev => [newNoti, ...prev]);
+      showToast(newNoti);
+    };
+
+    fetchShopLogo();
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.on('shop_updated', fetchShopLogo);
+    socket.on('notification', handleNewNotification);
+
+    return () => {
+      socket.off('shop_updated', fetchShopLogo);
+      socket.off('notification', handleNewNotification);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isNotiOpen &&
+        bellButtonRef.current &&
+        !bellButtonRef.current.contains(event.target as Node) &&
+        notiPopoverRef.current &&
+        !notiPopoverRef.current.contains(event.target as Node)
+      ) {
+        setIsNotiOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotiOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= BREAKPOINT) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleNavigation = (path: To) => {
+    navigate(path, { state: { username, role, permissions: userPermissions } }); 
+    if (window.innerWidth < BREAKPOINT) {
+      setSidebarOpen(false);
+    }
+  };
+
+  const handleLogoClick = () => {
+    navigate('/welcome', { state: { username, role, permissions: userPermissions } });
+    if (window.innerWidth < BREAKPOINT) {
+      setSidebarOpen(false);
+    }
+  };
+
+  const handleOpenNotiCenter = () => {
+    const newState = !isNotiOpen;
+    setIsNotiOpen(newState);
+    if (newState) {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
+  };
+
+  const handleNotiClick = (notification: NotificationItem) => {
+    handleNavigation(notification.linkTo);
+    setIsNotiOpen(false);
+    setNotifications(prev =>
+      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+    );
+  };
+
+  const DocumentListIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+    </svg>
+  );
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      {/* --- Sidebar --- */}
+      <div
+        className={`fixed top-0 left-0 h-full text-white flex-col z-40 side-bar
+          w-64 transition-transform duration-500 ease-out 
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          
+          min-[1160px]:w-64 min-[1160px]:relative min-[1160px]:flex min-[1160px]:flex-shrink-0
+          min-[1160px]:translate-x-0
+        `}
+      >
+        {/* (Profile Section) */}
+        <div className="flex flex-col h-full relative z-10">
+          <div className="p-0 flex flex-col items-center mt-5 relative group">
+            <div className="relative cursor-pointer" onClick={handleLogoClick}>
+              {shopLogo ? (
+                <img
+                  className="relative aspect-3/2 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 
+                    object-cover mx-auto rounded-full border-2 border-white/20 
+                    shadow-2xl transition-all duration-500 transform 
+                    group-hover:scale-105 group-hover:border-white/40 group-hover:shadow-3xl
+                    hover:scale-110 cursor-pointer"
+                  src={getImageUrl(shopLogo)}
+                  alt="profile"
+                  title="กลับไปหน้าหลัก"
+                />
+              ) : (
+                <div
+                  className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 
+                    bg-gray-700 mx-auto rounded-full border-2 border-white/20 
+                    shadow-2xl flex items-center justify-center text-gray-400 text-xs text-center
+                    transition-all duration-500 transform 
+                    group-hover:scale-105 group-hover:border-white/40 group-hover:shadow-3xl
+                    hover:scale-110 cursor-pointer"
+                  title="กลับไปหน้าหลัก"
+                >
+                  Logo
+                </div>
+              )}
+              <div className="absolute inset-0 rounded-full border-2 border-gradient-to-r 
+                from-transparent via-blue-300/50 to-transparent animate-spin"
+                style={{ animation: 'spin 8s linear infinite' }} />
+              <div className="absolute inset-0 rounded-full bg-white/10 scale-0 
+                hover:scale-100 transition-transform duration-300" />
+            </div>
+
+            <h1 className="text-lg sm:text-xl font-bold mt-5 mx-auto text-center relative">
+              <span className="relative z-10 bg-gradient-to-r from-blue-200 via-white to-purple-200 
+                bg-clip-text text-transparent animate-pulse">
+                ตำแหน่ง: {role}
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-white to-purple-400 
+                bg-clip-text text-transparent blur-sm opacity-30" />
+            </h1>
+
+            <h1 className="text-lg sm:text-xl font-bold mt-1 mx-auto text-center flex items-center gap-2">
+              <span className="text-lg sm:text-xl mx-auto bg-gradient-to-r from-green-200 to-blue-200 
+                bg-clip-text text-transparent">{username}</span>
+              <span className="mx-3 text-gray-400 animate-pulse">|</span>
+              <button
+                className="relative text-sm sm:text-base edit-bottom group/btn overflow-hidden 
+                  transition-all duration-300 hover:scale-105"
+                onClick={() => handleNavigation('/edit-profile')}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 
+                  scale-0 group-hover/btn:scale-100 transition-transform duration-300 rounded" />
+                <span className="relative z-10 transition-all duration-300 group-hover/btn:text-blue-200">
+                  แก้ไขโปรไฟล์
+                </span>
+              </button>
+            </h1>
+
+            <div className="w-full mt-4 mb-4 relative">
+              <hr className="border-gray-300 line-white-menu relative z-10" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent 
+                via-blue-400/30 to-transparent h-px animate-pulse" />
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r 
+                from-transparent via-white/50 to-transparent transform -translate-x-full 
+                animate-pulse" style={{ animation: 'slideRight 3s ease-in-out infinite' }} />
+            </div>
+          </div>
+
+          {/* (Scrollable menu) */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-20 relative">
+            {/* (Staff Menu - Admin Only) */}
+            {role === 'Admin' && (
+              <>
+                <div className="relative group mb-2">
+                  <p className="text-lg sm:text-xl ms-8 mb-3 font-bold w-full text-left 
+                    bg-gradient-to-r from-green-200 via-blue-200 to-purple-200 
+                    bg-clip-text text-transparent">
+                    การจัดการบุคลากร
+                  </p>
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 
+                    to-blue-500/5 rounded-lg opacity-0 group-hover:opacity-100 
+                    transition-opacity duration-500" />
+                </div>
+
+                <nav className="space-y-2 w-full">
+                  <div className="relative group/item">
+                    <div className={`absolute inset-0 rounded-xl transition-all duration-300 
+                      ${isActive('/staff')
+                        ? 'bg-gradient-to-r from-green-500/20 via-blue-500/20 to-purple-500/20 scale-100 opacity-100'
+                        : 'bg-gradient-to-r from-green-400/10 via-blue-400/10 to-purple-400/10 scale-95 opacity-0 group-hover/item:scale-100 group-hover/item:opacity-100'
+                      }`} />
+
+                    <a
+                      className={`relative flex ps-8 sm:ps-12 items-center text-sm sm:text-base 
+                        px-4 py-3 rounded-xl text-start menu-bottom menu-tap z-10
+                        transition-all duration-300 transform
+                        ${isActive('/staff')
+                          ? 'text-white scale-105 shadow-lg translate-x-2'
+                          : 'text-gray-200 hover:text-white hover:scale-105 hover:translate-x-2'
+                        }`}
+                      href="staff"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleNavigation('/staff');
+                      }}
+                    >
+                      <div className="relative flex items-center justify-center mr-3 text-white
+                        transition-all duration-300 group-hover/item:drop-shadow-lg">
+                        <UserGroupIcon className={`w-6 h-6 sm:w-8 sm:h-8 transition-all duration-300
+                          ${isActive('/staff') ? 'animate-pulse' : ''}
+                          group-hover/item:scale-110`} />
+                      </div>
+                      <span className="transition-all duration-300 group-hover/item:translate-x-1">
+                        จัดการ Staff
+                      </span>
+                    </a>
+                  </div>
+
+                  <div className="relative group/item">
+                    <div className={`absolute inset-0 rounded-xl transition-all duration-300
+                        ${isActive('/attendance-report')
+                        ? 'bg-gradient-to-r from-green-500/20 via-blue-500/20 to-purple-500/20 scale-100 opacity-100'
+                        : 'bg-gradient-to-r from-green-400/10 via-blue-400/10 to-purple-400/10 scale-95 opacity-0 group-hover/item:scale-100 group-hover/item:opacity-100'
+                      }`} />
+                    <a
+                      className={`relative flex ps-8 sm:ps-12 items-center text-sm sm:text-base
+                                  px-4 py-3 rounded-xl text-start menu-bottom menu-tap z-10
+                                  transition-all duration-300 transform
+                                  ${isActive('/attendance-report')
+                          ? 'text-white scale-105 shadow-lg translate-x-2'
+                          : 'text-gray-200 hover:text-white hover:scale-105 hover:translate-x-2'
+                        }`}
+                      href="/attendance-report"
+                      onClick={(e) => { e.preventDefault(); handleNavigation('/attendance-report'); }}
+                    >
+                      <div className="relative flex items-center justify-center mr-3 text-cyan-300 
+                                      transition-all duration-300 group-hover/item:drop-shadow-lg">
+                        <ClipboardDocumentListIcon className={`w-6 h-6 sm:w-8 sm:h-8 transition-all duration-300
+                                          ${isActive('/attendance-report') ? 'animate-pulse' : ''}
+                                          group-hover/item:scale-110`} />
+                      </div>
+                      <span className="transition-all duration-300 group-hover/item:translate-x-1">
+                        รายงานลงเวลา
+                      </span>
+                    </a>
+                  </div>
+
+                  <div className="relative group/item">
+                    <div className={`absolute inset-0 rounded-xl transition-all duration-300
+                        ${isActive('/attendance-summary-report')
+                        ? 'bg-gradient-to-r from-green-500/20 via-blue-500/20 to-purple-500/20 scale-100 opacity-100'
+                        : 'bg-gradient-to-r from-green-400/10 via-blue-400/10 to-purple-400/10 scale-95 opacity-0 group-hover/item:scale-100 group-hover/item:opacity-100'
+                      }`} />
+                    <a
+                      className={`relative flex ps-8 sm:ps-12 items-center text-sm sm:text-base
+                                  px-4 py-3 rounded-xl text-start menu-bottom menu-tap z-10
+                                  transition-all duration-300 transform
+                                  ${isActive('/attendance-summary-report')
+                          ? 'text-white scale-105 shadow-lg translate-x-2'
+                          : 'text-gray-200 hover:text-white hover:scale-105 hover:translate-x-2'
+                        }`}
+                      href="/attendance-summary-report"
+                      onClick={(e) => { e.preventDefault(); handleNavigation('/attendance-summary-report'); }}
+                    >
+                      <div className="relative flex items-center justify-center mr-3 text-lime-300 transition-all duration-300 group-hover/item:drop-shadow-lg">
+                        <PresentationChartLineIcon className={`w-6 h-6 sm:w-8 sm:h-8 transition-all duration-300
+                                          ${isActive('/attendance-summary-report') ? 'animate-pulse' : ''}
+                                          group-hover/item:scale-110`} />
+                      </div>
+                      <span className="transition-all duration-300 group-hover/item:translate-x-1">
+                        สรุปเวลาทำงาน
+                      </span>
+                    </a>
+                  </div>
+                </nav>
+
+                <div className="my-6 mx-4 relative">
+                  <hr className="hr-menu w-full relative z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent 
+                    via-green-400/20 to-transparent h-px animate-pulse" />
+                </div>
+              </>
+            )}
+
+            {/* (Main Menu) */}
+            <nav className="space-y-2 w-full">
+              {[
+                { path: '/table', label: 'สถานะโต๊ะ', icon: BookOpenIcon, color: 'text-blue-300', permission: null },
+                { path: '/PaymentPage', label: 'รายการชำระเงิน', icon: CurrencyDollarIcon, color: 'text-yellow-300', permission: null },
+                { path: '/order', label: 'รับออเดอร์', icon: DocumentListIcon, color: 'text-orange-400', permission: null },
+                // ✅ Check Permission: manage_stock
+                { path: '/stock-management', label: 'จัดการสต๊อก', icon: ArchiveBoxIcon, color: 'text-purple-300', permission: 'manage_stock' },
+              ].map((item) => {
+                // Check Permission
+                if (item.permission && !hasPermission(item.permission)) {
+                   return null;
+                }
+                
+                return (
+                  <div key={item.path} className="relative group/item">
+                    <div className={`absolute inset-0 rounded-xl transition-all duration-300
+                        ${isActive(item.path)
+                        ? 'bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 scale-100 opacity-100'
+                        : 'bg-gradient-to-r from-blue-400/10 via-purple-400/10 to-pink-400/10 scale-95 opacity-0 group-hover/item:scale-100 group-hover/item:opacity-100'
+                      }`} />
+                    <a
+                      className={`relative flex ps-8 sm:ps-12 items-center text-sm sm:text-base
+                                  px-4 py-3 rounded-xl text-start menu-bottom menu-tap z-10
+                                  transition-all duration-300 transform
+                                  ${isActive(item.path)
+                          ? 'text-white scale-105 shadow-lg translate-x-2'
+                          : 'text-gray-200 hover:text-white hover:scale-105 hover:translate-x-2'
+                        }`}
+                      href={item.path}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleNavigation(item.path);
+                      }}
+                    >
+                      <div className={`relative flex items-center justify-center mr-3 ${item.color}
+                                        transition-all duration-300 group-hover/item:drop-shadow-lg`}>
+                        <item.icon className={`w-6 h-6 sm:w-8 sm:h-8 transition-all duration-300
+                                         ${isActive(item.path) ? 'animate-pulse' : ''}
+                                         group-hover/item:scale-110`} />
+                      </div>
+                      <span className="transition-all duration-300 group-hover/item:translate-x-1">
+                        {item.label}
+                      </span>
+                    </a>
+                  </div>
+                );
+              })}
+            </nav>
+
+            {/* (Report Menu) */}
+            {/* ✅ Check Permission: view_reports */}
+            {(role === 'Admin' || hasPermission('view_reports')) && (
+              <>
+                <div className="my-6 mx-4 relative">
+                  <hr className="hr-menu w-full relative z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent 
+                    via-purple-400/20 to-transparent h-px animate-pulse" />
+                </div>
+
+                <div className="relative group mb-2">
+                  <p className="text-lg sm:text-xl ms-8 mb-3 font-bold w-full text-left 
+                    bg-gradient-to-r from-green-200 via-blue-200 to-purple-200 
+                    bg-clip-text text-transparent">
+                    รายงาน
+                  </p>
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 
+                    to-blue-500/5 rounded-lg opacity-0 group-hover:opacity-100 
+                    transition-opacity duration-500" />
+                </div>
+
+                <nav className="space-y-2 w-full">
+                  {[
+                    { path: '/report-overview', label: 'ภาพรวม (Dashboard)', color: 'text-white' },
+                    { path: '/report-sales', label: 'รายงานยอดขาย', color: 'text-green-300' },
+                    { path: '/report-menu', label: 'รายงานเมนู/บุฟเฟต์', color: 'text-blue-300' },
+                    { path: '/report-stock', label: 'รายงานสต็อก', color: 'text-yellow-400' }
+                  ].map((item) => (
+                    <div key={item.path} className="relative group/item">
+                      <div className={`absolute inset-0 rounded-xl transition-all duration-300
+                        ${isActive(item.path)
+                          ? 'bg-gradient-to-r from-green-500/20 via-blue-500/20 to-purple-500/20 scale-100 opacity-100'
+                          : 'bg-gradient-to-r from-green-400/10 via-blue-400/10 to-purple-400/10 scale-95 opacity-0 group-hover/item:scale-100 group-hover/item:opacity-100'
+                        }`} />
+                      <a
+                        className={`relative flex ps-8 sm:ps-12 items-center text-sm sm:text-base 
+                          px-4 py-3 rounded-xl text-start menu-bottom menu-tap z-10
+                          transition-all duration-300 transform
+                          ${isActive(item.path)
+                            ? 'text-white scale-105 shadow-lg translate-x-2'
+                            : 'text-gray-200 hover:text-white hover:scale-105 hover:translate-x-2'
+                          }`}
+                        href={item.path}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleNavigation(item.path);
+                        }}
+                      >
+                        <div className={`relative flex items-center justify-center mr-3 ${item.color}
+                          transition-all duration-300 group-hover/item:drop-shadow-lg`}>
+                          <div className="relative">
+                            <CalendarIcon className={`w-6 h-6 sm:w-8 sm:h-8 transition-all duration-300
+                              ${isActive(item.path) ? 'animate-pulse' : ''}
+                              group-hover/item:scale-110 group-hover/item:rotate-3`} />
+
+                            <div className={`absolute inset-0 rounded-full transition-all duration-500
+                              ${isActive(item.path)
+                                ? 'bg-current blur-sm opacity-30 scale-150'
+                                : 'opacity-0 scale-100'
+                              }`} />
+                          </div>
+
+                          <ChartBarIcon className={`w-2 h-2 sm:w-3 sm:h-3 absolute top-3/5 left-1/2 
+                            -translate-x-1/2 -translate-y-1/2 transition-all duration-300
+                            group-hover/item:animate-bounce`} />
+                        </div>
+
+                        <span className="transition-all duration-300 group-hover/item:translate-x-1">
+                          {item.label}
+                        </span>
+
+                        <div className={`absolute right-2 w-1 h-8 bg-gradient-to-b 
+                          from-blue-400 to-purple-500 rounded-full transition-all duration-300
+                          ${isActive(item.path) ? 'opacity-100 scale-100 animate-pulse' : 'opacity-0 scale-0'}`} />
+                      </a>
+                    </div>
+                  ))}
+                </nav>
+
+                <div className="my-6 mx-4 relative">
+                  <hr className="hr-menu w-full relative z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent 
+                    via-pink-400/20 to-transparent h-px animate-pulse" />
+                </div>
+              </>
+            )}
+
+          </div> {/* End Scrollable Menu */}
+
+          {/* (Setting Button) */}
+          {/* ✅ Check Permission: manage_settings */}
+          {(role === 'Admin' || hasPermission('manage_settings')) && (
+            <div className="absolute bottom-4 left-4 right-4 z-50">
+              <div
+                className={`w-full px-2 py-1 sm:px-4 sm:py-2 transition-colors duration-200 rounded-3xl shadow-2xl shadow-white
+                  ${isActive('/setting') ? 'bg-gray-400' : 'bg-gray-800 hover:bg-gray-700'}
+                  hover:-translate-y-1 hover:shadow-lg transform group/setting
+                `}
+              >
+                <a
+                  className="relative flex items-center justify-center text-sm sm:text-base 
+                    px-2 py-2 sm:px-4 sm:py-2 rounded-3xl text-start menu-bottom 
+                    setting-tap text-white transition-all duration-500 z-10
+                    group-hover/setting:-translate-y-2 group-hover/setting:scale-110
+                    hover:-translate-y-1 hover:shadow-lg transform"
+                  href="setting"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavigation('/setting');
+                  }}
+                >
+                  <div className="flex items-center justify-center mr-2 relative">
+                    <div className="relative">
+                      <Cog6ToothIcon className="w-6 h-6 sm:w-8 sm:h-8 setting-icon-spin" />
+                      <div className="absolute inset-0 border-2 border-transparent 
+                        bg-gradient-to-r from-white/30 to-transparent rounded-full
+                        group-hover/setting:animate-spin transition-all duration-300" />
+                    </div>
+                  </div>
+
+                  <h1 className="relative transition-all duration-300 
+                    group-hover/setting:text-blue-200">
+                    ตั้งค่าร้านค้า
+                    <span className="absolute inset-0 text-blue-200 opacity-0 
+                      group-hover/setting:opacity-50 blur-sm transition-all duration-500">
+                      ตั้งค่าร้านค้า
+                    </span>
+                  </h1>
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Overlay */}
+      {sidebarOpen && window.innerWidth < BREAKPOINT && (
+        <div
+          className="fixed inset-0 bg-gradient-to-br from-black/60 via-gray-900/40 to-black/60 
+            backdrop-blur-sm z-30 transition-all duration-500"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main content */}
+      <div
+        className={`flex-1 flex flex-col h-full duration-500 ease-out
+          ml-0
+        `}
+      >
+        {/* Topbar */}
+        <div
+          className="h-16 sm:h-20 md:h-24 flex items-center px-4 sm:px-6 shadow top-bar 
+          justify-between relative z-20"
+        >
+          {/* ปุ่มเมนู */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="min-[1160px]:hidden relative group z-10"
+          >
+            <Bars3Icon className="relative w-8 h-8 sm:w-10 sm:h-10 text-white 
+              transition-all duration-300 group-hover:scale-110 group-hover:rotate-180 z-10" />
+          </button>
+
+          <h2 className="text-xl sm:text-3xl md:text-5xl lg:text-6xl text-white font-semibold 
+            text-center flex-grow relative z-10">
+            <span className="bg-gradient-to-r from-white via-blue-100 to-purple-100 
+              bg-clip-text text-transparent animate-pulse">
+              {location.pathname === '/welcome' && 'หน้าหลัก'}
+              {location.pathname === '/report-overview' && 'ภาพรวมรายงาน'}
+              {location.pathname === '/report-sales' && 'รายงานยอดขาย'}
+              {location.pathname === '/report-menu' && 'รายงานเมนู/บุฟเฟต์'}
+              {location.pathname === '/report-stock' && 'รายงานสต็อก'}
+              {location.pathname === '/stock-management' && 'จัดการสต็อก'}
+              {location.pathname === '/attendance-report' && 'รายงานลงเวลาทำงาน'}
+              {location.pathname === '/staff' && 'จัดการ Staff'}
+              {location.pathname === '/table' && 'สถานะโต๊ะ'}
+              {location.pathname === '/PaymentPage' && 'รายการชำระเงิน'}
+              {location.pathname === '/order' && 'รับออเดอร์'}
+              {location.pathname === '/setting' && 'ตั้งค่าร้านค้า'}
+              {location.pathname === '/edit-profile' && 'แก้ไขโปรไฟล์'}
+            </span>
+          </h2>
+
+          <div className="flex items-center gap-2 sm:gap-4 z-10">
+            {/* Clock */}
+            <div className="hidden min-[1160px]:flex items-center bg-white/40 p-2 rounded-lg shadow-inner">
+              <ClockInOutButton />
+            </div>
+            {/* --- Sound Toggle --- */}
+            <button
+              onClick={toggleSound}
+              title={soundEnabled ? 'ปิดเสียง' : 'เปิดเสียง'}
+              className="relative p-2 text-white rounded-full transition-colors duration-200 hover:bg-white/10"
+            >
+              {soundEnabled ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M9 9H5a1 1 0 00-1 1v4a1 1 0 001 1h4l3 3V6L9 9z" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+              )}
+            </button>
+            {/* --- Notification Bell --- */}
+            <div className="relative">
+              <button
+                ref={bellButtonRef}
+                onClick={handleOpenNotiCenter}
+                className="relative p-2 text-white rounded-full 
+                  transition-colors duration-200 hover:bg-white/10 group noti-button"
+              >
+                <BellIcon className="w-6 h-6 sm:w-7 sm:h-7 transition-transform duration-300 group-hover:scale-110" />
+                {hasUnread && (
+                  <span className="noti-badge"></span>
+                )}
+              </button>
+
+              {/* --- Notification Popover --- */}
+              {isNotiOpen && (
+                <div ref={notiPopoverRef} className="noti-popover">
+                  <div className="noti-header">
+                    <span>การแจ้งเตือน</span>
+                  </div>
+                  <div className="noti-body">
+                    {notifications.length === 0 ? (
+                      <div className="noti-empty">
+                        ไม่มีการแจ้งเตือน
+                      </div>
+                    ) : (
+                      notifications.map(noti => (
+                        <div
+                          key={noti.id}
+                          className={`noti-item ${!noti.read ? 'unread' : ''}`}
+                          onClick={() => handleNotiClick(noti)}
+                        >
+                          <p className="noti-message">{noti.message}</p>
+                          <span className="noti-timestamp">
+                            {new Date(noti.timestamp).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* --- Logout Button --- */}
+            <div
+              className="relative flex items-center justify-center h-full text-white cursor-pointer
+                p-3 rounded-lg transition-all duration-300 group/logout 
+                hover:-translate-y-1 transform logout-button-container hover:underline"
+              onClick={async () => {
+                const result = await Swal.fire({
+                  title: 'คุณแน่ใจหรือไม่?',
+                  text: 'คุณต้องการออกจากระบบ',
+                  icon: 'warning',
+                  showCancelButton: true,
+                  confirmButtonColor: '#d33',
+                  cancelButtonColor: '#3085d6',
+                  confirmButtonText: 'ออกจากระบบ',
+                  cancelButtonText: 'ยกเลิก',
+                });
+
+                if (result.isConfirmed) {
+                  await Swal.fire({
+                    icon: 'success',
+                    title: 'ออกจากระบบสำเร็จ',
+                    timer: 1200,
+                    showConfirmButton: false,
+                  });
+                  socket.disconnect();
+                  console.log('❌ Manually disconnected socket on logout.');
+                  // เคลียร์ค่า
+                  localStorage.removeItem('user');
+                  localStorage.removeItem('userId');
+                  navigate('/');
+                }
+              }}
+            >
+              <ArrowRightStartOnRectangleIcon className="relative w-5 h-5 sm:w-6 sm:h-6 
+                menu-logout-icon z-10 transition-all duration-300 
+                group-hover/logout:scale-110 group-hover/logout:rotate-12" />
+
+              <span className="hidden sm:inline relative text-base sm:text-xl ml-1 sm:ml-2 z-10 
+                transition-all duration-300 group-hover/logout:text-red-200">
+                ออกจากระบบ
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Page content */}
+        <div className="flex-1 p-4 sm:p-6 overflow-auto bg-gradient-to-br from-gray-50 to-gray-100">
+          <Outlet />
+        </div>
+      </div>
+
+      {/* ปุ่ม Clock ลอย (Mobile) */}
+      <div className={`min-[1160px]:hidden fixed bottom-4 right-4 z-50 transition-all duration-300 transform origin-bottom-right
+        ${sidebarOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}>
+        <ClockInOutButton />
+      </div>
+
+      {/* Toast Container */}
+      <div className="toast-container">
+        {toasts.map((item) => (
+          <div
+            key={item.key}
+            className={`notification-toast ${item.isExiting ? 'exit' : ''}`}
+          >
+            <div className="toast-content">
+              <div className="toast-icon-container">
+                <BellIcon className="w-6 h-6 text-yellow-500" />
+              </div>
+              <div className="toast-message">
+                <p className="font-bold">การแจ้งเตือนใหม่!</p>
+                <p className="text-sm">{item.message}</p>
+              </div>
+              <button onClick={() => closeToast(item.key)} className="toast-close-btn">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+    </div>
+  );
+};
+
+export default Menu;
