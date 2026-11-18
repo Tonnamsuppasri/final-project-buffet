@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { useState, useEffect, useMemo, useCallback } from 'react';
-=======
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
@@ -13,11 +9,7 @@ registerLocale('th', thLocale);
 import { 
     format, startOfMonth, endOfMonth, startOfYear, endOfYear, 
     eachHourOfInterval, eachDayOfInterval, eachMonthOfInterval, eachYearOfInterval,
-<<<<<<< HEAD
     startOfDay, endOfDay, subYears, isSameDay, isSameMonth, isSameYear, isSameHour
-=======
-    startOfDay, endOfDay, subYears, isSameDay, isSameMonth, isSameYear, isSameHour, parseISO
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 } from 'date-fns';
 import { th } from 'date-fns/locale'; 
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend } from 'chart.js';

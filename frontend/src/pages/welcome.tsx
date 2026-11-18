@@ -29,11 +29,7 @@ const Welcome = () => {
             gradient: "from-blue-500 to-blue-600",
             title: "ภาพรวมรายงาน",
             description: "ตรวจสอบยอดขายรายวันและรายเดือน",
-<<<<<<< HEAD
             path: "/report-overview"
-=======
-            path: "/report"
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
         },
         {
             icon: (
@@ -81,11 +77,7 @@ const Welcome = () => {
             gradient: "from-green-500 to-green-600",
             title: "ชำระเงิน",
             description: "ประมวลผลการชำระเงินและออกใบเสร็จ",
-<<<<<<< HEAD
             path: "/PaymentPage"
-=======
-            path: "/check-bill"
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
         }
     ];
 

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { useState, useEffect, useCallback } from 'react';
-=======
-import React, { useState, useEffect, useCallback } from 'react';
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { 

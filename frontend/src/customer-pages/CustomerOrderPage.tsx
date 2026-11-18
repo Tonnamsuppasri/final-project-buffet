@@ -18,10 +18,7 @@ import {
 } from 'react-icons/fa';
 import QRCode from 'qrcode'; 
 import { v4 as uuidv4 } from 'uuid'; 
-<<<<<<< HEAD
 import { getImageUrl } from '../utils/imageUtils';
-=======
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 // --- Interfaces ---
 interface MenuItem {
@@ -270,11 +267,7 @@ const CustomerOrderPage = () => {
         const buttonRect = event.currentTarget.getBoundingClientRect(); 
         if (cartRect && buttonRect) {
             const flyer = document.createElement('img');
-<<<<<<< HEAD
             flyer.src = getImageUrl(item.menu_image, '/path/to/placeholder.png');
-=======
-            flyer.src = item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png';
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
             flyer.className = 'item-flyer-image'; 
             flyer.style.left = `${buttonRect.left + buttonRect.width / 2}px`;
             flyer.style.top = `${buttonRect.top + buttonRect.height / 2}px`;
@@ -323,11 +316,7 @@ const CustomerOrderPage = () => {
 
     const MenuItemCard = ({ item }: { item: MenuItem }) => (
         <div key={item.menu_id} className="menu-item-list">
-<<<<<<< HEAD
             <img src={getImageUrl(item.menu_image, '/path/to/placeholder.png')} alt={item.menu_name} className="menu-item-image" />
-=======
-            <img src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png'} alt={item.menu_name} className="menu-item-image" />
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
             <div className="menu-item-details">
                 <h3 className="menu-item-name">{item.menu_name}</h3>
                 <p className="menu-item-desc">{item.menu_description}</p>
@@ -344,11 +333,7 @@ const CustomerOrderPage = () => {
             <header className="order-header" style={{ backgroundImage: `url('/src/assets/images/background.jpg')`}}>
                  <div className="header-overlay">
                     <div className="logo-container">
-<<<<<<< HEAD
                          {shopInfo?.shop_logo ? <img src={getImageUrl(shopInfo.shop_logo)} className="logo" alt="logo"/> : <div className="logo-placeholder">Logo</div>}
-=======
-                         {shopInfo?.shop_logo ? <img src={`data:image/png;base64,${shopInfo.shop_logo}`} className="logo" alt="logo"/> : <div className="logo-placeholder">Logo</div>}
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                     </div>
                     <div className="header-right-stack">
                         <div className="table-info"> 
@@ -402,11 +387,7 @@ const CustomerOrderPage = () => {
                         <div className="cart-body">
                             {cart.length === 0 ? <p className="empty-cart-message">ยังไม่มีรายการในตะกร้า</p> : cart.map(item => (
                                 <div key={item.menu_id} className="cart-item">
-<<<<<<< HEAD
                                     <img src={getImageUrl(item.menu_image, '/path/to/placeholder.png')} className="cart-item-image" alt="item"/>
-=======
-                                    <img src={item.menu_image ? `data:image/png;base64,${item.menu_image}` : '/path/to/placeholder.png'} className="cart-item-image" alt="item"/>
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                     <div className="cart-item-info"><p>{item.menu_name}</p><p className="cart-item-price">฿{item.price}</p></div>
                                     <div className="cart-item-quantity">
                                         <button onClick={() => handleUpdateQuantity(item.menu_id, -1)}><FaMinus /></button>

@@ -1,8 +1,4 @@
 import React, { useState, useEffect, type FormEvent, useRef, useCallback } from 'react';
-<<<<<<< HEAD
-=======
-import { useLocation } from 'react-router-dom';
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import QRCode from 'qrcode';
@@ -11,10 +7,7 @@ import { format } from 'date-fns';
 import { th } from 'date-fns/locale'; 
 import './table.css';
 import { socket } from '../components/menu';
-<<<<<<< HEAD
 import { getImageUrl } from '../utils/imageUtils';
-=======
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 // --- Interfaces ---
 interface TableData {
@@ -219,11 +212,7 @@ class PrintableBill extends React.Component<any> {
                             <p className="text-sm font-semibold mb-2">สแกนเพื่อชำระเงิน</p>
                             <div className="flex justify-center">
                                 <img
-<<<<<<< HEAD
                                     src={getImageUrl(shop.payment_qr_code)}
-=======
-                                    src={`data:image/png;base64,${shop.payment_qr_code}`}
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                     alt="Payment QR"
                                     className="w-40 h-40 object-contain border-2 border-gray-300 p-2"
                                 />
@@ -319,10 +308,6 @@ class PrintableQRCode extends React.Component<any> {
 // --- Main Component ---
 const Table = () => {
     // --- States ---
-<<<<<<< HEAD
-=======
-    const location = useLocation();
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
     const [tables, setTables] = useState<TableData[]>([]);
     const [plans, setPlans] = useState<PlanData[]>([]);
     const [activeOrders, setActiveOrders] = useState<ActiveOrderData[]>([]);
@@ -379,21 +364,13 @@ const Table = () => {
                 axios.get<TableData[]>(`${apiUrl}/api/tables`),
                 axios.get<PlanData[]>(`${apiUrl}/api/plans`),
                 axios.get<ActiveOrderData[]>(`${apiUrl}/api/orders/active`),
-<<<<<<< HEAD
                 axios.get<ShopInfo>(`${apiUrl}/api/shop`).catch(() => ({ data: null as ShopInfo | null }))
-=======
-                axios.get<ShopInfo>(`${apiUrl}/api/shop`)
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
             ]);
             setTables(tablesRes.data);
             setPlans(plansRes.data);
             setActiveOrders(activeOrdersRes.data);
             setShopInfo(shopRes.data);
-<<<<<<< HEAD
             setRefillWaterPrice(shopRes.data?.refill_water_price || 0);
-=======
-            setRefillWaterPrice(shopRes.data.refill_water_price || 0); // เพิ่ม
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
             if (plansRes.data.length > 0 && !selectedPlanId) {
                 setSelectedPlanId(String(plansRes.data[0].id));
             }
@@ -408,12 +385,8 @@ const Table = () => {
 
     useEffect(() => {
     axios.get(`${apiUrl}/api/service-types`)
-<<<<<<< HEAD
         .then(res => setServiceTypes(res.data))
         .catch(err => console.error("Error fetching service types:", err));
-=======
-        .then(res => setServiceTypes(res.data));
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
     }, [apiUrl]);
 
     useEffect(() => {
@@ -852,11 +825,7 @@ const Table = () => {
                                 {paymentMethod === 'โอนจ่าย' && shopInfo?.payment_qr_code && (
                                     <div className="mt-4 flex flex-col items-center p-4 bg-white rounded-lg border">
                                         <p className="text-sm font-medium mb-2">สแกนเพื่อชำระเงิน</p>
-<<<<<<< HEAD
                                         <img src={getImageUrl(shopInfo.payment_qr_code)} alt="QR PromptPay" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
-=======
-                                        <img src={`data:image/png;base64,${shopInfo.payment_qr_code}`} alt="QR PromptPay" className="w-24 h-24 md:w-32 md:h-32 object-contain" />
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                                         <p className="text-xs text-gray-500 mt-2">{shopInfo.shop_name}</p>
                                     </div>
                                 )}

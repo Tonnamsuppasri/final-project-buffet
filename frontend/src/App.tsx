@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { UserIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
-<<<<<<< HEAD
 import { getImageUrl } from './utils/imageUtils';
-=======
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 import './App.css';
 
 // ==========================================
@@ -64,11 +61,7 @@ function App() {
            }
 
            if (res.data.shop_logo) {
-<<<<<<< HEAD
              const iconPath = getImageUrl(res.data.shop_logo);
-=======
-             const iconPath = `data:image/png;base64,${res.data.shop_logo}`;
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
              
              let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
              if (!link) {
@@ -159,13 +152,7 @@ function App() {
                 <div className="mb-8">
                   <div className="w-60 h-60 mx-auto mb-6 rounded-full overflow-hidden shadow-2xl transform hover:scale-105 transition-transform duration-300 border-4 border-white/30">
                     <img 
-<<<<<<< HEAD
                       src={getImageUrl(shopData?.shop_logo, "/src/assets/images/logo-magin.png")} 
-=======
-                      src={shopData?.shop_logo 
-                        ? `data:image/png;base64,${shopData.shop_logo}` 
-                        : "/src/assets/images/logo-magin.jpg"} 
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                       alt="Shop Logo" 
                       className="w-full h-full object-cover"
                     />

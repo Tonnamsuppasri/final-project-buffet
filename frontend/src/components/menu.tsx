@@ -21,10 +21,7 @@ import './menu.css';
 import Swal from 'sweetalert2';
 import { v4 as uuidv4 } from 'uuid';
 import ClockInOutButton from './ClockInOutButton';
-<<<<<<< HEAD
 import { getImageUrl } from '../utils/imageUtils';
-=======
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
 
 // --- Socket Connection ---
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -251,11 +248,7 @@ const Menu = () => {
              document.title = response.data.shop_name;
           }
           if (response.data.shop_logo) {
-<<<<<<< HEAD
              const iconPath = getImageUrl(response.data.shop_logo);
-=======
-             const iconPath = `data:image/png;base64,${response.data.shop_logo}`;
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
              let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
              if (!link) {
                link = document.createElement('link');
@@ -369,7 +362,7 @@ const Menu = () => {
     <div className="flex h-screen overflow-hidden">
       {/* --- Sidebar --- */}
       <div
-        className={`fixed top-0 left-0 h-full text-white flex-col z-40 side-bar
+        className={`fixed top-0 left-0 h-full text-white flex-col z-50 side-bar
           w-64 transition-transform duration-500 ease-out 
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           
@@ -388,11 +381,7 @@ const Menu = () => {
                     shadow-2xl transition-all duration-500 transform 
                     group-hover:scale-105 group-hover:border-white/40 group-hover:shadow-3xl
                     hover:scale-110 cursor-pointer"
-<<<<<<< HEAD
                   src={getImageUrl(shopLogo)}
-=======
-                  src={`data:image/png;base64,${shopLogo}`}
->>>>>>> 5d5a3935e972207927c3f3a01a788a6128ba2578
                   alt="profile"
                   title="กลับไปหน้าหลัก"
                 />
@@ -757,7 +746,7 @@ const Menu = () => {
       {sidebarOpen && window.innerWidth < BREAKPOINT && (
         <div
           className="fixed inset-0 bg-gradient-to-br from-black/60 via-gray-900/40 to-black/60 
-            backdrop-blur-sm z-30 transition-all duration-500"
+            backdrop-blur-sm z-40 min-[1160px]:hidden transition-all duration-500"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -920,7 +909,7 @@ const Menu = () => {
       </div>
 
       {/* ปุ่ม Clock ลอย (Mobile) */}
-      <div className={`min-[1160px]:hidden fixed bottom-4 right-4 z-50 transition-all duration-300 transform origin-bottom-right
+      <div className={`min-[1160px]:hidden fixed bottom-4 right-4 z-30 transition-all duration-300 transform origin-bottom-right
         ${sidebarOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}>
         <ClockInOutButton />
       </div>
